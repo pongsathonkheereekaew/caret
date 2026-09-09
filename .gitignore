@@ -1,0 +1,5 @@
+# Nested upstream checkouts (pinned revisions, see docs/UPSTREAM-LOCK.md).
+# Never committed to this repo; patches live in fork history at release time.
+desktop/
+upstream/
+node_modules/
