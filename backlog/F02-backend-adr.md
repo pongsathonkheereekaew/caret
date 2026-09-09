@@ -30,14 +30,18 @@ Codex/OpenCode adapters + minimal coordinator (second fallback).
    - OpenCode: `permission.asked` → policy auto-reply or human `request`
      event → `permission.reply`, with explicit fail-closed design (interrupted
      Plan turns can never resume as Full Access; resume forces plan-mode
-     rules; pending-permission reconciliation on reconnect).
-   This is the interception point H04 requires — no facade-after-side-effect.
-4. **Dependency footprint (price of reuse).** Effect framework throughout,
-   `bun` runtime for dev/test (`packageManager: bun@1.4.2`, `@effect/sql-sqlite-bun`),
-   engines `node ^22.19 || ^23.11 || >=24.10` (our pinned 24.18.0 qualifies).
-   Provider SDKs vendored as deps (`@opencode-ai/sdk`, `pi-agent-core`,
-   `claude-agent-sdk`, ACP sdk, `node-pty`). Not drop-in short adapters —
-   adopt as a stack (L5 SYN-03) or not at all.
+## Runtime gates before lock-in (SYN-03 / H04)
+
+- [x] `bun install --frozen-lockfile` clean + upstream contract/adapter test
+      suites pass on this machine (contracts 11/11, adapters 115/115,
+      orchestration core 387/387, gateway 32/32 — SYN-06 re-run).
+- [x] Command→engine→event→projection trace on a REAL Codex run (ChatGPT
+      login present, F03): approval request surfaces BEFORE any side effect;
+      deny aborts without mutation — see `F02-control-path-evidence.md`
+      (scratch fixture, file never created).
+- [ ] Same trace on OpenCode driver (needs OpenCode CLI + Go/OpenRouter auth —
+      user gate, see F03).
+- [ ] Dirty-buffer reconcile path identified in adopted code (feeds F04/SYN-04).
 
 ## Decision
 
