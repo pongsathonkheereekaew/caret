@@ -1,0 +1,5759 @@
+{
+ "generated": "2026-09-10",
+ "spec": "docs/IMPLEMENTATION-PLAN.th.md v5",
+ "counts": {
+  "parents": 198,
+  "baseline": 158,
+  "supplementary_px": 40,
+  "ui_families": 75,
+  "by_family": {
+   "ADM": 8,
+   "AG": 11,
+   "API": 6,
+   "AUTO": 8,
+   "BOT": 4,
+   "CLOUD": 11,
+   "CTX": 7,
+   "CUS": 15,
+   "EDIT": 4,
+   "IDE": 12,
+   "INT": 6,
+   "LOC": 5,
+   "MOB": 11,
+   "MOD": 5,
+   "PX": 40,
+   "REV": 6,
+   "SAFE": 5,
+   "SCM": 5,
+   "SEARCH": 7,
+   "TAB": 7,
+   "VIS": 10,
+   "WT": 5
+  }
+ },
+ "parents": [
+  {
+   "id": "IDE-01",
+   "family": "IDE",
+   "title": "เปิด folder/repo/recent/workspace",
+   "detail": "path มี space/Unicode; restore workspace หลัง restart",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-02",
+   "family": "IDE",
+   "title": "Editor tabs/splits/preview tabs",
+   "detail": "dirty state, pin, close, reopen และ drag split ไม่ทำ buffer หาย",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-03",
+   "family": "IDE",
+   "title": "Explorer/file operations",
+   "detail": "create/rename/move/delete พร้อม conflict/undo ที่ upstream รองรับ",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-04",
+   "family": "IDE",
+   "title": "Search/replace/navigation",
+   "detail": "regex, multi-file preview, symbols, definition/references ถูกต้อง",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-05",
+   "family": "IDE",
+   "title": "Terminal/tasks",
+   "detail": "interactive PTY, shell profiles, background process, exit status บนสาม OS",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-06",
+   "family": "IDE",
+   "title": "Git/source control",
+   "detail": "stage/unstage/hunk/commit/branch/merge conflict/status ใช้ repo จริง",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-07",
+   "family": "IDE",
+   "title": "LSP/debugger/test tooling",
+   "detail": "language matrix, breakpoints, diagnostics และ test adapters ที่มีสิทธิ์ใช้",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-08",
+   "family": "IDE",
+   "title": "Settings/themes/keybindings/profiles",
+   "detail": "import แบบมี preview; แยก Caret profile; sync explicit",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-09",
+   "family": "IDE",
+   "title": "Extensions lifecycle",
+   "detail": "discover/install/update/disable/uninstall/VSIX; license/registry/error state",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-10",
+   "family": "IDE",
+   "title": "Remote SSH/WSL/dev environment",
+   "detail": "แยก editor remote และ agent remote; ทดสอบ permitted extension alternatives",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-11",
+   "family": "IDE",
+   "title": "Accessibility/zoom/localization",
+   "detail": "keyboard/screen reader/IME ไทย/Unicode/bidi ไม่แตก; English UI baseline",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "IDE-12",
+   "family": "IDE",
+   "title": "Installer/update/recovery",
+   "detail": "install/upgrade/rollback/signatures/protocol handlers บน OS matrix",
+   "baseline": "[Code - OSS](https://github.com/microsoft/vscode), [Cursor Quickstart](https://cursor.com/docs/get-started/quickstart) • UI D01–D05 • M1",
+   "phases": [
+    "M1"
+   ],
+   "ui_refs": [
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "IDE — ฐาน editor",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-01",
+   "family": "TAB",
+   "title": "Ghost text/FIM completion",
+   "detail": "recent edits + surrounding code; stale response ไม่แทรกทับ buffer รุ่นใหม่",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-02",
+   "family": "TAB",
+   "title": "Accept/reject/partial accept",
+   "detail": "Tab/Escape/word accept และการพิมพ์ต่อทำงานตาม keybinding ที่ตั้ง",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-03",
+   "family": "TAB",
+   "title": "Multiline replacement/imports",
+   "detail": "diff/undo หนึ่ง logical edit; syntax/diagnostics ตรวจได้",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-04",
+   "family": "TAB",
+   "title": "Jump-in-file",
+   "detail": "แสดง destination และ Tab เพื่อไปตำแหน่งต่อไป; ไม่ jump เอง",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-05",
+   "family": "TAB",
+   "title": "Cross-file next edit/portal",
+   "detail": "แสดงไฟล์ปลายทางและ preview ก่อนนำทาง; context hash สอดคล้อง",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-06",
+   "family": "TAB",
+   "title": "Snooze/global/filetype controls",
+   "detail": "statusbar state สะท้อน effective settings; timeout snooze คืนค่าถูก",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "TAB-07",
+   "family": "TAB",
+   "title": "Quality/latency",
+   "detail": "replay typing suite; cancellation, request rate, cost และ acceptance rate",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "EDIT-01",
+   "family": "EDIT",
+   "title": "Selection inline edit",
+   "detail": "selection/prompt → diff → accept/reject; preserve selection/undo",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "EDIT-02",
+   "family": "EDIT",
+   "title": "Generate at cursor / follow-up",
+   "detail": "no-selection insertion; refine proposal ก่อน apply ได้",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "EDIT-03",
+   "family": "EDIT",
+   "title": "Inline-to-agent handoff",
+   "detail": "ส่ง context และ prompt ไป task โดยไม่ apply ซ้ำ",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "EDIT-04",
+   "family": "EDIT",
+   "title": "Terminal command generation",
+   "detail": "อธิบาย/เสนอคำสั่ง; execute เป็น action แยก; shell quoting ตาม OS",
+   "baseline": "[Tab](https://cursor.com/help/ai-features/tab), [Inline edit](https://cursor.com/help/ai-features/inline-edit) • UI D03–D05 • M3",
+   "phases": [
+    "M3"
+   ],
+   "ui_refs": [
+    "D03",
+    "D04",
+    "D05"
+   ],
+   "cluster": "TAB / EDIT — Predictive editing",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-01",
+   "family": "AG",
+   "title": "Editor sidepane + Agents Window",
+   "detail": "เปิดทั้งสอง surface; session เดิม ไม่ duplicate run",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-02",
+   "family": "AG",
+   "title": "Multi-project/task list",
+   "detail": "grouped/pinned/search/filter/rename/archive/delete; workspace identity ถูก",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-03",
+   "family": "AG",
+   "title": "Streaming transcript/tool cards",
+   "detail": "text/code/tool/result/error render; paginate ย้อนประวัติได้",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-04",
+   "family": "AG",
+   "title": "Prompt queue",
+   "detail": "reorder/edit/remove queued prompt; ส่งตามลำดับที่แสดง",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-05",
+   "family": "AG",
+   "title": "Steer/send now/cancel",
+   "detail": "steering เข้าที่ safe boundary; cancel ไม่แปลว่า rollback",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-06",
+   "family": "AG",
+   "title": "Resume/fork/history",
+   "detail": "fork อ้าง base turn; resumable engine state ไม่สูญ metadata",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-07",
+   "family": "AG",
+   "title": "File edit/shell/web/question tools",
+   "detail": "schema, approval, result และ failures ไม่ตกหล่น",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-08",
+   "family": "AG",
+   "title": "Goals / long-running task",
+   "detail": "goal state แยก turn idle; pause/resume/budget/stop reason แสดงจริง",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-09",
+   "family": "AG",
+   "title": "Task todo/progress",
+   "detail": "todos update ตาม events ไม่แต่ง completion status",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-10",
+   "family": "AG",
+   "title": "Artifacts/demos",
+   "detail": "image/video/log/file links ผูก run/revision และเปิด viewer ถูกชนิด",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AG-11",
+   "family": "AG",
+   "title": "Worktree/branch/PR handoff",
+   "detail": "lease + revision; failed move กลับต้นทางได้โดยไม่เสียงาน",
+   "baseline": "[Agent](https://cursor.com/docs/agent/overview), [Agents Window](https://cursor.com/docs/agent/agents-window) • UI A01–A11 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11"
+   ],
+   "cluster": "AG — Agent และ session",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-01",
+   "family": "CTX",
+   "title": "@Files/Folders และ nested picker",
+   "detail": "resolve path/context budget; renamed/deleted file เป็น error ที่แก้ได้",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-02",
+   "family": "CTX",
+   "title": "@Terminal/Chat/Git/Browser",
+   "detail": "snapshot provenance และ revision; trim large content พร้อมบอกขอบเขต",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-03",
+   "family": "CTX",
+   "title": "Image/clipboard/drop/attachments",
+   "detail": "MIME/size validation, upload failure/retry และ remove ก่อนส่ง",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-04",
+   "family": "CTX",
+   "title": "Context ring/breakdown",
+   "detail": "categories ตาม engine ส่งจริง; unknown ไม่แสดงเป็นศูนย์",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-05",
+   "family": "CTX",
+   "title": "Compaction/summarization",
+   "detail": "retain decisions/pending approvals/workspace pointers; timeline แสดง boundary",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-06",
+   "family": "CTX",
+   "title": "Model/reasoning/context picker",
+   "detail": "ค้นหา/filter/default/per-run; supported capability และ quota ชัดเจน",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CTX-07",
+   "family": "CTX",
+   "title": "Mid-session model switch",
+   "detail": "engine-supported switch หรือ explicit new-engine handoff; ไม่แอบ reset",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOD-01",
+   "family": "MOD",
+   "title": "Ask/read-only",
+   "detail": "explore/answer โดยไม่แก้ workspace หรือใช้ write tools",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOD-02",
+   "family": "MOD",
+   "title": "Plan mode",
+   "detail": "ask → research → editable plan → explicit Build; planning ไม่เปิด write execution",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOD-03",
+   "family": "MOD",
+   "title": "Debug mode",
+   "detail": "hypothesis → runtime evidence → fix → verify → clean instrumentation",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOD-04",
+   "family": "MOD",
+   "title": "Custom skill mode",
+   "detail": "persistent skill badge/context จนออก mode; precedence ชัดเจน",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOD-05",
+   "family": "MOD",
+   "title": "Auto/model routing",
+   "detail": "policy โปร่งใส; ไม่ใช้ชื่อ Auto เพื่อซ่อน provider/cost เปลี่ยน",
+   "baseline": "[Prompting](https://cursor.com/docs/agent/prompting), [Plan](https://cursor.com/docs/agent/plan-mode), [Debug](https://cursor.com/docs/agent/debug-mode), [Models](https://cursor.com/docs/models-and-pricing) • UI A03–A06 • M2/M4",
+   "phases": [
+    "M2",
+    "M4"
+   ],
+   "ui_refs": [
+    "A03",
+    "A04",
+    "A05",
+    "A06"
+   ],
+   "cluster": "CTX / MOD — Prompt, context และ modes",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-01",
+   "family": "SEARCH",
+   "title": "Exact/regex/word search",
+   "detail": "results มี path/line/snippet และ cancellation; ไม่อ้าง proprietary speed",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-02",
+   "family": "SEARCH",
+   "title": "Symbol/semantic retrieval",
+   "detail": "sources/dedup/ranking; incremental update; benchmark แยก lexical",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-03",
+   "family": "SEARCH",
+   "title": "Index progress/rebuild/pause",
+   "detail": "status/per-root failures/estimated scope; no endless spinner",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-04",
+   "family": "SEARCH",
+   "title": "Ignore hierarchy/import",
+   "detail": "project/user/parent patterns; effective explanation และ negation tests",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-05",
+   "family": "SEARCH",
+   "title": "Permission/ignore distinction",
+   "detail": "excluded context ไม่ถูกแนบอัตโนมัติ; sandbox ยังบังคับ tools แยก",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-06",
+   "family": "SEARCH",
+   "title": "Branch/multi-root/large repo",
+   "detail": "cache invalidation, symlink/path identity; documented unsupported combinations",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SEARCH-07",
+   "family": "SEARCH",
+   "title": "Documentation sources",
+   "detail": "explicit URL/context fetch/cache/refresh; mark legacy @Docs behavior needing reference verification",
+   "baseline": "[Search](https://cursor.com/docs/agent/tools/search), [Ignore files](https://cursor.com/docs/reference/ignore-file) • UI D02/S04 • M3/M4",
+   "phases": [
+    "M3",
+    "M4"
+   ],
+   "ui_refs": [
+    "D02",
+    "S04"
+   ],
+   "cluster": "SEARCH — Codebase context",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "REV-01",
+   "family": "REV",
+   "title": "File/hunk review inline/split",
+   "detail": "add/delete/rename/binary/large diff; line numbers และ changed counts ตรง Git",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "REV-02",
+   "family": "REV",
+   "title": "Accept/reject/keep-all",
+   "detail": "per-hunk/whole task; dirty buffer conflict ไม่ overwrite",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "REV-03",
+   "family": "REV",
+   "title": "Checkpoint/restore",
+   "detail": "เฉพาะ agent changes; user edits/untracked data ไม่หาย",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "REV-04",
+   "family": "REV",
+   "title": "Agent Review quick/deep",
+   "detail": "explicit base/current HEAD; dedup findings; linked file/line",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "REV-05",
+   "family": "REV",
+   "title": "Review trigger configuration",
+   "detail": "manual/after-task/commit options ผูก event ชัด; docs ต้นแบบมีคำอธิบาย trigger ไม่สอดคล้อง ต้องยืนยันก่อน copy default",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "REV-06",
+   "family": "REV",
+   "title": "Commit/PR lifecycle",
+   "detail": "draft/ready/comment/review/checks/update/close/merge; permissions/HEAD revalidate",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "WT-01",
+   "family": "WT",
+   "title": "Create/discover/select worktree",
+   "detail": "external worktree discovery; logical repo/root mapping",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "WT-02",
+   "family": "WT",
+   "title": "OS-specific setup hooks",
+   "detail": "unix/windows/fallback; setup failure logs และ retry",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "WT-03",
+   "family": "WT",
+   "title": "Move task and bring changes back",
+   "detail": "branch collision, existing modifications, detached HEAD handled",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "WT-04",
+   "family": "WT",
+   "title": "Best-of-N/parallel runs",
+   "detail": "worktrees isolated; compare results และเลือก patch ไม่รวมทับเอง",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "WT-05",
+   "family": "WT",
+   "title": "Cleanup/retention",
+   "detail": "pinned/running/dirty worktrees ต้องไม่สูญงาน; expiry preview และ recovery",
+   "baseline": "[Agent Review](https://cursor.com/docs/agent/agent-review), [Worktrees](https://cursor.com/docs/configuration/worktrees), [Origin PR](https://cursor.com/docs/origin/pull-requests) • UI A07–A09/D05/W03 • M2/M4/M7",
+   "phases": [
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "A07",
+    "A08",
+    "A09",
+    "D05",
+    "W03"
+   ],
+   "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-01",
+   "family": "CUS",
+   "title": "Rules scopes/activation",
+   "detail": "always/glob/description/manual; project/user/team; effective provenance",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-02",
+   "family": "CUS",
+   "title": "AGENTS.md and imported configs",
+   "detail": "nested discovery; `.cursor` import preview; primary Caret writes ไม่แก้ต้นฉบับ",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-03",
+   "family": "CUS",
+   "title": "Skills discovery/frontmatter/assets",
+   "detail": "progressive context, explicit invocation, modes และ invalid manifest errors",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-04",
+   "family": "CUS",
+   "title": "Skill creation/import/sync",
+   "detail": "local/Git source/version; sync and revoke ไม่ลบไฟล์ผู้ใช้ผิดตัว",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-05",
+   "family": "CUS",
+   "title": "Built-in workflow skills",
+   "detail": "equivalents สำหรับ create-rule/skill/hook/subagent, review, loop, automate, canvas, split-to-PRs, blame, SDK/config",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-06",
+   "family": "CUS",
+   "title": "Subagent foreground/background",
+   "detail": "independent context/model/tools; result/timeout/cancel/resume chain",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-07",
+   "family": "CUS",
+   "title": "Cloud subagent / autopilot",
+   "detail": "isolated workspace/VM; parent/child provenance และ cost accounting",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-08",
+   "family": "CUS",
+   "title": "Hooks lifecycle",
+   "detail": "per-event/schema/timeout/exit handling; ไม่อ้าง cloud support ทุก hook เท่ากัน",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-09",
+   "family": "CUS",
+   "title": "Hooks command/prompt types",
+   "detail": "trust, input/output contracts; approval policy และ failure mode ทดสอบได้",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-10",
+   "family": "CUS",
+   "title": "MCP stdio/SSE/Streamable HTTP",
+   "detail": "discovery/reconnect/cancel/auth; root/scopes ต่อ host ถูก",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-11",
+   "family": "CUS",
+   "title": "MCP tools/resources/prompts/elicitation",
+   "detail": "typed results, images, user questions และ consent state",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-12",
+   "family": "CUS",
+   "title": "MCP Apps",
+   "detail": "isolated interactive view, tool calls checked; CSP/navigation boundary",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-13",
+   "family": "CUS",
+   "title": "Plugin manifest lifecycle",
+   "detail": "install/enable/update/disable/remove/version mismatch; local/Git/marketplace",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-14",
+   "family": "CUS",
+   "title": "Team marketplace/publishing",
+   "detail": "install modes, refresh, publish/unpublish and visibility; late track ไม่ลบทิ้ง",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CUS-15",
+   "family": "CUS",
+   "title": "Configuration editor / validation",
+   "detail": "explain conflict, unknown field, secret reference และ effective values",
+   "baseline": "[Rules](https://cursor.com/docs/rules), [Skills](https://cursor.com/docs/skills), [Subagents](https://cursor.com/docs/subagents), [Hooks](https://cursor.com/docs/hooks), [MCP](https://cursor.com/docs/mcp), [Plugins](https://cursor.com/docs/plugins), [Plugin reference](https://cursor.com/docs/reference/plugins) • UI S05–S09/A11 • M4",
+   "phases": [
+    "M4"
+   ],
+   "ui_refs": [
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "A11"
+   ],
+   "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-01",
+   "family": "VIS",
+   "title": "Embedded browser/navigation",
+   "detail": "isolated sessions, history, URL, loading/error, local preview",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-02",
+   "family": "VIS",
+   "title": "Browser tools",
+   "detail": "click/type/scroll/screenshot/console/network; action target ได้จาก state ปัจจุบัน",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-03",
+   "family": "VIS",
+   "title": "Element and multiselect",
+   "detail": "node attributes/styles/component context; unsupported framework แสดง confidence",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-04",
+   "family": "VIS",
+   "title": "Annotation/drawing/frozen frame",
+   "detail": "annotations ผูก screenshot coordinates/viewport ไม่ลอยเมื่อ scroll",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-05",
+   "family": "VIS",
+   "title": "Visual prompt/source linkage",
+   "detail": "precise selection + image + instruction; source-map absence ไม่แต่ง filename",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-06",
+   "family": "VIS",
+   "title": "Image generation/input/output",
+   "detail": "provider capability/usage; artifact saved/opened; unavailable มีทางเลือก",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-07",
+   "family": "VIS",
+   "title": "Canvas create/list/source/iterate",
+   "detail": "sandbox rendering, persist/reopen/source revision, edit/revert",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-08",
+   "family": "VIS",
+   "title": "Canvas share/refresh/revoke",
+   "detail": "explicit publish, access/expiry และ snapshot identity",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-09",
+   "family": "VIS",
+   "title": "Dictation",
+   "detail": "start/stop/transcript/edit/send; denied mic/network/Thai-English handled",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "VIS-10",
+   "family": "VIS",
+   "title": "Conversational voice",
+   "detail": "turn-taking/cancel/text fallback; selected engine tools และ permissions คงเดิม",
+   "baseline": "[Browser](https://cursor.com/docs/agent/tools/browser), [Design Mode](https://cursor.com/docs/agent/design-mode), [Canvases](https://cursor.com/docs/agent/tools/canvas), [Prompting](https://cursor.com/docs/agent/prompting) • UI A10–A13/N05–N07 • M4/M6",
+   "phases": [
+    "M4",
+    "M6"
+   ],
+   "ui_refs": [
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "N05",
+    "N06",
+    "N07"
+   ],
+   "cluster": "VIS — Browser, Design Mode, canvas, voice",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "LOC-01",
+   "family": "LOC",
+   "title": "Pair/local worker registration",
+   "detail": "device identity, repo mapping, QR expiry/revoke; correct owner only",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "LOC-02",
+   "family": "LOC",
+   "title": "Remote control existing run",
+   "detail": "preserved task state; tools อยู่ host ที่เลือก; no duplicate execution",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "LOC-03",
+   "family": "LOC",
+   "title": "Host lifecycle",
+   "detail": "offline/sleep/keep-awake settings; no silent cloud fallback",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "LOC-04",
+   "family": "LOC",
+   "title": "LAN/private/relay connection",
+   "detail": "encrypted transport, network changes, session resync และ incompatible version",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "LOC-05",
+   "family": "LOC",
+   "title": "Multiple hosts/repositories",
+   "detail": "local/SSH/devbox identity; same filename ต่าง repo ไม่สับสน",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-01",
+   "family": "MOB",
+   "title": "Inbox/tasks/search/filter/pin",
+   "detail": "cache-first, status/diff count/freshness; tap opens correct session",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-02",
+   "family": "MOB",
+   "title": "New task/repo/branch/worker/model",
+   "detail": "selections persisted per intent; unavailable host/model clear",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-03",
+   "family": "MOB",
+   "title": "Chat/steering/subagent details",
+   "detail": "stream, tool expansion, follow-up/cancel/approve; compact layouts",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-04",
+   "family": "MOB",
+   "title": "PR review and lifecycle",
+   "detail": "changed files/commits/checks/comments/reviewers/deployments/merge พร้อม stale revision guard",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-05",
+   "family": "MOB",
+   "title": "Image/file/camera/annotation",
+   "detail": "picker permissions, previews, point/draw coordinates และ retry",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-06",
+   "family": "MOB",
+   "title": "Voice",
+   "detail": "dictation/conversation state และ keyboard transitions; no accidental double send",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-07",
+   "family": "MOB",
+   "title": "Notifications/Live Activities",
+   "detail": "completion/attention, deep link, dedup; lock-screen privacy and stale activity cleanup",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-08",
+   "family": "MOB",
+   "title": "iPad layout/Pencil",
+   "detail": "sidebar/chat/review panes; rotation/multitasking/keyboard/Pencil",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-09",
+   "family": "MOB",
+   "title": "Offline/reconnect/background",
+   "detail": "cached read/draft; action revalidation; phone offline ไม่หยุด host run",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-10",
+   "family": "MOB",
+   "title": "Mobile/web boundary",
+   "detail": "mobile จัดการ agent/review; secrets, integration setup/admin ไป dashboard ตาม baseline",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "MOB-11",
+   "family": "MOB",
+   "title": "Android PWA",
+   "detail": "installability, responsive agent/review flow; native Android ไม่อ้างว่ามีใน Cursor baseline",
+   "baseline": "[Mobile](https://cursor.com/docs/cloud-agent/mobile), [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines), [App Store](https://apps.apple.com/us/app/cursor/id6767085653) • UI N01–N10/S10 • M5/M6",
+   "phases": [
+    "M5",
+    "M6"
+   ],
+   "ui_refs": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09",
+    "N10",
+    "S10"
+   ],
+   "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-01",
+   "family": "CLOUD",
+   "title": "Provision/stop/recover isolated worker",
+   "detail": "lease/heartbeat, TTL/cost, cancel during startup, cleanup",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-02",
+   "family": "CLOUD",
+   "title": "Repo/branch/multi-repo/no-repo",
+   "detail": "checkout ownership; scratch → named repo; explicit unsupported combos",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-03",
+   "family": "CLOUD",
+   "title": "Environment setup",
+   "detail": "install/start commands, dependencies, secrets/network, setup-agent proposal",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-04",
+   "family": "CLOUD",
+   "title": "Builds/snapshots/history",
+   "detail": "last-good activation, freshness/source SHA/logs และ failed-build fallback",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-05",
+   "family": "CLOUD",
+   "title": "Artifact/demo/desktop stream",
+   "detail": "screenshots/videos/logs, remote preview และ access control",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-06",
+   "family": "CLOUD",
+   "title": "Computer use Mac/Linux",
+   "detail": "helper permissions/platform backend; take-control arbitration; Windows status explicit",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-07",
+   "family": "CLOUD",
+   "title": "My Machines / Team Pools",
+   "detail": "worker registration, routing labels, queue/claim/release, drain/hibernate",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-08",
+   "family": "CLOUD",
+   "title": "Local↔cloud handoff",
+   "detail": "environment compatibility, pending changes/history/attachments, rollback",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-09",
+   "family": "CLOUD",
+   "title": "OIDC/metadata/private connectivity",
+   "detail": "audience/scoped identity, host boundary, token expiry และ audit",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-10",
+   "family": "CLOUD",
+   "title": "Sharing/retention/deletion",
+   "detail": "viewer/controller scopes, revoke, delete artifacts/snapshots according policy",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "CLOUD-11",
+   "family": "CLOUD",
+   "title": "Port forwarding/publish",
+   "detail": "authenticated preview; publish needs selected deployment provider; no accidental public exposure",
+   "baseline": "[Cloud](https://cursor.com/docs/cloud-agent), [Builds](https://cursor.com/docs/cloud-agent/builds), [Capabilities](https://cursor.com/docs/cloud-agent/capabilities), [Self-hosted](https://cursor.com/docs/cloud-agent/self-hosted), [Choose runtime](https://cursor.com/docs/cloud-agent/self-hosted/choose-runtime), [Changelog](https://cursor.com/changelog) • UI W02/W04–W06 • M8",
+   "phases": [
+    "M8"
+   ],
+   "ui_refs": [
+    "W04",
+    "W05",
+    "W06",
+    "W02"
+   ],
+   "cluster": "CLOUD — เครื่องรันงานและ environments",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-01",
+   "family": "AUTO",
+   "title": "Schedule/loop/event subscriptions",
+   "detail": "timezone/DST/restart/missed runs/dedup/no-op notification policy",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-02",
+   "family": "AUTO",
+   "title": "Webhook/SCM/chat/issue triggers",
+   "detail": "signature, identity, routing, retry และ duplicate payload handling",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-03",
+   "family": "AUTO",
+   "title": "Run history/prompts/tools/config",
+   "detail": "immutable run inputs, logs, costs, enable/disable/manual test",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-04",
+   "family": "AUTO",
+   "title": "PR autopilot / fix CI",
+   "detail": "new HEAD invalidation, bounded retry, bot loops prevented, stop conditions",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-05",
+   "family": "AUTO",
+   "title": "Bugbot equivalent",
+   "detail": "incremental review/depth/rules/dedup/CI status/findings/feedback analytics",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-06",
+   "family": "AUTO",
+   "title": "Security review equivalent",
+   "detail": "finding evidence/severity/repro/fix verification; no guarantee of complete vulnerability detection",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-07",
+   "family": "AUTO",
+   "title": "Reviewer routing/risk approval",
+   "detail": "explicit policy precedence/identity; audit decision and allow human override",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "AUTO-08",
+   "family": "AUTO",
+   "title": "Memories and action tools",
+   "detail": "provenance/edit/delete memory; send/comment/publish effects scoped",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "BOT-01",
+   "family": "BOT",
+   "title": "Persistent assistant roster",
+   "detail": "create/edit/name/pin/share/delete; persistent memory distinct from coding task",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "BOT-02",
+   "family": "BOT",
+   "title": "Personal computer/browser identity",
+   "detail": "isolated user boundary; browser account lifecycle and retained sessions",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "BOT-03",
+   "family": "BOT",
+   "title": "Long-lived work/attention",
+   "detail": "recurring work, notifications, clarify/review states, artifact delivery",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "BOT-04",
+   "family": "BOT",
+   "title": "Team setup/network/security",
+   "detail": "provisioning policy, proxies, private access; claim parity only after late-track verification",
+   "baseline": "[Automations](https://cursor.com/docs/cloud-agent/automations), [Bugbot](https://cursor.com/docs/bugbot), [Security agents](https://cursor.com/docs/security-agents), [PR routing](https://cursor.com/docs/approval-agents), [Grok Bot](https://cursor.com/docs/grok-bot), [Bot work](https://cursor.com/docs/grok-bot/work) • UI W07–W09/B01–B04 • M9/M11",
+   "phases": [
+    "M11",
+    "M9"
+   ],
+   "ui_refs": [
+    "W07",
+    "W08",
+    "W09",
+    "B01",
+    "B02",
+    "B03",
+    "B04"
+   ],
+   "cluster": "AUTO / BOT — Automation, review services และ persistent assistants",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SCM-01",
+   "family": "SCM",
+   "title": "Own Git hosting",
+   "detail": "create/visibility/access/clone/push/pull/branches/tags/history",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SCM-02",
+   "family": "SCM",
+   "title": "GitHub mirror",
+   "detail": "source-of-truth, resync/disconnect, forge-local branches, source outage",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SCM-03",
+   "family": "SCM",
+   "title": "Two-way PR collaboration",
+   "detail": "comments/reviews/checks/reactions/state; dedup and permission reconcile",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SCM-04",
+   "family": "SCM",
+   "title": "Codebase browse/search/settings",
+   "detail": "branch/file/line link, protections/apps/access; no wrong-revision context",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SCM-05",
+   "family": "SCM",
+   "title": "Provider abstraction",
+   "detail": "GitHub/GitLab/Bitbucket/Azure: supported/unsupported actions explicit; self-hosted variants tracked",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "INT-01",
+   "family": "INT",
+   "title": "Slack and Teams",
+   "detail": "thread context, mentions/options/routing/status/follow-up; bot identity",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "INT-02",
+   "family": "INT",
+   "title": "Linear/Jira/Notion",
+   "detail": "assignment/mention triggers, repo mapping, comments/status และ access revocation",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "INT-03",
+   "family": "INT",
+   "title": "JetBrains integration",
+   "detail": "ACP client/server route, auth/session/tools; no VS Code embedding",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "INT-04",
+   "family": "INT",
+   "title": "Xcode integration",
+   "detail": "supported MCP bridge/tools/build/test/diagnostics; macOS prerequisite",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "INT-05",
+   "family": "INT",
+   "title": "CI/deploy/event adapters",
+   "detail": "GitHub Actions, Vercel, Depot/Buildkite, Sentry/PagerDuty ตาม documented scope; each has failure contract",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "INT-06",
+   "family": "INT",
+   "title": "Deeplinks",
+   "detail": "prompt/command/rule/task paths; URL length/auth/version/error handling",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "API-01",
+   "family": "API",
+   "title": "CLI interactive/headless",
+   "detail": "streaming structured output/exit codes/images/config/permissions/resume",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "API-02",
+   "family": "API",
+   "title": "CLI modes/worktrees/shell",
+   "detail": "shortcuts/history/review/cancel; platform-specific shell behavior",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "API-03",
+   "family": "API",
+   "title": "ACP and extensions",
+   "detail": "standard handshake/modes/permissions + Caret additions; namespace ไม่ปลอม Cursor server",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "API-04",
+   "family": "API",
+   "title": "Public agent/worker APIs",
+   "detail": "list/create/run/stream/cancel/artifacts/pools/tokens/pagination/rate limits",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "API-05",
+   "family": "API",
+   "title": "SDK TypeScript/Python/bridge",
+   "detail": "same contracts, versioning, lifecycle/error semantics; integration examples ภายหลัง",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "API-06",
+   "family": "API",
+   "title": "Admin/analytics/code tracking APIs",
+   "detail": "schemas/auth/scopes/export; enterprise track not mistaken for personal billing",
+   "baseline": "[Origin](https://cursor.com/docs/origin), [Mirror](https://cursor.com/docs/origin/mirror-github), [Integrations](https://cursor.com/docs/origin/integrations), [CLI](https://cursor.com/docs/cli/overview), [ACP](https://cursor.com/docs/cli/acp), [API](https://cursor.com/docs/api), [SDK](https://cursor.com/docs/sdk/typescript) • UI W01/W03/W10–W12 • M7/M9/M10",
+   "phases": [
+    "M10",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "W10",
+    "W11",
+    "W12",
+    "W01",
+    "W03"
+   ],
+   "cluster": "SCM / INT / API — Ecosystem completeness",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SAFE-01",
+   "family": "SAFE",
+   "title": "Ask/auto-review/full autonomy controls",
+   "detail": "effective policy per engine/OS; classifier ไม่ใช่ sandbox security boundary",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SAFE-02",
+   "family": "SAFE",
+   "title": "OS sandbox/network/permissions",
+   "detail": "deterministic denies, approval expiry, tool args identity; no unsupported guarantee",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SAFE-03",
+   "family": "SAFE",
+   "title": "Workspace trust/prompt injection",
+   "detail": "untrusted repo/docs cannot grant permissions; review tool consequences",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SAFE-04",
+   "family": "SAFE",
+   "title": "Secrets/data boundaries",
+   "detail": "OS secret store, redaction, egress inventory, revoke/delete/export",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "SAFE-05",
+   "family": "SAFE",
+   "title": "Updates/supply chain",
+   "detail": "pinned sources, notices, checksums/signatures, rollback และ compatibility",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-01",
+   "family": "ADM",
+   "title": "Provider account/usage/costs",
+   "detail": "Codex/Go/OpenRouter actual limits; unknown ≠ zero; no billing auto-fallback",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-02",
+   "family": "ADM",
+   "title": "Personal dashboard/settings",
+   "detail": "model/run defaults, devices, integrations, environments, data/notifications",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-03",
+   "family": "ADM",
+   "title": "Organization/team/group roles",
+   "detail": "members/service accounts/SSO/SCIM/groups/policy; late-track functional equivalence",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-04",
+   "family": "ADM",
+   "title": "Spend controls/pooled usage",
+   "detail": "quotas/budgets/alerts/allocation; provider billing semantics retained",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-05",
+   "family": "ADM",
+   "title": "AI attribution/blame/analytics",
+   "detail": "attribution with provenance/model/run; edited lines uncertainty; export",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-06",
+   "family": "ADM",
+   "title": "Audit/OTel/admin APIs",
+   "detail": "filtering/retention/redaction/scope; events correlated with run/tool",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-07",
+   "family": "ADM",
+   "title": "Managed distribution/network",
+   "detail": "MDM/policy/proxy/endpoint compatibility on platform matrix",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "ADM-08",
+   "family": "ADM",
+   "title": "Commercial-contract-only items",
+   "detail": "Cursor price tiers/certifications/BAA/provider private programs are tracked external gaps ไม่สร้าง badge หรือ claim แทน",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "ADM / SAFE — การตั้งค่า การปฏิบัติการ และ enterprise",
+   "source_doc": "docs/PARITY-MATRIX.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-01",
+   "family": "PX",
+   "title": "Local parent มี history → /side หรือเลือก transcript/diff → เปิด durable child ที่ได้ parent reference context แต่ไม่แสดง parent transcript ซ้ำ",
+   "detail": "session / M4 / A14 | ไม่สร้าง nested side chat; cloud baseline ไม่เปิด capability นี้โดยเดา",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-02",
+   "family": "PX",
+   "title": "Side child มี follow-up → @mention จาก parent → ใช้ child context; ปิด child เป็น archive และคง parent association",
+   "detail": "session / M4 / A14 | เปลี่ยน parent ไม่ย้าย child ผิด parent; close ไม่ลบประวัติ",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-03",
+   "family": "PX",
+   "title": "Fork whole chat หรือ message boundary → copy transcript/subagents เฉพาะช่วงที่เลือกเป็น independent conversation",
+   "detail": "session / M4 / A15 | message fork ไม่พก descendants หลัง cutoff; checkpoint restore ไม่ตัด transcript",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A15",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-04",
+   "family": "PX",
+   "title": "Agents Window ค้นข้ามแชต และ transcript ค้นภายใน → match counter, next/previous, jump และ local index",
+   "detail": "search / M3 / A16 | delete/revoke ต้องลบหรือซ่อนผล; virtualized history jump ไม่ผิดข้อความ",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M3",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A16",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-05",
+   "family": "PX",
+   "title": "Share dialog → preview/redaction/Team/Public → read-only share; recipient fork ผ่าน import/deep link",
+   "detail": "sharing / M9 / A17,W14 | redaction best-effort ไม่รับรอง secret-free; no storage/team policy ต้องควบคุม; local files/credentials ไม่ถูกบรรจุ",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A17",
+    "W14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-06",
+   "family": "PX",
+   "title": "Share owner/admin เปลี่ยน visibility/delete → viewer ถูก reauthorize/revoke; dashboard list ค้นได้",
+   "detail": "sharing / M9 / W14 | cached URL ไม่ bypass revocation; public link ไม่สร้างสิทธิ์ local filesystem",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-07",
+   "family": "PX",
+   "title": "Inline edit question mode กับ selection → answer/follow-up; ส่งต่อ Agent พร้อม selection context",
+   "detail": "editor / M3 / D04 | question ไม่แก้ไฟล์จนมี edit intent; focus/chord ไม่ชน terminal",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M3",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "D04",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-08",
+   "family": "PX",
+   "title": "Terminal inline prompt → เสนอ shell command → user execute ตาม state ที่ reference ระบุ",
+   "detail": "editor / M3 / D06 | ไม่ execute จาก preview; shell/cwd/profile ต้องตรง active terminal",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M3",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "D06",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-09",
+   "family": "PX",
+   "title": "Prompt/command/rule/MCP install deep link → decode/preview/confirm → appropriate draft/import/install flow",
+   "detail": "shell / M4 / S13 | ไม่ autorun prompt; traversal/oversized URL/unknown action ไม่เขียนไฟล์; 8,000 encoded-character prompt-link boundary fixture",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-10",
+   "family": "PX",
+   "title": "Run Mode picker มี Auto-review/Allowlist/Run Everything ตาม reference; shell/MCP/fetch routing ผ่าน policy",
+   "detail": "permissions / M2 / S14 | classifier unavailable ต้องแสดง unavailable และ fallback ที่ชัด; ไม่เรียก classifier ว่า sandbox",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-11",
+   "family": "PX",
+   "title": "permissions.json JSONC user+project → concatenate arrays per key, file overrides corresponding UI field, admin overrides; file watch reload",
+   "detail": "config / M2 / S14 | present-empty ไม่ fallback UI; invalid/missing/unknown/non-string handling มี cases; file-controlled UI read-only",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-12",
+   "family": "PX",
+   "title": "sandbox.json → merge paths/network/flags ตาม schema; network deny wins, admin restrictions enforce; protected paths",
+   "detail": "sandbox / M2 / S15 | test child process, symlink, DNS/private IP, temp/cache และ unsupported platform; fallback ต้องขออนุมัติ ไม่ falsely sandbox",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S15",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-13",
+   "family": "PX",
+   "title": "Local run modes กับ cloud isolated execution ใช้ policy profiles แยก; cloud ไม่ใช้ desktop approval loop เป็น default reference",
+   "detail": "runtime / M8 / W02,S14 | isolated VM ไม่แปลว่า credentials/external actions ปลอดภัยเอง; Caret policy additions บันทึก intentional delta",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M8"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W02",
+    "S14",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-14",
+   "family": "PX",
+   "title": "MCP stdio/SSE/Streamable HTTP initialize/discover/reconnect → tools/prompts/resources/roots/elicitation ใช้งานได้",
+   "detail": "MCP / M4 / S07 | server crash แยก failure; schema/capability unsupported ไม่แสดง success",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-15",
+   "family": "PX",
+   "title": "MCP Apps render isolated view พร้อม text fallback; remote OAuth static/dynamic client, state/callback matching",
+   "detail": "MCP / M4 / A18,S07 | app message origin/permissions validate; callback ผิด session ไม่ผูก credential; Caret callback ไม่ใช้ Cursor domain",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A18",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-16",
+   "family": "PX",
+   "title": "MCP config interpolation/envFile และ extension register/unregister; distribution/install/allowlist เป็นคนละ state",
+   "detail": "config / M4 / S07,S09 | envFile เฉพาะ stdio; marketplace linking ไม่ install ทุกคน; secret ไม่ออก logs",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-17",
+   "family": "PX",
+   "title": "Hook adapter มี event coverage ครบ inventory พร้อม input/output, matcher, cwd, timeout, sync/async และ exit semantics",
+   "detail": "hooks / M4 / S08 | preTool updated input ต้อง re-evaluate approval; post hook ไม่ replay side effect เมื่อ reconnect",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-18",
+   "family": "PX",
+   "title": "Third-party hook compatibility import และ workspaceOpen lifecycle พร้อม provenance",
+   "detail": "hooks / M4 / S08 | อย่าส่ง fictional session fields ใน app lifecycle; event ไม่มี engine source ต้อง unsupported ไม่ fabricate",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-19",
+   "family": "PX",
+   "title": "Plugin format discovery/manifest/variables/team marketplace installation mode/skill publishing และ canvas components",
+   "detail": "plugins / M4,M9 / S09,W15 | publish ไม่เท่ากับ auto-install; version/conflict/revoke/prerelease handling",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W15",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-20",
+   "family": "PX",
+   "title": "Rules/skills source and activation map มี nested AGENTS, CLAUDE compatibility, globs, manual/auto/mode และ cloud sync",
+   "detail": "config / M4 / S05 | same-name collision/provenance; rules ไม่ถือว่าใช้กับ Tab เสมอ; scope per surface ต้องทดสอบ",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-21",
+   "family": "PX",
+   "title": "Browser session permissions/origin allowlist/account isolation, console/network, design selection→source linkage",
+   "detail": "browser / M4 / A10,S16 | unsupported frame/origin/auth expiry ไม่ claim source mapping; SSRF/redirect and stale element cases",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A10",
+    "S16",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-22",
+   "family": "PX",
+   "title": "Canvas workspace list, source/render, rerun/revision และ publish/refresh/team gallery",
+   "detail": "artifacts / M4,M9 / A12,W16 | publish policy/no-storage respected; stale revision ไม่ overwrite newer share",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M4",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A12",
+    "W16",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-23",
+   "family": "PX",
+   "title": "Agent ask-question asynchronous กับ ACP blocking interactions แยก semantics; answers route ต่อ exact interaction",
+   "detail": "runtime / M2,M10 / A06 | no answer ไม่ใช่ approval; notification ไม่รอ response; cancel cleans waiter",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "A06",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-24",
+   "family": "PX",
+   "title": "ACP JSON-RPC stdio initialize/auth/session new/load/prompt/update/permission/cancel พร้อม richer extensions",
+   "detail": "API / M10 / W12 | stdout มี protocol เท่านั้น; malformed/cancel/unknown capability/permission timeout ครบ",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-25",
+   "family": "PX",
+   "title": "CLI interactive/headless/output formats, resume/steer/goals, config/auth/permission precedence และ exit status",
+   "detail": "CLI / M10 / T01,T02 | print proposal กับ apply flags แยก; CLI permissions ไม่ reuse desktop parser โดยตรง",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "T01",
+    "T02",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-26",
+   "family": "PX",
+   "title": "TS/Python SDK local/cloud agents/runs/messages/usage/artifacts/custom tools/hooks/subagents/store/stream/error lifecycle",
+   "detail": "SDK / M10 / W12 | sync/async disposal, busy, unsupported operation, retries ไม่ duplicate writes; parity ราย SDK ไม่สมมติเท่ากัน",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-27",
+   "family": "PX",
+   "title": "REST v1 agents/runs/usage/artifacts/archive/unarchive/delete/models/repos/worker tokens/pools/claims",
+   "detail": "API / M10 / W12,W06 | auth scopes, paging, lease expiry, error envelope และ stream reconnect contract",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W12",
+    "W06",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-28",
+   "family": "PX",
+   "title": "Legacy v0 API/CLI changelog features ถูกแยก supported-current/compatibility/deprecated inventory",
+   "detail": "API / M10 / W12 | ไม่เอา API สองรุ่นปน schema; deprecated Kubernetes operator ไม่บังคับสร้างใหม่เพื่อเพิ่ม count",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-29",
+   "family": "PX",
+   "title": "Team/org/analytics/AI tracking APIs มี endpoint/field/scope/paging/date/cache/rate-limit/error conformance ต่อ resource",
+   "detail": "admin / M11 / W13,W17 | tenant leakage, role escalation, deleted user, partial page และ CSV/JSON semantic mismatch",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13",
+    "W17"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-30",
+   "family": "PX",
+   "title": "Review routing ใช้ exact approval-policy basename, ancestor specificity และ routing file; changed policy อิง base branch",
+   "detail": "review / M9 / W09 | PR แก้นโยบายตัวเองไม่ทำให้อนุมัติง่ายขึ้น; security/review checks pending ห้าม approve",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W09",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-31",
+   "family": "PX",
+   "title": "Bug review incremental/full/effort/rules-used/learned rules/autofix/CI statuses และ admin trigger APIs",
+   "detail": "review / M9 / W09 | new HEAD invalidates old success; invalid rule/truncated scope เปิดเผย; external feedback loop bounded",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W09",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-32",
+   "family": "PX",
+   "title": "Self-hosted workers/pools/My Machines เลือก execution environment, claim/lease, capacity/health, private SCM/computer use",
+   "detail": "cloud / M8 / W06 | pool arbitrary-repo routing และ machine owner access ทดสอบแยก; no inbound assumption ไม่แทน transport test",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M8"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W06",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-33",
+   "family": "PX",
+   "title": "Cloud identity/metadata/env/OIDC/private connectivity/build freshness/attachments/no-repo routing",
+   "detail": "cloud / M8 / W04,W05 | credentials survive snapshot โดยไม่ตั้งใจไม่ได้; metadata scope ไม่ข้าม job; attachments limits ตรวจจาก pinned source",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M8"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W04",
+    "W05",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-34",
+   "family": "PX",
+   "title": "SCM adapter แยก GitHub/GHE/GitLab hosted+self-hosted/Bitbucket cloud+DC/Azure identity และ review triggers",
+   "detail": "SCM / M9 / W11 | common API facade ไม่ imply feature equality; webhook/permissions per provider cases",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W11",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-35",
+   "family": "PX",
+   "title": "Slack/Teams/Jira/Linear/Notion ใช้ routing/option precedence/account linking/thread follow-up/visibility ของแต่ละบริการ",
+   "detail": "connectors / M9 / W11 | event sender/repo routing ไม่เชื่อ payload อย่างเดียว; replay ไม่โพสต์ซ้ำ; unavailable integration not completed",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7",
+    "M9"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W11",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-36",
+   "family": "PX",
+   "title": "Origin rules/protections/apps/SSH/auth/ref naming/forge-local branch/PR lifecycle/thread commands และ mirror conflict handling",
+   "detail": "forge / M10 / W10,T02 | mirror lag/offline/detach และ reserved branch semantics; Git sync ไม่แทน review metadata",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M10",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W10",
+    "T02",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-37",
+   "family": "PX",
+   "title": "Enterprise usage/pools/groups/service accounts/model controls/network/privacy/audit/OTel exporter",
+   "detail": "admin / M11 / W13,W17 | no synthetic usage billed as real; revocation/enforcement และ export privacy tested; certification ไม่อ้างมีเอง",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13",
+    "W17"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-38",
+   "family": "PX",
+   "title": "Public profile/handle/visibility/usage-sharing/account sessions/export/delete และ spend controls",
+   "detail": "account / M11 / W13,S12 | deletion ไม่ลบ provider account/remote repos; admin privacy overrides; personal Caret mode ไม่บังคับ billing purchase",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-39",
+   "family": "PX",
+   "title": "Persistent bot native mobile iOS/Android account/computer continuity, recovery/secret entry และ desktop-only computer update",
+   "detail": "bot / M11 / B05,B06 | แยกจาก Cursor coding mobile Android status; ไม่เอา PWA มานับ native bot parity",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "B05",
+    "B06",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  },
+  {
+   "id": "PX-40",
+   "family": "PX",
+   "title": "Diagnostics/network/proxy/cert/extension isolation/performance/support export และ migration recovery",
+   "detail": "release / M1,M7 / S17,D07 | export ไม่มี secret; uninstall/import/update ไม่ลบต้นฉบับ; expose actionable error ไม่ส่ง user วน login",
+   "baseline": "[Run modes](https://cursor.com/docs/agent/security/run-modes), [Privacy](https://cursor.com/docs/enterprise/privacy-and-data-governance), [Identity](https://cursor.com/docs/enterprise/identity-and-access-management), [Dashboard](https://cursor.com/docs/account/teams/dashboard), [Blame](https://cursor.com/docs/integrations/cursor-blame), [Monitoring](https://cursor.com/docs/enterprise/compliance-and-monitoring) • UI S01–S12/W13 • M2/M7/M11",
+   "phases": [
+    "M1",
+    "M11",
+    "M2",
+    "M7"
+   ],
+   "ui_refs": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S17",
+    "D07",
+    "W13"
+   ],
+   "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "children": []
+  }
+ ],
+ "ui_families": [
+  {
+   "id": "D01",
+   "title": "Welcome/open/recent",
+   "contract": "open/clone/recent/import choices, keyboard-first, recover missing path | IDE",
+   "cluster": "Desktop Editor",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "D02",
+   "title": "Workspace shell",
+   "contract": "activity/explorer/search/SCM, tabs, breadcrumbs, split editor, bottom panel | IDE/SEARCH",
+   "cluster": "Desktop Editor",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "D03",
+   "title": "Tab prediction",
+   "contract": "ghost text/multiline diff, inline location cue, bottom portal, status menu | TAB",
+   "cluster": "Desktop Editor",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "D04",
+   "title": "Inline edit",
+   "contract": "anchored input at selection, prompt/follow-up, streaming proposal, accept/reject | EDIT",
+   "cluster": "Desktop Editor",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "D05",
+   "title": "Editor diff/recovery",
+   "contract": "original/proposed lines, hunk actions, file actions, conflicts/checkpoints | REV",
+   "cluster": "Desktop Editor",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A01",
+   "title": "Task/project navigation",
+   "contract": "grouped list, active/attention/completed icons, pin/search/new/context menu | AG-01/02",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A02",
+   "title": "Empty/new task",
+   "contract": "prompt focus, repo/branch/worker selectors, scratch project choice | AG/CLOUD",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A03",
+   "title": "Composer/pickers",
+   "contract": "multiline input, attachment chips, mode/model/effort, context ring, send/stop/voice | CTX/MOD",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A04",
+   "title": "Active conversation",
+   "contract": "user block, response typography, tool rows, progress, expanded child outputs | AG",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A05",
+   "title": "Prompt queue/steering",
+   "contract": "pending messages, edit/remove/reorder/send-now; clear current-vs-next intent | AG-04/05",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A06",
+   "title": "Plan/debug/question",
+   "contract": "editable plan + Build, todo list, clarifying options, hypothesis/evidence cards | MOD",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A07",
+   "title": "Review workspace",
+   "contract": "file list + diff, totals, staged/unstaged/task changes, commit message/actions | REV",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A08",
+   "title": "PR detail",
+   "contract": "title/status/branch/checks, timeline/files/commits, comments/reviewer/merge controls | REV/SCM",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A09",
+   "title": "Worktree/handoff",
+   "contract": "destination picker, branch, setup progress, conflicts, return-to-workspace | WT",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A10",
+   "title": "Browser/Design Mode",
+   "contract": "address/navigation, device viewport, selected outlines, annotation toolbar | VIS",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A11",
+   "title": "Subagents/approvals",
+   "contract": "child cards/detail/back-to-parent; approval arguments/scope/allow-deny | CUS/SAFE",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A12",
+   "title": "Artifacts/canvas",
+   "contract": "media preview/download/source, tabs, revisions/share state, failed render | VIS/AG",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A13",
+   "title": "Voice session",
+   "contract": "listening/transcribing/responding, mic/stop/text transition; no focus theft | VIS",
+   "cluster": "Agents Window และ agent pane",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N01",
+   "title": "Pair/sign-in/device",
+   "contract": "QR/link/manual host, identity confirmation, invalid/expired/revoked connection | LOC",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N02",
+   "title": "Inbox/workspaces",
+   "contract": "task rows/pinned/date groups, search/filter, status/subtitle, bottom new composer | MOB-01",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N03",
+   "title": "Create task",
+   "contract": "repo/branch/worker/model selection; prompt/attachments; missing capability message | MOB-02",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N04",
+   "title": "Chat/subagent",
+   "contract": "transcript/tool cards, child navigation, follow-up/stop/approval, jump-to-latest | MOB-03",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N05",
+   "title": "Diff/PR review",
+   "contract": "changed files selection, compact diff, hunk/context, checks/comments/merge tray | MOB-04",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N06",
+   "title": "Media/annotation",
+   "contract": "black media stage, point labels/freehand, undo/redo/clear/done, text feedback | MOB-05",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N07",
+   "title": "Voice/keyboard",
+   "contract": "dictation sheet or active voice state, native keyboard, editable transcript | MOB-06",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N08",
+   "title": "Activity/notifications",
+   "contract": "task deep links, lock-screen representation, stale/completed/revoked states | MOB-07",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N09",
+   "title": "iPad workspace",
+   "contract": "sidebar/chat/review, collapse at constrained width, Pencil/hardware keyboard | MOB-08",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "N10",
+   "title": "Offline/settings bridge",
+   "contract": "cached items marked fresh/stale, reconnect banner, open dashboard settings | MOB-09/10",
+   "cluster": "Native mobile",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S01",
+   "title": "General/appearance",
+   "contract": "theme, text/zoom, keyboard, profile, open Editor/Agents preference",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S02",
+   "title": "Providers/models",
+   "contract": "connect/status/default/model list/effort/capabilities/quota",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S03",
+   "title": "Tab/inline edit",
+   "contract": "enable/snooze/languages/model/shortcuts/privacy",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S04",
+   "title": "Indexing/ignore/docs",
+   "contract": "roots/status/exclusions/rebuild/source refresh",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S05",
+   "title": "Rules/skills/modes",
+   "contract": "provenance/effective activation/import/create/enable",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S06",
+   "title": "Subagents",
+   "contract": "roles/model/tools/isolation/local-cloud settings",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S07",
+   "title": "MCP",
+   "contract": "server list/status/auth/tools/resources/config/error logs",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S08",
+   "title": "Hooks",
+   "contract": "scope/type/event/timeout/trust/history/schema validation",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S09",
+   "title": "Plugins/marketplaces",
+   "contract": "discovery/details/permissions/install/update/remove/version",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S10",
+   "title": "Agents/devices/runtime",
+   "contract": "run mode, remote control, keep-awake, paired devices/hosts",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S11",
+   "title": "Git/PR/worktrees",
+   "contract": "review trigger/depth, setup, cleanup policy, default branch",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S12",
+   "title": "Data/notifications/updates",
+   "contract": "retention/export/delete/redaction, push, release channel",
+   "cluster": "Settings",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W01",
+   "title": "Web tasks",
+   "contract": "same session list/filter/conversation model as desktop",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W02",
+   "title": "New cloud task",
+   "contract": "repo/scratch/branch/model/environment/worker",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W03",
+   "title": "PR/codebase review",
+   "contract": "files/commits/checks/comments/reviews/actions",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W04",
+   "title": "Environments/secrets",
+   "contract": "config/start/install/network/secret refs/test setup",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W05",
+   "title": "Builds",
+   "contract": "list/status/source SHA/logs/current build/failure/debug/rebuild",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W06",
+   "title": "Workers/pools",
+   "contract": "host health/capacity/claim/routing/hibernate/revoke",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W07",
+   "title": "Automation editor",
+   "contract": "trigger/prompt/tools/repo/policy/schedule/timezone",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W08",
+   "title": "Automation runs",
+   "contract": "immutable inputs/events/cost/error/retry/disable",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W09",
+   "title": "Reviews/security",
+   "contract": "findings/severity/evidence/feedback/analytics/routing policies",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W10",
+   "title": "Repo hosting",
+   "contract": "create/sync/browse/search/branches/settings/apps",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W11",
+   "title": "Integrations",
+   "contract": "account connection/scopes/repo routing/webhook health",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W12",
+   "title": "APIs/SDK/CLI setup",
+   "contract": "keys/versions/docs/examples/scopes/revoke",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W13",
+   "title": "Organization/usage",
+   "contract": "members/groups/roles/SSO/SCIM/budgets/audit/attribution",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "B01",
+   "title": "Persistent bots roster",
+   "contract": "new/edit/name/pin/status/share/delete",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "B02",
+   "title": "Bot conversation/memory",
+   "contract": "persistent instructions/history/memory edit/provenance",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "B03",
+   "title": "Bot computer",
+   "contract": "live view/take control/browser account attention",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "B04",
+   "title": "Bot settings/team setup",
+   "contract": "notifications/plugins/network/identity/retention",
+   "cluster": "Web/dashboard และ ecosystem",
+   "source_doc": "docs/UI-SPEC.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A14",
+   "title": "Side chat panel, parent breadcrumb, prompt, @mention-return, archive",
+   "contract": "parent context ไม่ปรากฏเป็น transcript; parent continues; nonnested/local-only baseline | M4",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A15",
+   "title": "Fork menu/message action, source cutoff preview, destination/new chat",
+   "contract": "distinguish whole/message/side; descendants after cutoff absent | M4",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A16",
+   "title": "Global chat search + in-transcript find bar",
+   "contract": "query/results/snippet/highlight/count/next/previous, search index building/no matches/error, focus returns to source | M3",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A17",
+   "title": "Share preview, redaction notice, Team/Public visibility, copy/open/revoke",
+   "contract": "publishing/published/failure/disabled-by-policy; explicit publish action; unsent preview never share | M9",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "A18",
+   "title": "MCP App panel, tool provenance, embedded controls, text fallback",
+   "contract": "loading/crashed/reconnect/auth; isolated origin and resize messages; keyboard escape returns host | M4",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "D06",
+   "title": "Terminal prompt bar and command preview",
+   "contract": "terminal focus/cwd/profile, generation/cancel/execute; no unexpected run on focus change | M3",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "D07",
+   "title": "Migration/recovery assistant",
+   "contract": "selectable imports/conflict preview/backup/progress/retry/restore; no source app overwrite | M1",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S13",
+   "title": "Deep-link import/install confirmation",
+   "contract": "decoded content/source/action/destination, validation error, duplicate/conflict; no auto execution | M4",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S14",
+   "title": "Approvals & Execution settings",
+   "contract": "run mode, effective allowlist, admin/file source, classifier health, read-only locked controls | M2",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S15",
+   "title": "Sandbox settings/status/blocked tool detail",
+   "contract": "filesystem/network/temp/cache/effective policy, platform unsupported, explicit out-of-sandbox request | M2",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S16",
+   "title": "Browser origins/session permissions",
+   "contract": "auth isolation, origin allow/block list, session reset, protected action confirmation | M4",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "S17",
+   "title": "Diagnostics/support panel",
+   "contract": "engine/daemon/network/index/extension health, redacted preview/export, retry and safe reset | M7",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W14",
+   "title": "Shared transcripts gallery/viewer",
+   "contract": "owner/team filter, visibility/delete, public/team auth, Fork action, revoked/not-found | M9",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W15",
+   "title": "Team marketplace administration",
+   "contract": "source/access/install modes/publish skill/version rollout/revoke; publishing does not install | M9",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W16",
+   "title": "Shared canvases gallery/viewer",
+   "contract": "source revision/publish refresh/revoke, permissions/retention, interactive fallback | M9",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "W17",
+   "title": "Detailed usage/audit/telemetry",
+   "contract": "time/member/model/repo filters, cursor pagination, CSV export, empty/partial/export failure | M11",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "B05",
+   "title": "Bot mobile iOS/Android inbox/computer/chat",
+   "contract": "same account/computer state, keyboard/voice/network switch; native per OS | M11",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  },
+  {
+   "id": "B06",
+   "title": "Bot computer recovery/secrets/update status",
+   "contract": "mobile repair guidance, secret secure entry, desktop-required update route, failed restore | M11",
+   "cluster": "J3. UI inventory เพิ่ม — 18 screen families รวมเป็น 75",
+   "source_doc": "docs/HANDOFF-DETAILS.th.md",
+   "status": "planned",
+   "states": []
+  }
+ ]
+}
