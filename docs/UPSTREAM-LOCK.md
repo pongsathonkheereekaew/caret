@@ -23,8 +23,8 @@ handle space/Unicode paths (IDE-01) — the editor runtime does, the upstream
 build scripts do not.
 
 | Checkout | Path | Revision |
-|---|---|---|
 | Code-OSS fork base | `~/caret-work/desktop` | `3e078a3` |
+| Caret desktop fork (`caret` branch) | `~/caret-work/caret-desktop` | `3e078a3` + Caret patches (fork history) |
 | Synara candidate | `~/caret-work/upstream-synara` | `59db80a` |
 
 Notes:
