@@ -20,12 +20,12 @@ union contradictory specs** (G-VIS-02, J6).
    setting (TAB-02).
 
 ## Known conflicts (from J6/K2 — all `pending-runtime`)
-
 | # | Conflict | Sources | Resolution procedure |
 |---|---|---|---|
 | C-01 | Queue/steer shortcuts differ across agent-overview rollout versions | agent overview (multiple rollouts) | Record source/build/surface per variant; test on the one verified reference build; keep exactly its behavior |
 | C-02 | Shortcut reference uses different Return/queue bindings than the overview | `docs/reference/keyboard-shortcuts.md` (`a0e368a9e2dcd80f`) vs agent overview | Same as C-01; Return behavior is reference-gated, keep `pending-runtime` |
 | C-03 | `Cmd/Ctrl+K` collides with upstream chord starter | UI-SPEC | Caret inline-edit binding scoped to editor-text-focus + Caret-session context; upstream chord untouched elsewhere |
+| C-04-evidence | upstream default CONFIRMED at pinned `3e078a3`: `keybindings: { primary: KeyMod.CtrlCmd \| KeyMod.Shift \| KeyCode.KeyD }` for `workbench.view.debug` (`src/vs/workbench/contrib/debug/browser/debug.contribution.ts:459`) — static read 2026-09-10 | Caret MUST NOT bind bare Cmd/Ctrl+Shift+D globally; runtime CONFLICT-GATE still open |
 | C-04 | `Cmd/Ctrl+Shift+D` collides with upstream Debug view | UI-SPEC | Same scoping rule as C-03; verify against F01 keybinding dump |
 | C-05 | ACP question/plan requests BLOCK; desktop async questions let work continue | ACP docs vs agent overview | Separate semantics, never one handler: blocking bridge (ACP) vs async interaction (desktop); cancel cleans the waiter (PX-23/24) |
 | C-06 | `@` picker vs `/` picker vs model picker behaviors | UI-SPEC | `@` = refs w/ preview; `/` = one-shot skill vs persistent mode; model picker splits engine/provider/model + unavailable reason, never silently retasks |
