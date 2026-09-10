@@ -17,7 +17,9 @@ import {
   createIsolatedRun,
   bringBackRun,
   removeIsolatedRun,
+  runSetupHooks,
   type IsolatedRun,
+  type SetupHook,
 } from "./worktree.ts";
 
 export interface ApprovalQuery {
@@ -105,7 +107,7 @@ export const startCaretRun = (
   opts: DaemonOptions,
   repoDir: string,
   runId: string,
-  runOptions?: { isolate?: boolean },
+  runOptions?: { isolate?: boolean; setup?: ReadonlyArray<SetupHook> },
 ) =>
   Effect.gen(function* () {
     const adapter = yield* CodexAdapter;
@@ -139,6 +141,10 @@ export const startCaretRun = (
       ? null
       : yield* createIsolatedRun(repoDir, runId);
     const workDir = isolated ? isolated.worktreeDir : repoDir;
+    if (runOptions?.setup !== undefined && runOptions.setup.length > 0) {
+      const hookResults = yield* runSetupHooks(workDir, runOptions.setup);
+      yield* journal(opts.journalPath, { type: "caret.run.setup", results: hookResults });
+    }
     yield* adapter.startSession({
       threadId,
       cwd: workDir,

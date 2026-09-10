@@ -20,6 +20,7 @@ import {
   pruneOrphanWorktreeDirs,
   removeIsolatedRun,
   removeWorktreeDir,
+  runSetupHooks,
   worktreeDiff,
   type IsolatedRun,
 } from "./worktree.ts";
@@ -227,5 +228,49 @@ describe("CaretWorktree", () => {
   });
 
 
+
+  it("setup hooks run in order and skip foreign platforms", async () => {
+    boot();
+    const dir = mkdtempSync(join(tmpdir(), "caret-hook-"));
+    try {
+      const node = process.execPath;
+      const results = await run(runSetupHooks(dir, [
+        { command: node, args: ["-e", "require('fs').appendFileSync('order.txt','one\\n')"] },
+        { command: node, args: ["-e", "require('fs').appendFileSync('order.txt','two\\n')"], os: [process.platform] },
+        { command: node, args: ["-e", "process.exit(1)"], os: [process.platform === "darwin" ? "linux" : "darwin"] },
+      ]));
+      expect(readFileSync(join(dir, "order.txt"), "utf8")).toBe("one\ntwo\n");
+      expect(results).toEqual([
+        { command: node, skipped: false, ms: expect.any(Number), code: 0 },
+        { command: node, skipped: false, ms: expect.any(Number), code: 0 },
+        { command: node, skipped: true, ms: expect.any(Number), code: 0 },
+      ]);
+      expect(await run(runSetupHooks(dir, []))).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("setup hooks fail loud: exit codes, timeouts, no shell", async () => {
+    boot();
+    const dir = mkdtempSync(join(tmpdir(), "caret-hook-"));
+    try {
+      const node = process.execPath;
+      await expect(run(runSetupHooks(dir, [
+        { command: node, args: ["-e", "console.error('hook-boom');process.exit(3)"] },
+      ]))).rejects.toThrow(/hook-boom/);
+      // Real-timer exception: the kill lives in the child-process timeout
+      // (libuv), not the JS clock — fake timers cannot drive it.
+      await expect(run(runSetupHooks(dir, [
+        { command: node, args: ["-e", "setTimeout(()=>{},30000)"], timeoutMs: 300 },
+      ]))).rejects.toThrow(/timed out/);
+      // A spaced binary name is NOT split: execFile goes direct, no shell.
+      await expect(run(runSetupHooks(dir, [
+        { command: `${node} -e`, args: [] },
+      ]))).rejects.toThrow(/ENOENT/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 
 });

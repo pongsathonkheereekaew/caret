@@ -8,6 +8,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as NodePath from "node:path";
 import * as NodeOs from "node:os";
 import * as NodeFs from "node:fs";
+import * as NodeCp from "node:child_process";
 import * as Path from "effect/Path";
 import { GitCore } from "../../server/src/git/Services/GitCore.ts";
 import { GitCommandError } from "../../server/src/git/Errors.ts";
@@ -248,6 +249,63 @@ export const removeWorktreeDir = (repoDir: string, worktreeDir: string, liveDir?
       runId: NodePath.basename(realTarget),
     };
     return yield* removeIsolatedRun(handle);
+  });
+
+export interface SetupHook {
+  /** Binary to execute (no shell lookup/splitting — execFile directly). */
+  readonly command: string;
+  readonly args?: ReadonlyArray<string>;
+  /** Platforms this hook applies to. Omitted = all. Skipped hooks report. */
+  readonly os?: ReadonlyArray<typeof process.platform>;
+  readonly timeoutMs?: number;
+}
+
+export interface SetupHookResult {
+  readonly command: string;
+  readonly skipped: boolean;
+  readonly ms: number;
+  readonly code: number;
+}
+
+/** Run explicit post-create setup hooks in the worktree (M4 tail). No
+ *  auto-discovery: hooks arrive only via the call param, never from repo
+ *  scripts — an untrusted checkout must not auto-execute. Sequential (later
+ *  hooks may depend on earlier ones); failure fails with command + tail. */
+export const runSetupHooks = (workDir: string, hooks: ReadonlyArray<SetupHook>) =>
+  Effect.gen(function* () {
+    const results: SetupHookResult[] = [];
+    for (const hook of hooks) {
+      const t0 = Date.now();
+      if (hook.os !== undefined && !hook.os.includes(process.platform)) {
+        results.push({ command: hook.command, skipped: true, ms: Date.now() - t0, code: 0 });
+        continue;
+      }
+      const timeoutMs = hook.timeoutMs ?? 60000;
+      const execed = yield* Effect.tryPromise({
+        try: () =>
+          new Promise<{ failed: string | null; stdout: string; stderr: string }>((resolve) => {
+            NodeCp.execFile(
+              hook.command,
+              [...(hook.args ?? [])],
+              { cwd: workDir, timeout: timeoutMs, maxBuffer: 1024 * 1024 },
+              (error, stdout, stderr) => {
+                const err = error as (NodeJS.ErrnoException & { killed?: boolean }) | null;
+                resolve({
+                  failed: err === null ? null : err.killed === true ? `timed out after ${timeoutMs}ms` : err.message,
+                  stdout: String(stdout ?? ""),
+                  stderr: String((err as { stderr?: unknown } | null)?.stderr ?? stderr ?? ""),
+                });
+              },
+            );
+          }),
+        catch: () => new Error(`hook spawn failed: ${hook.command}`),
+      });
+      if (execed.failed !== null) {
+        return yield* fail("setup hook", workDir, `${hook.command}: ${execed.failed}\n${execed.stdout}\n${execed.stderr}`);
+      }
+      results.push({ command: hook.command, skipped: false, ms: Date.now() - t0, code: 0 });
+    }
+    return results;
   });
 
 export const pruneOrphanWorktreeDirs = (tmpRoot: string, olderThanMs: number, nowMs = Date.now()) =>
