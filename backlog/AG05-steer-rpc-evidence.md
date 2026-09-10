@@ -20,3 +20,20 @@ refreshes the export goal, so `run.export` reflects the latest intent.
 Composer Steer affordance is yours: send-box-adjacent button enabled only
 while a turn runs → `turn.steer{input}` → status `steered` / refusal text.
 No new approval semantics (steer lands at the next turn boundary).
+
+## Live RPC-level steer (2026-09-10) — PASS
+
+Throwaway `/tmp/caret-steer-live/proof.mjs` over the TCP gateway, real
+Codex, scratch repo. Wall 78.6s.
+
+- Slow turn (`sleep 20` then write `slow.txt`) approved and running.
+- `turn.steer{input: "also create steered.txt…"}` mid-sleep →
+  `{steered:true}` acknowledged over the socket.
+- Both follow-up writes raised their own approvals (3 approvals total,
+  all exact-command-before-execution, all accepted) → `turn completed`.
+- Review names BOTH `slow.txt` (base turn) and `steered.txt` (steered
+  input), 323 chars. Steer demonstrably landed at the turn boundary
+  instead of being dropped or double-applied.
+
+No per-driver caveat change: steer targets the live turn; Codex
+resume-after-stop stays unsupported.
