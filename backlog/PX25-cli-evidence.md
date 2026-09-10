@@ -10,11 +10,19 @@ events stream to stderr).
 
 - 4/4 keepers vs in-memory double (output lines, usage guards, both
   refusal branches, review truncation at 40 lines).
+- --json: one envelope per command (`{command, ok, lines|error}`) via
+  `createJsonLog` (2 keepers: ok shape + usage-error shape; `--json help`
+  smoked live, no daemon needed).
+- Interactive approval loop: `send --ask` prompts once per approval id on
+  stdin (sequential chained prompts, empty/EOF declines, answers explicit
+  per id, no bulk accept) via `createApprovalLoop` (4 behaviors in 1
+  keeper: accept / decline-default / dedupe / ignore non-approval).
 - Live against real `serve-tcp.ts`: `paired: true` exit 0; wrong token
   → `unauthorized` exit 1.
-- Full daemon suite 74/74.
+- Full daemon suite 111/111.
 
 ## Open
 
-- `--json` output (tracked, not started); turn-attached approval loop
-  UX (events already visible on stderr — operator answers by id).
+- Multi-approval UX at scale (prompts are sequential; a flood of requests
+  is usable but noisy). --json and --ask are mutually exclusive (--ask
+  owns stdin/stdout).

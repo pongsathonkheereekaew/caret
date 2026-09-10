@@ -5242,7 +5242,7 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "implemented",
+   "status": "verified",
    "children": [
     {
      "id": "PX-25-C01",
@@ -5258,9 +5258,9 @@
     },
     {
      "id": "PX-25-C03",
-     "title": "--json output and interactive approval loop open",
+     "title": "--json envelopes + send --ask approval loop (2 keepers)",
      "evidence": "backlog/PX25-cli-evidence.md",
-     "result": "open"
+     "result": "pass"
     }
    ]
   },

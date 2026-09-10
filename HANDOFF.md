@@ -91,6 +91,8 @@ elicitation-stream + full OAuth stay open).
 PX-24 ACP streaming (engine events → message chunks) + stdio framing
 keeper (suite 109/109, ACP 5/5; images + multi-session stay open by
 session-API design).
+PX-25 CLI --json envelopes + send --ask approval loop (suite 111/111;
+PX-25 verified 17/198).
 Live Codex proofs over TCP: turn+review+export (21s), mid-turn steer
 (78s), Gitea 1.27.3 PR matrix (8s, Rosetta binary, /tmp instance).
 Fork `caret`: composer Steer/Export/Runs buttons (8/8 wired, tsc 0),
