@@ -4,9 +4,12 @@ IDE ที่รันเอเจนต์บนเครื่องตัว�
 
 เป้าคือ clone-verified gate ใน [แผนรวม v5](docs/IMPLEMENTATION-PLAN.th.md) (authoritative): 198 parent requirements, 75 UI families — [ผล scrutinize](docs/SCRUTINIZE-REVIEW.th.md) กับ [reuse assessment](docs/SYNARA-ASSESSMENT.th.md) ยังเป็นประตูก่อนลงมือ
 
-## สถานะ (2026-09-10)
+## สถานะ (2026-09-10 กลางคืน)
 
-Backend พิสูจน์แล้ว 31/31 tasks: daemon suite เขียว, composer Steer/Export/Runs, FIM Tab single-line, worktrees, MCP streamable-HTTP, TCP gateway + live proofs; native Agents shell อยู่ขั้น contracts (types/transitions ครบ, rendering รอ reference atlas). เปิดค้าง: click-through, signing, devices/APNs, reference build
+- Requirement graph: **verified 17/198** parents, child cases 115 (`planned | implemented | verified | blocked-external` — `blocked-external` ไม่นับว่าผ่าน)
+- Daemon suite **114/114** (`caret-adapter`): MCP tools/resources/prompts/elicitation, FIM Tab single-line, worktrees + bring-back, run picker/retention, TCP gateway + live proofs, ACP streaming, CLI `--json` + `send --ask`, local git commit/sync
+- Fork (`caret` + `caret-native`): composer Steer/Export/Runs, `cmd+k` inline edit, native Agents shell อยู่ขั้น contracts (rendering รอ reference atlas)
+- เปิดค้าง: H05 click-through, reference atlas (Cursor 3.19), signing, devices/APNs, OAuth/cloud providers, independent benchmarks, hosted origin — ทั้งหมดรอคน ของจริง หรือ decision ภายนอก (`HANDOFF.md` มีรายละเอียด)
 
 ## การตัดสินใจที่ล็อกแล้ว (ห้ามรื้อโดยไม่มี evidence ใหม่)
 
@@ -14,6 +17,7 @@ Backend พิสูจน์แล้ว 31/31 tasks: daemon suite เขีย
 - Mac-only: ไม่ทำ Windows/Linux; CI บน self-hosted Mac runner
 - Approval-gated writes; bring-back ชนแล้วปฏิเสธ ไม่ force
 - Daemon เป็น SSOT ของ status/event/transition; fork แค่ render
+- Engine budget: OpenCode Go subscription; no relay (loopback + LAN-direct); repo private
 
 ## โครง (อ่าน `docs/TEAM-ONBOARDING.md` ก่อนแตะโค้ด)
 
