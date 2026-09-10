@@ -262,6 +262,45 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				await this.ensureSession();
 				break;
 			}
+			case 'runs': {
+				await this.listRuns();
+				break;
+			}
+		}
+	}
+
+	/** Picker over Caret-owned isolated runs (M4 tail). Lists the open
+	 *  repo's runs; Remove is guarded daemon-side (dirty/main/foreign/live
+	 *  refuse). Review/bring-back stay on the live session in the composer. */
+	async listRuns(): Promise<void> {
+		const daemon = this.ensureDaemon();
+		await this.ensureSession();
+		const listed = await daemon.request('run.list', {}) as { runs?: string[] };
+		const runs = listed.runs ?? [];
+		if (runs.length === 0) {
+			this.post({ type: 'status', text: 'no isolated runs for this folder' });
+			return;
+		}
+		const picked = await vscode.window.showQuickPick(
+			runs.map((dir) => ({ label: String(dir.split('/').pop()), description: dir, dir })),
+			{ placeHolder: 'Caret isolated runs — pick one to remove' },
+		);
+		if (!picked) {
+			return;
+		}
+		const confirm = await vscode.window.showWarningMessage(
+			`Remove isolated run ${picked.label}? Clean runs only; dirty ones refuse.`,
+			{ modal: true },
+			'Remove',
+		);
+		if (confirm !== 'Remove') {
+			return;
+		}
+		try {
+			const done = await daemon.request('run.remove', { worktreeDir: picked.dir }) as { removed?: boolean };
+			this.post({ type: 'status', text: done.removed ? `removed ${picked.label}` : `${picked.label} has unreviewed changes — Review or Reject first` });
+		} catch (error) {
+			this.post({ type: 'status', text: `remove refused: ${error instanceof Error ? error.message : String(error)}` });
 		}
 	}
 
@@ -298,6 +337,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="reject" class="secondary">Reject</button>
 <button id="bringBack">Bring Back</button>
 <button id="new" class="secondary">New</button>
+<button id="runs" class="secondary">Runs…</button>
 </div>
 <div id="transcript"></div>
 <script nonce="${scriptNonce}">
@@ -342,6 +382,7 @@ document.getElementById('review').onclick = () => vscode.postMessage({ command: 
 document.getElementById('reject').onclick = () => vscode.postMessage({ command: 'reject' });
 document.getElementById('bringBack').onclick = () => vscode.postMessage({ command: 'bringBack' });
 document.getElementById('new').onclick = () => vscode.postMessage({ command: 'new' });
+document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'runs' });
 window.addEventListener('message', (event) => {
 	const m = event.data;
 	if (m.type === 'status') status.textContent = m.text;
@@ -373,6 +414,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('caret.rejectRun', async () => {
 			void vscode.window.showInformationMessage('Use the Reject button in the Caret Agents view.');
 		}),
+		vscode.commands.registerCommand('caret.listRuns', () => viewProvider.listRuns()),
 		vscode.commands.registerCommand('caret.sendToAgent', async (preset?: string) => {
 			const editor = vscode.window.activeTextEditor;
 			const selection = editor && !editor.selection.isEmpty

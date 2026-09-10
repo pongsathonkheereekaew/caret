@@ -48,6 +48,11 @@
 				"category": "Caret"
 			},
 			{
+				"command": "caret.listRuns",
+				"title": "%commands.listRuns%",
+				"category": "Caret"
+			},
+			{
 				"command": "caret.toggleTab",
 				"title": "%commands.toggleTab%",
 				"category": "Caret"

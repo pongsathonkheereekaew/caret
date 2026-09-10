@@ -5,6 +5,7 @@
 	"views.caretComposer": "Agents",
 	"commands.reviewRun": "Review Run Diff",
 	"commands.rejectRun": "Reject Run Changes",
+	"commands.listRuns": "List Isolated Runs",
 	"commands.toggleTab": "Toggle Caret Tab",
 	"commands.snoozeTab": "Snooze Caret Tab 10 min",
 	"commands.inlineEdit": "Inline Edit Selection",
