@@ -19,7 +19,9 @@ H05 headless slice 7/7 + extension loads/activates/trust-gated · M3 Tab
 isolated-by-default binding (6/6), steer/resume-matrix, MCP 5/5, prune.
 
 Open: H05 click-through (manual script in `backlog/H05-ui-evidence.md`),
-M3 tail (multiline/next-edit, Tab keybinding, semantic index), M4 tail
+M3 tail (multiline/next-edit, Tab keybinding, semantic embed-wiring +
+independent benchmark; incremental index + symbols done →
+`backlog/SEARCH-index-evidence.md`), M4 tail
 (MCP OAuth + HTTP elicitation-stream; retention cap done 2026-09-10 →
 `backlog/M4-retention-evidence.md`; resources/prompts/elicitation-stdio
 done → `backlog/M4-backend-evidence.md`), M5/M6 remote+mobile, M7 release, M8–M11.

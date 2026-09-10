@@ -8,10 +8,15 @@ Embeddings still arrive through the measured local-nomic seam
 ## Proven
 
 - Overlap chunking, round-trip persistence, corrupt-shape rejection
-  (non-JSON / non-object / version / chunks / chunk-shape).
+  (non-JSON / non-object / version / chunks / chunk-shape / symbol-shape).
 - Vector-count guard; ranking order by best chunk.
-- Full daemon suite 84/84.
+- Incremental updates: re-chunk changed files, drop deleted ones, immutable
+  input, shape-mismatch refusal (`updateFileIndex`, 2 keepers).
+- Symbol attribution: coarse scan (TS/JS defs, Python def/class, Markdown
+  headings) recorded per chunk, survives persistence (1 keeper).
+- Full daemon suite 107/107.
 
 ## Open
 
-Embed-server wiring, incremental updates, symbol granularity, search UI.
+Embed-server wiring, scale + independent-query benchmark (self-authored
+bias noted in `SEARCH-embed-evidence.md`), search UI.

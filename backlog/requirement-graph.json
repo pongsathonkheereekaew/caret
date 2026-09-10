@@ -1355,15 +1355,21 @@
     },
     {
      "id": "SEARCH-02-C02",
-     "title": "no daemon index, no symbol granularity, self-authored queries",
-     "evidence": "backlog/SEARCH-embed-evidence.md",
-     "result": "open"
+     "title": "incremental index + symbol granularity (3 keepers)",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "pass"
     },
     {
      "id": "SEARCH-02-C03",
      "title": "product index module + persistence + ranking (3 keepers)",
      "evidence": "backlog/SEARCH-index-evidence.md",
      "result": "pass"
+    },
+    {
+     "id": "SEARCH-02-C04",
+     "title": "independent-query benchmark at scale (self-authored bias open)",
+     "evidence": "backlog/SEARCH-embed-evidence.md",
+     "result": "open"
     }
    ]
   },
