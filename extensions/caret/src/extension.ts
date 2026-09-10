@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import { CaretTabProvider } from './completion';
 import { registerEditCommands } from './edit';
 import { registerSearchCommands } from './search';
+import { TcpDaemonClient } from './tcp-client';
 import { PendingQueue } from './queue';
 
 const log = vscode.window.createOutputChannel('Caret');
@@ -162,7 +163,111 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		this.view?.webview.postMessage(message);
 	}
 
-	private ensureDaemon(): DaemonClient {
+	private tcp: TcpDaemonClient | null = null;
+	private endpointBar: vscode.StatusBarItem | null = null;
+
+
+	private endpoints(): Array<{ name: string; host: string; port: number; token: string }> {
+		return this.context.globalState.get<Array<{ name: string; host: string; port: number; token: string }>>('caret.endpoints', []);
+	}
+
+	private activeEndpoint(): { name: string; host: string; port: number; token: string } | null {
+		const name = this.context.globalState.get<string>('caret.activeEndpoint', '');
+		return this.endpoints().find((entry) => entry.name === name) ?? null;
+	}
+
+	refreshEndpointStatus(): void {
+		if (!this.endpointBar) {
+			this.endpointBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
+			this.endpointBar.command = 'caret.switchEndpoint';
+			this.context.subscriptions.push(this.endpointBar);
+		}
+		const active = this.activeEndpoint();
+		this.endpointBar.text = active ? `$(plug) ${active.name}` : '$(plug) local';
+		this.endpointBar.tooltip = 'Switch daemon endpoint (caret.switchEndpoint)';
+		this.endpointBar.show();
+	}
+
+	/** Switch endpoint (null = local stdio). Sessions live per daemon, so switching resets. */
+	async useEndpoint(name: string | null): Promise<void> {
+		this.tcp?.close();
+		this.tcp = null;
+		if (this.daemon) {
+			this.daemon.stop();
+			this.daemon = null;
+		}
+		this.sessionOn = false;
+		await this.context.globalState.update('caret.activeEndpoint', name ?? '');
+		this.refreshEndpointStatus();
+		this.post({ type: 'status', text: name ? `endpoint: ${name}` : 'endpoint: local stdio' });
+	}
+
+	async addEndpointFlow(): Promise<void> {
+		const how = await vscode.window.showQuickPick(['Manual host/port/token', 'Read pairing file'], { placeHolder: 'Add daemon endpoint' });
+		if (!how) {
+			return;
+		}
+		let host = '127.0.0.1';
+		let port = 0;
+		let token = '';
+		if (how.startsWith('Read')) {
+			const picked = await vscode.window.showOpenDialog({ canSelectFiles: true, canSelectFolders: false, filters: { Token: ['token'] } });
+			const file = picked?.[0]?.fsPath ?? '';
+			if (!file) {
+				return;
+			}
+			try {
+				token = fs.readFileSync(file, 'utf8').trim();
+			} catch {
+				void vscode.window.showWarningMessage('Caret: cannot read pairing file.');
+				return;
+			}
+			const match = /caret-pairing-(\d+)\.token/.exec(file);
+			port = match ? Number(match[1]) : 0;
+		} else {
+			host = await vscode.window.showInputBox({ prompt: 'Daemon host', value: '127.0.0.1' }) ?? '';
+			const portText = await vscode.window.showInputBox({ prompt: 'Daemon port' }) ?? '';
+			port = Number(portText);
+			token = await vscode.window.showInputBox({ prompt: 'Pairing token', password: true }) ?? '';
+		}
+		if (!host || !port || !token) {
+			void vscode.window.showWarningMessage('Caret: host, port, and token are all required.');
+			return;
+		}
+		const name = `${host}:${port}`;
+		const kept = this.endpoints().filter((entry) => entry.name !== name);
+		kept.push({ name, host, port, token });
+		await this.context.globalState.update('caret.endpoints', kept);
+		await this.useEndpoint(name);
+	}
+
+	async switchEndpointFlow(): Promise<void> {
+		const names = ['Local stdio', ...this.endpoints().map((entry) => entry.name)];
+		const picked = await vscode.window.showQuickPick(names, { placeHolder: 'Daemon endpoint' });
+		if (!picked) {
+			return;
+		}
+		await this.useEndpoint(picked === 'Local stdio' ? null : picked);
+		await this.ensureSession().catch((error: Error) => this.post({ type: 'status', text: error.message }));
+	}
+
+	private async ensureDaemon(): Promise<{ request(method: string, params: unknown): Promise<unknown> }> {
+		const endpoint = this.activeEndpoint();
+		if (endpoint) {
+			if (!this.tcp) {
+				const client = new TcpDaemonClient(
+					(msg) => this.onDaemonNotification(msg),
+					() => {
+						this.tcp = null;
+						this.sessionOn = false;
+						this.post({ type: 'status', text: 'endpoint closed' });
+					},
+				);
+				await client.connect(endpoint.host, endpoint.port, endpoint.token);
+				this.tcp = client;
+			}
+			return this.tcp;
+		}
 		if (this.daemon) {
 			return this.daemon;
 		}
@@ -192,7 +297,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		if (!folder) {
 			throw new Error('open a folder first — the slice runs against the open workspace');
 		}
-		const daemon = this.ensureDaemon();
+		const daemon = await this.ensureDaemon();
 		const started = await daemon.request('session.start', {
 			repoDir: folder.uri.fsPath,
 			runId: `ui-${Date.now()}`,
@@ -227,7 +332,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 	/** Run one turn, then drain FIFO queue. A failed turn keeps the
 	 *  remainder queued (operator resumes with Send); Stop clears. */
 	private async runTurn(first: string): Promise<void> {
-		const daemon = this.ensureDaemon();
+		const daemon = await this.ensureDaemon();
 		await this.ensureSession();
 		let text: string | null = first;
 		this.sending = true;
@@ -255,7 +360,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private async onUiMessage(message: { command?: string; [key: string]: unknown }): Promise<void> {
-		const daemon = this.ensureDaemon();
+		const daemon = await this.ensureDaemon();
 		switch (message.command) {
 			case 'send': {
 				const text = String(message.text ?? '').trim();
@@ -365,7 +470,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 	 *  repo's runs; Remove is guarded daemon-side (dirty/main/foreign/live
 	 *  refuse). Review/bring-back stay on the live session in the composer. */
 	async listRuns(): Promise<void> {
-		const daemon = this.ensureDaemon();
+		const daemon = await this.ensureDaemon();
 		await this.ensureSession();
 		const listed = await daemon.request('run.list', {}) as { runs?: string[] };
 		const runs = listed.runs ?? [];
@@ -564,6 +669,8 @@ export function activate(context: vscode.ExtensionContext): void {
 			void vscode.window.showInformationMessage('Use the Reject button in the Caret Agents view.');
 		}),
 		vscode.commands.registerCommand('caret.listRuns', () => viewProvider.listRuns()),
+		vscode.commands.registerCommand('caret.addEndpoint', () => viewProvider.addEndpointFlow()),
+		vscode.commands.registerCommand('caret.switchEndpoint', () => viewProvider.switchEndpointFlow()),
 		vscode.commands.registerCommand('caret.sendToAgent', async (preset?: string) => {
 			const editor = vscode.window.activeTextEditor;
 			const selection = editor && !editor.selection.isEmpty
@@ -580,6 +687,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 	);
 	log.appendLine('[caret] extension active');
+	viewProvider.refreshEndpointStatus();
 }
 
 export function deactivate(): void { }

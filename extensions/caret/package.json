@@ -53,6 +53,16 @@
 				"category": "Caret"
 			},
 			{
+				"command": "caret.addEndpoint",
+				"title": "%commands.addEndpoint%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.switchEndpoint",
+				"title": "%commands.switchEndpoint%",
+				"category": "Caret"
+			},
+			{
 				"command": "caret.toggleTab",
 				"title": "%commands.toggleTab%",
 				"category": "Caret"
