@@ -1,0 +1,22 @@
+{
+  "name": "@caret/daemon",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Caret single-harness daemon facade (Codex driver first). Upstream seam documented in DEPS.md.",
+  "scripts": {
+    "slice": "bun run src/slice.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@synara/contracts": "workspace:*",
+    "@synara/shared": "workspace:*",
+    "@effect/platform-node": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
