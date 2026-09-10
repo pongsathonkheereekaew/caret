@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import { CaretTabProvider } from './completion';
 import { registerEditCommands } from './edit';
 import { registerSearchCommands } from './search';
+import { PendingQueue } from './queue';
 
 const log = vscode.window.createOutputChannel('Caret');
 
@@ -131,6 +132,8 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 	private daemon: DaemonClient | null = null;
 	private pendingPrefill: string | null = null;
 	private sessionOn = false;
+	private readonly queue = new PendingQueue();
+	private sending = false;
 
 	constructor(private readonly context: vscode.ExtensionContext) { }
 	resolveWebviewView(view: vscode.WebviewView): void {
@@ -209,6 +212,39 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
+	private postQueue(): void {
+		this.post({ type: 'queue', items: this.queue.list() });
+	}
+
+	/** Run one turn, then drain FIFO queue. A failed turn keeps the
+	 *  remainder queued (operator resumes with Send); Stop clears. */
+	private async runTurn(first: string): Promise<void> {
+		const daemon = this.ensureDaemon();
+		await this.ensureSession();
+		let text: string | null = first;
+		this.sending = true;
+		try {
+			while (text !== null) {
+				this.post({ type: 'user', text });
+				this.post({ type: 'status', text: 'turn running…' });
+				try {
+					const done = await daemon.request('turn.send', { input: text }) as { state?: string };
+					this.post({ type: 'turn', state: String(done.state ?? 'completed') });
+				} catch (error) {
+					this.post({ type: 'status', text: `turn failed — queue held: ${error instanceof Error ? error.message : String(error)}` });
+					break;
+				}
+				text = this.queue.takeNext();
+				this.postQueue();
+			}
+		} finally {
+			this.sending = false;
+		}
+		if (this.queue.size === 0) {
+			this.post({ type: 'status', text: 'turn done — Review or Reject' });
+		}
+	}
+
 	private async onUiMessage(message: { command?: string; [key: string]: unknown }): Promise<void> {
 		const daemon = this.ensureDaemon();
 		switch (message.command) {
@@ -217,12 +253,40 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				if (!text) {
 					return;
 				}
-				await this.ensureSession();
-				this.post({ type: 'user', text });
-				this.post({ type: 'status', text: 'turn running…' });
-				const done = await daemon.request('turn.send', { input: text }) as { state?: string };
-				this.post({ type: 'turn', state: String(done.state ?? 'completed') });
-				this.post({ type: 'status', text: 'turn done — Review or Reject' });
+				if (this.sending) {
+					try {
+						const at = this.queue.enqueue(text);
+						this.post({ type: 'status', text: `queued #${at} (turn running)` });
+						this.postQueue();
+					} catch (error) {
+						this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+					}
+					return;
+				}
+				await this.runTurn(text);
+				break;
+			}
+			case 'dequeue': {
+				const index = Number(message.index ?? -1);
+				try {
+					const dropped = this.queue.removeAt(index);
+					this.post({ type: 'status', text: `dropped queued #${index + 1}: ${dropped.slice(0, 60)}` });
+					this.postQueue();
+				} catch (error) {
+					this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+				}
+				break;
+			}
+			case 'stop': {
+				const n = this.queue.clear();
+				this.postQueue();
+				try {
+					await daemon.request('session.stop', {});
+				} catch {
+					// No live session — clearing the queue is still the point.
+				}
+				this.sessionOn = false;
+				this.post({ type: 'status', text: n > 0 ? `stopped, dropped ${n} queued` : 'stopped' });
 				break;
 			}
 			case 'answer': {
@@ -367,6 +431,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 </div>
 <div class="row">
 <button id="send">Send</button>
+<button id="stop" class="secondary">Stop</button>
 <button id="review" class="secondary">Review</button>
 <button id="reject" class="secondary">Reject</button>
 <button id="bringBack">Bring Back</button>
@@ -376,6 +441,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="export" class="secondary">Export…</button>
 </div>
 <div id="transcript"></div>
+<div id="queue"></div>
 <script nonce="${scriptNonce}">
 const vscode = acquireVsCodeApi();
 const transcript = document.getElementById('transcript');
@@ -421,13 +487,30 @@ document.getElementById('new').onclick = () => vscode.postMessage({ command: 'ne
 document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'runs' });
 document.getElementById('steer').onclick = () => vscode.postMessage({ command: 'steer' });
 document.getElementById('export').onclick = () => vscode.postMessage({ command: 'export' });
+document.getElementById('stop').onclick = () => vscode.postMessage({ command: 'stop' });
+function renderQueue(items) {
+	const box = document.getElementById('queue');
+	box.textContent = '';
+	items.forEach((text, i) => {
+		const div = document.createElement('div');
+		div.className = 'msg';
+		div.textContent = 'Queued #' + (i + 1) + ': ' + text;
+		const drop = document.createElement('button');
+		drop.className = 'secondary';
+		drop.textContent = 'Drop';
+		drop.onclick = () => vscode.postMessage({ command: 'dequeue', index: i });
+		div.appendChild(drop);
+		box.appendChild(div);
+	});
+}
 window.addEventListener('message', (event) => {
 	const m = event.data;
 	if (m.type === 'status') status.textContent = m.text;
 	else if (m.type === 'user') add('user', 'You: ' + m.text);
 	else if (m.type === 'turn') add('', 'Turn: ' + m.state);
 	else if (m.type === 'approval') card(m.requestId, m.requestType, m.detail);
-	else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
+else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
+else if (m.type === 'queue') renderQueue(m.items || []);
 });
 </script>
 </body>
