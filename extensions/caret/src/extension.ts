@@ -516,7 +516,7 @@ body { font-family: var(--vscode-font-family); padding: 10px; }
 	 * studied, not imported — engine + Codex-styled skins stay theirs).
 	 * Values resolve from the active VS Code theme TODAY (real, adaptive);
 	 * frozen Cursor-3.19 measurements replace them when reference lands. */
-	--agent-space: 4px;
+	--agent-sidebar-width: 256px;
 	--agent-font-ui: 13px;
 	--agent-font-meta: 11px;
 	--agent-sidebar-width: 208px;
