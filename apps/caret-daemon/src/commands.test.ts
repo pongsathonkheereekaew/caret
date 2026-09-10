@@ -15,6 +15,8 @@ import {
   cmdRemove,
   cmdExport,
   cmdStop,
+  createApprovalLoop,
+  createJsonLog,
 } from "./commands.ts";
 import type { CaretClient } from "./client.ts";
 
@@ -106,5 +108,46 @@ describe("HeadlessCommands", () => {
     ]);
     await expect(run(cmdExport, stubClient(), "" as never, false as never)).rejects.toThrow(/usage/);
     expect(await run(cmdStop, stubClient())).toEqual(["stopped"]);
+  });
+
+  it("envelopes command lines as one JSON object", async () => {
+    const out: string[] = [];
+    const json = createJsonLog("status", (line) => out.push(line));
+    await cmdStatus(stubClient(), json.log);
+    json.finish();
+    expect(out).toHaveLength(1);
+    expect(JSON.parse(out[0] ?? "")).toEqual({ command: "status", ok: true, lines: ["paired: true"] });
+    const failed: string[] = [];
+    const bad = createJsonLog("start", (line) => failed.push(line));
+    try {
+      await cmdStart(stubClient(), bad.log, "" as never, "" as never);
+      bad.finish();
+    } catch (error) {
+      bad.finish(error);
+    }
+    expect(failed).toHaveLength(1);
+    expect(JSON.parse(failed[0] ?? "")).toMatchObject({ command: "start", ok: false, error: expect.stringMatching(/usage/) });
+  });
+
+  it("asks once per approval id, defaulting to decline", async () => {
+    const answered: Array<{ id: string; verdict: string }> = [];
+    const lines: string[] = [];
+    const answers = ["y", ""];
+    const loop = createApprovalLoop({
+      answer: (async (id: string, verdict: "accept" | "decline") => {
+        answered.push({ id, verdict });
+      }) as never,
+      ask: (async () => answers.shift() ?? "") as never,
+      log: (line) => lines.push(line),
+    });
+    await loop.push({ event: "approval.requested", requestId: "a1", requestType: "shell", detail: "rm -rf /" });
+    await loop.push({ event: "approval.requested", requestId: "a1" });
+    await loop.push({ event: "approval.requested", requestId: "a2" });
+    await loop.push({ event: "engine", type: "turn.completed" });
+    expect(answered).toEqual([
+      { id: "a1", verdict: "accept" },
+      { id: "a2", verdict: "decline" },
+    ]);
+    expect(lines).toEqual(["approval a1: accept", "approval a2: decline"]);
   });
 });

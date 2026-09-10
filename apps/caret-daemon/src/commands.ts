@@ -1,11 +1,60 @@
 // Caret headless commands (PX-25 seed): one async function per daemon
 // operation over an injected CaretClient. Output goes through `log` lines
-// (human-readable, stable prefixes) so scripts can grep; a --json flag is
-// tracked, not started. Approval answering is explicit per id — bulk
-// --accept-all is deliberately absent (approval deserves a decision).
+// (human-readable, stable prefixes) so scripts can grep; --json envelopes
+// the same lines as one JSON object for machines. Approval answering is
+// explicit per id — bulk --accept-all is deliberately absent (approval
+// deserves a decision); the interactive loop asks once per request id.
 import type { CaretClient } from "./client.ts";
 
 export type Logger = (line: string) => void;
+
+/** One JSON envelope per command (PX-25 --json): machines parse, humans read lines. */
+export const createJsonLog = (
+  command: string,
+  out: (line: string) => void,
+): { log: Logger; finish: (error?: unknown) => void } => {
+  const lines: string[] = [];
+  return {
+    log: (line) => lines.push(line),
+    finish: (error) => {
+      if (error) {
+        out(JSON.stringify({ command, ok: false, error: error instanceof Error ? error.message : String(error) }));
+      } else {
+        out(JSON.stringify({ command, ok: true, lines }));
+      }
+    },
+  };
+};
+
+export type AskFn = (question: string) => Promise<string>;
+
+/**
+ * Interactive approval loop (PX-25): feed daemon events, prompt once per
+ * approval request id, answer explicitly. Empty/anything-but-yes declines —
+ * the safe default when the operator walks away or stdin hits EOF.
+ */
+export const createApprovalLoop = (opts: {
+  answer: (requestId: string, answer: "accept" | "decline") => Promise<unknown>;
+  ask: AskFn;
+  log: Logger;
+}): { push: (event: Record<string, unknown>) => Promise<void> } => {
+  const seen = new Set<string>();
+  return {
+    push: async (event) => {
+      if (event["event"] !== "approval.requested" || typeof event["requestId"] !== "string") return;
+      const requestId = event["requestId"];
+      if (seen.has(requestId)) return;
+      seen.add(requestId);
+      const detail = typeof event["detail"] === "string" && event["detail"] ? ` — ${event["detail"]}` : "";
+      const reply = ((await opts.ask(`approve ${requestId} (${String(event["requestType"] ?? "unknown")})${detail}? [y/N] `)) ?? "")
+        .trim()
+        .toLowerCase();
+      const verdict = reply === "y" || reply === "yes" ? "accept" : "decline";
+      await opts.answer(requestId, verdict);
+      opts.log(`approval ${requestId}: ${verdict}`);
+    },
+  };
+};
 
 const short = (value: string, n: number): string =>
   value.length > n ? `${value.slice(0, n)}…` : value;
