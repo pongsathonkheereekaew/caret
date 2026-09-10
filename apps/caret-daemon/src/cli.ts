@@ -57,7 +57,14 @@ try {
   switch (command) {
     case "status": await cmdStatus(client, log); break;
     case "start": await cmdStart(client, log, rest[0] ?? "", rest[1] ?? ""); break;
-    case "send": await cmdSend(client, log, rest.join(" ")); break;
+    case "send": {
+      const at = rest.indexOf("--id");
+      const raw = at >= 0 ? rest[at + 1] : undefined;
+      const words = rest.filter((word, i) => i !== at && i !== at + 1);
+      const id = raw === undefined ? undefined : /^\d+$/.test(raw) ? Number(raw) : raw;
+      await cmdSend(client, log, words.join(" "), id);
+      break;
+    }
     case "steer": await cmdSteer(client, log, rest.join(" ")); break;
     case "answer": await cmdAnswer(client, log, rest[0] ?? "", rest[1] ?? ""); break;
     case "review": await cmdReview(client, log); break;

@@ -3,12 +3,26 @@
 // fan-out — over TCP loopback against a stub API. The engine surface shape
 // is asserted against the REAL session factory (keys only, never invoked).
 import * as Net from "node:net";
+import * as Fs from "node:fs";
+import * as Os from "node:os";
+import * as NodePath from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 
-import { serveRemote, type RemoteServer } from "./remote.ts";
+import { serveRemote, writePairingFile, removePairingFile, type RemoteServer } from "./remote.ts";
 import { createSessionApi } from "./session-api.ts";
 
+describe("PairingFiles", () => {
+  it("writes owner-only and removes, missing reads false", () => {
+    const file = NodePath.join(Fs.mkdtempSync(NodePath.join(Os.tmpdir(), "caret-pair-")), "t.token");
+    writePairingFile(file, "s3cret");
+    expect(Fs.readFileSync(file, "utf8")).toBe("s3cret\n");
+    expect(Fs.statSync(file).mode & 0o777).toBe(0o600);
+    expect(removePairingFile(file)).toBe(true);
+    expect(Fs.existsSync(file)).toBe(false);
+    expect(removePairingFile(file)).toBe(false);
+  });
+});
 const HOST = "127.0.0.1";
 
 class LineClient {

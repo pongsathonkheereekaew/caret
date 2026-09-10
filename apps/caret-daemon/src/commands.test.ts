@@ -71,6 +71,18 @@ describe("HeadlessCommands", () => {
     await expect(run(cmdAnswer, stubClient(), "" as never, "accept" as never)).rejects.toThrow(/usage/);
   });
 
+  it("passes explicit send ids for safe retry", async () => {
+    const seen: Array<{ input: string; id: unknown }> = [];
+    const client = stubClient({
+      sendTurn: (async (input: string, id: unknown) => {
+        seen.push({ input, id });
+        return { state: "completed" };
+      }) as never,
+    });
+    expect(await run(cmdSend, client, "hi" as never, 77 as never)).toEqual(["turn: completed"]);
+    expect(seen).toEqual([{ input: "hi", id: 77 }]);
+  });
+
   it("renders review truncated and both refusal branches", async () => {
     const review = await run(cmdReview, stubClient());
     expect(review[0]).toBe("diff 200 chars:");

@@ -26,9 +26,14 @@ export const cmdStart = async (
   log(`thread: ${started.threadId}`);
 };
 
-export const cmdSend = async (client: CaretClient, log: Logger, input: string): Promise<void> => {
-  if (!input.trim()) throw new Error("usage: send <input>");
-  const done = await client.sendTurn(input);
+export const cmdSend = async (
+  client: CaretClient,
+  log: Logger,
+  input: string,
+  id?: string | number,
+): Promise<void> => {
+  if (!input.trim()) throw new Error("usage: send <input> [--id ID]");
+  const done = await client.sendTurn(input, id);
   log(`turn: ${done.state}`);
 };
 

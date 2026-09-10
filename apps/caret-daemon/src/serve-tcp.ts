@@ -6,7 +6,6 @@
 //
 // Lifetime: one process-wide scope feeds every request, so session fibers
 // (approval stream) outlive any single envelope — the server.ts posture.
-import * as Fs from "node:fs";
 import * as Os from "node:os";
 import * as NodePath from "node:path";
 import { parsePort } from "./startup.ts";
@@ -15,7 +14,7 @@ import * as Scope from "effect/Scope";
 import { ManagedRuntime } from "effect";
 import { bootDaemonLayer } from "./daemon.ts";
 import { createSessionApi } from "./session-api.ts";
-import { serveRemote } from "./remote.ts";
+import { serveRemote, writePairingFile, removePairingFile } from "./remote.ts";
 
 const host = process.env["CARET_HOST"]?.trim() || "127.0.0.1";
 const port = parsePort(process.env["CARET_PORT"], 0);
@@ -37,7 +36,8 @@ let pairingFile: string | null = null;
 if (!process.env["CARET_PAIRING"]) {
   pairingFile =
     process.env["CARET_PAIRING_FILE"] ?? NodePath.join(Os.tmpdir(), `caret-pairing-${gateway.port}.token`);
-  Fs.writeFileSync(pairingFile, `${gateway.token}\n`, { mode: 0o600 });
+  removePairingFile(pairingFile);
+  writePairingFile(pairingFile, gateway.token);
 }
 
 console.log(JSON.stringify({ event: "remote.ready", host, port: gateway.port, pairingFile }));

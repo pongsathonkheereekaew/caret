@@ -1,11 +1,9 @@
-// Caret M5 remote gateway (LOC-01/02/04 backbone): the session API over
-// TCP NDJSON for a second client. Pairing-token auth per envelope,
-// per-client request-id idempotency (retry-after-loss never re-executes),
-// pairing revoke with rotation. Loopback-proven here; a LAN bind and the
-// relay-vendor choice are deployment flags over this same gateway, and the
-// engine path is the shared factory (H05-proven over stdio).
+// Caret M5 remote gateway (LOC-01/02/04 backbone): TCP NDJSON pairing,
+// per-client idempotency, revoke. Loopback-proven; LAN/relay are deploy
+// flags over this gateway. Pairing files are owner-only (0600).
 import * as Net from "node:net";
 import * as Crypto from "node:crypto";
+import * as Fs from "node:fs";
 import * as Effect from "effect/Effect";
 
 export type RemoteHandler = (params: never) => Effect.Effect<unknown, unknown>;
@@ -33,6 +31,20 @@ const timingSafeEqualString = (a: string, b: string): boolean => {
   return ba.length === bb.length && Crypto.timingSafeEqual(ba, bb);
 };
 
+/** Write the pairing token with owner-only permissions. */
+export const writePairingFile = (path: string, token: string): void => {
+  Fs.writeFileSync(path, `${token}\n`, { mode: 0o600 });
+};
+
+/** Remove a pairing file (stale boot cleanup, shutdown). False when absent. */
+export const removePairingFile = (path: string): boolean => {
+  try {
+    Fs.rmSync(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
 export const serveRemote = async (
   createApi: (notify: (msg: unknown) => void) => Record<string, RemoteHandler>,
   runEffect: <A>(eff: Effect.Effect<A, unknown>) => Promise<A>,
