@@ -93,6 +93,8 @@ keeper (suite 109/109, ACP 5/5; images + multi-session stay open by
 session-API design).
 PX-25 CLI --json envelopes + send --ask approval loop (suite 111/111;
 PX-25 verified 17/198).
+REV-06 local commit lifecycle + file-remote sync over real git (suite
+114/114; hosted origin + autopilot stay blocked-external).
 Live Codex proofs over TCP: turn+review+export (21s), mid-turn steer
 (78s), Gitea 1.27.3 PR matrix (8s, Rosetta binary, /tmp instance).
 Fork `caret`: composer Steer/Export/Runs buttons (8/8 wired, tsc 0),

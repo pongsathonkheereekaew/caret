@@ -26,3 +26,25 @@ refs agree both sides (`origin/main` == `ls-remote`, server merged=true).
 3/3 stub keepers + live matrix green. Full daemon suite 51/51 with these.
 Out of scope (blocked-external): hosted origin, GitHub sync, CLI/ACP/SDK
 contract suites, webhook-driven autopilot (guard ready in `webhook.ts`).
+
+## Local commit lifecycle + file-remote sync (REV-06 seed, 2026-09-10)
+
+Daemon: `git-local.ts` (commit/stage-all, sync-status with ahead/behind vs
+tracking upstream, push with first-time `--set-upstream`, fetch) over the
+real git binary, execFile directly, no shell. Identity comes from repo
+config — none set means git fails loudly, the module never invents an
+author. A bare dir is the remote: the full push/fetch/reject machinery
+runs locally with zero network.
+
+## Proven
+
+- 3/3 keepers in `git-local.test.ts`: commit sha + log + clean status,
+  empty worktree and empty message refused loudly; push sets upstream and
+  a fresh clone sees the content (sync without network); remote advance
+  shows behind 1 with the worktree untouched; divergent push refused
+  loudly, then ahead 1 / behind 1 after fetch.
+- Full daemon suite 114/114.
+
+## Still open (blocked-external)
+
+Hosted origin, GitHub sync, webhook-driven autopilot.

@@ -1659,9 +1659,15 @@
     },
     {
      "id": "REV-06-C02",
-     "title": "no hosted origin, no commit lifecycle, no sync",
+     "title": "hosted origin + webhook autopilot open (blocked-external)",
      "evidence": "backlog/M10-forge-evidence.md",
      "result": "open"
+    },
+    {
+     "id": "REV-06-C03",
+     "title": "local commit lifecycle + file-remote sync (3 keepers)",
+     "evidence": "backlog/M10-forge-evidence.md",
+     "result": "pass"
     }
    ]
   },
