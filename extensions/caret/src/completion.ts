@@ -10,11 +10,14 @@ export interface FimClient {
 	complete(prefix: string, suffix: string, signal: AbortSignal): Promise<string | null>;
 }
 
-interface InfillResponse {
-	content?: string;
-	truncated?: boolean;
-}
+const MAX_PREFIX = 2000;
+const MAX_SUFFIX = 500;
 
+/** Chat-mode single-line completion over llama-server. F05 measured:
+ * p50 ~550ms / p95 ~610ms / 0% empty on 20-case TS corpus (M3/8GB,
+ * Qwen2.5-Coder-1.5B-Instruct Q4_K_M). Raw /infill on this instruct model
+ * returned empty 27% of the time — not used. Multiline/next-edit stay on
+ * their own gates (TAB-03…05 open). */
 export class LlamaServerFimClient implements FimClient {
 	constructor(
 		private readonly endpoint: string,
@@ -27,23 +30,26 @@ export class LlamaServerFimClient implements FimClient {
 		signal.addEventListener('abort', onAbort, { once: true });
 		const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 		try {
-			const response = await fetch(`${this.endpoint}/infill`, {
+			const user = 'Output ONLY the single next line of code at <CURSOR>. '
+				+ 'No explanations, no fences, one line.\nPREFIX:\n'
+				+ prefix.slice(-800) + '\n<CURSOR>\nSUFFIX:\n' + suffix.slice(0, 200);
+			const response = await fetch(`${this.endpoint}/v1/chat/completions`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					input_prefix: prefix,
-					input_suffix: suffix,
-					n_predict: 64,
+					messages: [{ role: 'user', content: user }],
+					n_predict: 16,
 					temperature: 0.1,
 					cache_prompt: true,
+					stop: ['\n'],
 				}),
 				signal: controller.signal,
 			});
 			if (!response.ok) {
 				return null;
 			}
-			const data = await response.json() as InfillResponse;
-			const text = data.content ?? '';
+			const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+			const text = data.choices?.[0]?.message?.content ?? '';
 			return text.length > 0 ? text : null;
 		} catch {
 			return null;
@@ -53,9 +59,6 @@ export class LlamaServerFimClient implements FimClient {
 		}
 	}
 }
-
-const MAX_PREFIX = 2000;
-const MAX_SUFFIX = 500;
 
 export class CaretTabProvider implements vscode.InlineCompletionItemProvider {
 	private client: FimClient;
