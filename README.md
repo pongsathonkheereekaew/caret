@@ -1,36 +1,53 @@
 # Caret
 
-A local-first IDE that runs agents on your own machine: Code-OSS fork (Caret UI) + Synara daemon (Codex/OpenCode engines). Private repo, Mac-only, no cloud. Latest status: `HANDOFF.md`
+The AI-native code editor you own. Agents, predictive editing, and code review in one fast, local-first IDE. Your code never leaves your machine.
 
-The goal is the clone-verified gate in the [v5 master plan](docs/IMPLEMENTATION-PLAN.th.md) (authoritative, Thai): 198 parent requirements, 75 UI families — the [scrutinize review](docs/SCRUTINIZE-REVIEW.th.md) and [reuse assessment](docs/SYNARA-ASSESSMENT.th.md) remain gates before building.
+> This repository is private. Caret is in active personal development for macOS and is not publicly distributed yet.
 
-## Status (2026-09-10 evening)
+## Features
 
-- Requirement graph: **17/198 parents verified**, 115 child cases (`planned | implemented | verified | blocked-external` — `blocked-external` never counts as passing)
-- Daemon suite **114/114** (`caret-adapter`): MCP tools/resources/prompts/elicitation, single-line FIM Tab, worktrees + bring-back, run picker/retention, TCP gateway + live proofs, ACP streaming, CLI `--json` + `send --ask`, local git commit/sync
-- Fork (`caret` + `caret-native`): composer Steer/Export/Runs, `cmd+k` inline edit, native Agents shell at contract stage (rendering waits on the reference atlas)
-- Still open: H05 click-through, reference atlas (Cursor 3.19), signing, devices/APNs, OAuth/cloud providers, independent benchmarks, hosted origin — all wait on a human, real hardware, or an external decision (details in `HANDOFF.md`)
+- **Agent composer** - describe the change, review the diff, accept or steer mid-run.
+- **Predictive Tab** - fast single-line completions that never overwrite your edits.
+- **Inline edit** - select code, describe the change, apply it as one undo step.
+- **Review and worktrees** - every agent run is isolated. Bring changes back only when they are clean.
+- **Headless CLI** - drive sessions, approvals, and reviews from the terminal with JSON output.
 
-## Locked decisions (do not reopen without new evidence)
+## Getting Started
 
-- Local-only: code never leaves the machine (M8 CLOUD blocked-external except CLOUD-08)
-- Mac-only: no Windows/Linux; CI on the self-hosted Mac runner
-- Approval-gated writes; bring-back refuses on conflict, never forces
-- Daemon is the SSOT for status/events/transitions; the fork only renders
-- Engine budget: OpenCode Go subscription; no relay (loopback + LAN-direct); repo stays private
+Development builds run on macOS. There is no public download yet.
 
-## Layout (read `docs/TEAM-ONBOARDING.md` before touching code)
+1. Clone this repository.
+2. Read [HANDOFF.md](HANDOFF.md) for the latest status.
+3. Read [docs/TEAM-ONBOARDING.md](docs/TEAM-ONBOARDING.md) before making changes.
 
-| Checkout | Branch | Contents |
-|---|---|---|
-| `~/caret-work/caret-desktop` | `caret` (+ `caret-native`) | composer UI + native workbench contrib |
-| `~/caret-work/upstream-synara/apps/caret-daemon` | `caret-adapter` | the whole daemon |
-| control repo (here) | `main` | docs, `backlog/` evidence, requirement graph, CI |
+## Built on VS Code
 
-Toolchain: `~/.caret-tools/node-v24.18.0-darwin-arm64`, `~/.bun`, `~/.opencode`, `~/.local/bin/codex`
+Caret is built on VS Code, so the editor, keybindings, and extensions you already know keep working, with an AI-native layer on top.
 
-## Key commands
+## Repository layout
 
-- `node scripts/ci-validate.mjs` — control-repo gate
-- `bun x vitest run apps/caret-daemon/src/` (from `upstream-synara`) — daemon suite
-- `node_modules/.bin/tsc -p src/tsconfig.json --noEmit` (from `caret-desktop`) — fork typecheck
+- [HANDOFF.md](HANDOFF.md) - current status and roadmap.
+- [agent.md](agent.md) - build goal and working agreements.
+- [docs/](docs) - plans and contributor onboarding.
+- [backlog/](backlog) - per-item evidence.
+- [scripts/](scripts) - repo checks.
+
+## Development
+
+Run the repo gate before pushing:
+
+```bash
+node scripts/ci-validate.mjs
+```
+
+See [HANDOFF.md](HANDOFF.md) for the full workflow.
+
+## Documentation
+
+- Status and roadmap: [HANDOFF.md](HANDOFF.md)
+- Contributor onboarding: [docs/TEAM-ONBOARDING.md](docs/TEAM-ONBOARDING.md)
+- Master plan: [docs/IMPLEMENTATION-PLAN.th.md](docs/IMPLEMENTATION-PLAN.th.md)
+
+## Security
+
+This is a private repository. Please do not report security vulnerabilities through public issues. Contact the owner directly.
