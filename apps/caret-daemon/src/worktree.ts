@@ -46,7 +46,7 @@ export const createIsolatedRun = (repoDir: string, runId: string, baseRef?: stri
     const baseCommit = yield* resolveBaseCommit(repoDir, baseRef);
     // Unique per run: a crashed run's directory survives repo deletion, and a
     // fixed name would collide with it (fatal: already exists) and serialize
-    // parallel runs. Retention prune stays an open M4 tail item.
+    // parallel runs. Count-based retention lives in pruneRunsBeyondCap below.
     const provisional = NodePath.join(NodeOs.tmpdir(), `caret-wt-${runId}-${Date.now().toString(36)}`);
     const add = yield* git(["worktree", "add", "--detach", provisional, baseCommit], repoDir, true);
     if (add.code !== 0) {
@@ -198,11 +198,17 @@ export const listIsolatedRuns = (repoDir: string) =>
 export const CARET_WORKTREE_PREFIX = "caret-wt-";
 
 /** Caret-owned isolated runs for a repo (picker source). Foreign worktrees
- *  (other tools, linked checkouts) are listed by git but never managed here. */
+ *  (other tools, linked checkouts) are listed by git but never managed here.
+ *  The main checkout itself is excluded even when its own basename carries
+ *  the caret prefix — it must never appear as a removable run. */
 export const listCaretRuns = (repoDir: string) =>
   Effect.gen(function* () {
     const all = yield* listIsolatedRuns(repoDir);
-    return all.filter((dir) => NodePath.basename(dir).startsWith(CARET_WORKTREE_PREFIX));
+    const canonRepo = yield* Effect.tryPromise({
+      try: () => NodeFs.promises.realpath(repoDir),
+      catch: () => new Error("realpath repo failed"),
+    }).pipe(Effect.catch(() => Effect.succeed(repoDir)));
+    return all.filter((dir) => dir !== canonRepo && NodePath.basename(dir).startsWith(CARET_WORKTREE_PREFIX));
   });
 
 /** Remove one worktree dir by path (picker action). Guard order is the
@@ -384,4 +390,45 @@ export const pruneOldRuns = (repoDir: string, olderThanMs: number, nowMs = Date.
       if (gone) removed.push(dir);
     }
     return { removed, keptDirty };
+  });
+/** Default retained runs per repo (M4 tail). The Runs picker stays bounded; */
+/** older clean runs are pruned on session stop. Live and dirty runs never */
+/** count against the cap. */
+export const DEFAULT_RUN_RETENTION = 20;
+
+/**
+ * Count-based retention cap: keep the newest `keep` caret runs, remove
+ * older ones that are clean. The live run's dir and dirty runs are never
+ * removed (dirty ones reported in keptDirty, same contract as
+ * pruneOldRuns). Removal reuses removeWorktreeDir's guard chain, so
+ * foreign/main-checkout/outside-tmp dirs fail loud instead of vanishing.
+ * Unstatable dirs are kept — never prune what cannot be inspected.
+ */
+export const pruneRunsBeyondCap = (repoDir: string, keep: number, liveDir?: string) =>
+  Effect.gen(function* () {
+    if (!Number.isInteger(keep) || keep < 0) {
+      return yield* fail("retention cap", repoDir, `keep must be a non-negative integer: ${keep}`);
+    }
+    const listed = yield* listCaretRuns(repoDir);
+    const ranked: Array<{ dir: string; mtime: number }> = [];
+    for (const dir of listed) {
+      const stat = yield* Effect.tryPromise({
+        try: () => NodeFs.promises.stat(dir),
+        catch: () => new Error("stat failed"),
+      }).pipe(Effect.catch(() => Effect.succeed(null)));
+      ranked.push({ dir, mtime: stat === null ? Number.POSITIVE_INFINITY : stat.mtimeMs });
+    }
+    ranked.sort((a, b) => b.mtime - a.mtime || (a.dir < b.dir ? 1 : a.dir > b.dir ? -1 : 0));
+    const kept: string[] = ranked.slice(0, keep).map((entry) => entry.dir);
+    const removed: string[] = [];
+    const keptDirty: string[] = [];
+    for (const entry of ranked.slice(keep)) {
+      const gone = yield* removeWorktreeDir(repoDir, entry.dir, liveDir).pipe(
+        Effect.catch(() => Effect.succeed("skipped" as const)),
+      );
+      if (gone === true) removed.push(entry.dir);
+      else if (gone === false) keptDirty.push(entry.dir);
+      else kept.push(entry.dir);
+    }
+    return { removed, keptDirty, kept };
   });

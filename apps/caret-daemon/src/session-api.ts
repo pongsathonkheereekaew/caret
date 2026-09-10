@@ -16,7 +16,7 @@ import {
   type ApprovalAnswer,
   type CaretRun,
 } from "./daemon.ts";
-import { listCaretRuns, removeWorktreeDir } from "./worktree.ts";
+import { DEFAULT_RUN_RETENTION, listCaretRuns, pruneRunsBeyondCap, removeWorktreeDir } from "./worktree.ts";
 import { assembleRunBundle, writeRunBundle } from "./export.ts";
 import { engineRowKind } from "./session-state.ts";
 import * as Fiber from "effect/Fiber";
@@ -194,6 +194,13 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         const st = sessions.get(id);
         if (st?.fiber) yield* Fiber.interrupt(st.fiber).pipe(Effect.catch(() => Effect.succeed(false)));
         if (st?.run) yield* stopCaretRun(st.run);
+        // Retention cap (M4 tail): bound retained run worktrees on the way
+        // out. Best-effort — retention must never fail session teardown.
+        if (st) {
+          yield* pruneRunsBeyondCap(st.repoDir, DEFAULT_RUN_RETENTION, st.run?.isolated?.worktreeDir).pipe(
+            Effect.catch(() => Effect.succeed({ removed: [], keptDirty: [], kept: [] })),
+          );
+        }
         sessions.delete(id);
         if (current === id) {
           const remaining = [...sessions.keys()];

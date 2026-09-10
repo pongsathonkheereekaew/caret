@@ -17,6 +17,7 @@ import {
   listCaretRuns,
   listIsolatedRuns,
   pruneOldRuns,
+  pruneRunsBeyondCap,
   pruneOrphanWorktreeDirs,
   removeIsolatedRun,
   removeWorktreeDir,
@@ -272,5 +273,51 @@ describe("CaretWorktree", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+  it("retention cap keeps newest N clean runs, removes older ones", async () => {
+    boot();
+    const now = Date.now();
+    const mk = async (tag: string, ageMs: number) => {
+      const r: IsolatedRun = await run(createIsolatedRun(mainDir, `${tag}${counter}`));
+      const t = new Date(now - ageMs);
+      utimesSync(r.worktreeDir, t, t);
+      return r;
+    };
+    const oldest = await mk("cap-oldest-", 400_000);
+    const middle = await mk("cap-middle-", 300_000);
+    const newer = await mk("cap-newer-", 200_000);
+    const newest = await mk("cap-newest-", 100_000);
+    const { removed, keptDirty, kept } = await run(pruneRunsBeyondCap(mainDir, 2));
+    expect(removed).toEqual(expect.arrayContaining([oldest.worktreeDir, middle.worktreeDir]));
+    expect(removed).not.toContain(newer.worktreeDir);
+    expect(removed).not.toContain(newest.worktreeDir);
+    expect(keptDirty).toEqual([]);
+    expect(kept).toEqual(expect.arrayContaining([newer.worktreeDir, newest.worktreeDir]));
+    expect(existsSync(oldest.worktreeDir)).toBe(false);
+    expect(existsSync(newest.worktreeDir)).toBe(true);
+  });
+
+  it("retention cap never takes the live dir or dirty runs", async () => {
+    boot();
+    const now = Date.now();
+    const live: IsolatedRun = await run(createIsolatedRun(mainDir, `cap-live-${counter}`));
+    utimesSync(live.worktreeDir, new Date(now - 500_000), new Date(now - 500_000));
+    const dirty: IsolatedRun = await run(createIsolatedRun(mainDir, `cap-dirty-${counter}`));
+    writeFileSync(join(dirty.worktreeDir, "wip.txt"), "wip\n");
+    utimesSync(dirty.worktreeDir, new Date(now - 400_000), new Date(now - 400_000));
+    const fresh: IsolatedRun = await run(createIsolatedRun(mainDir, `cap-fresh-${counter}`));
+    const { removed, keptDirty, kept } = await run(pruneRunsBeyondCap(mainDir, 1, live.worktreeDir));
+    expect(removed).not.toContain(live.worktreeDir);
+    expect(removed).not.toContain(dirty.worktreeDir);
+    expect(keptDirty).toContain(dirty.worktreeDir);
+    expect(kept).toEqual(expect.arrayContaining([live.worktreeDir, fresh.worktreeDir]));
+    expect(existsSync(live.worktreeDir)).toBe(true);
+    expect(existsSync(dirty.worktreeDir)).toBe(true);
+  });
+
+  it("retention cap rejects negative keep", async () => {
+    boot();
+    await expect(run(pruneRunsBeyondCap(mainDir, -1))).rejects.toThrow(/non-negative integer/);
+  });
+
 
 });
