@@ -46,18 +46,29 @@ export interface DriverCapabilities {
    * Continuity across sessions uses semantic handoff instead.
    */
   readonly resumeStoppedSession: false;
+  /**
+   * Parallel LIVE sessions in one daemon. FALSE on Codex/OpenCode: their
+   * adapters expose ONE competing-consumer queue (Stream.fromQueue), so a
+   * second stream subscription steals events from the first and turn
+   * waiters starve (proven 2026-09-10: completion journaled, waiter
+   * blind). Sessions switch sequentially; true parallelism needs PubSub
+   * adapters or one daemon process per session.
+   */
+  readonly parallelLiveSessions: false;
 }
 
 export const CODEX_DRIVER_CAPABILITIES: DriverCapabilities = {
   steerLiveTurn: true,
   approvalBeforeSideEffects: true,
   resumeStoppedSession: false,
+  parallelLiveSessions: false,
 };
 
 export interface DaemonOptions {
   /** Scratch/config cwd for the (interim) test server config. */
   readonly configCwd: string;
   /** Called for every engine approval request. Must resolve explicitly. */
+  readonly onApproval: (q: ApprovalQuery) => Promise<ApprovalAnswer>;
   /** JSONL journal path (Caret event journal seed). */
   readonly journalPath: string;
   /** Live sink for forwarded engine states (timeline UI). Optional. */
@@ -115,9 +126,8 @@ export const startCaretRun = (
     const adapter = yield* CodexAdapter;
     const store = yield* CheckpointStore;
     const threadId = Schema.decodeUnknownSync(ThreadId)(`caret-slice-${runId}`);
-    const seen: Array<{ type: unknown; payload: unknown }> = [];
-
-    yield* Stream.runForEach(adapter.streamEvents, (event) =>
+    const seen: Array<{ type: unknown; payload?: unknown }> = [];
+    const eventsFiber = yield* Stream.runForEach(adapter.streamEvents, (event) =>
       Effect.gen(function* () {
         const t = (event as { type?: unknown }).type;
         const payload = (event as { payload?: unknown }).payload;
@@ -161,7 +171,7 @@ export const startCaretRun = (
     const preRef = `refs/caret-slice/${runId}/pre`;
     yield* store.captureCheckpoint({ cwd: workDir, checkpointRef: CheckpointRef.makeUnsafe(preRef) });
     const run: CaretRun = { threadId, repoDir, workDir, isolated, broughtBack: false, preRef, postRef: "" };
-    return { run, seen };
+    return { run, seen, eventsFiber };
   });
 
 /** Steer the live turn (AG-05): injected input lands at the next turn boundary. */

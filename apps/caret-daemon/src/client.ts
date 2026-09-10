@@ -93,38 +93,41 @@ export class CaretClient {
   startSession(repoDir: string, runId: string): Promise<ThreadStarted> {
     return this.call("session.start", { repoDir, runId });
   }
-  sendTurn(input: string, id?: string | number): Promise<TurnState> {
-    return this.call("turn.send", { input }, id);
+  sendTurn(input: string, id?: string | number, session?: string): Promise<TurnState> {
+    return this.call("turn.send", { input, session }, id);
   }
-  steerTurn(input: string): Promise<{ steered: boolean }> {
-    return this.call("turn.steer", { input });
+  steerTurn(input: string, session?: string): Promise<{ steered: boolean }> {
+    return this.call("turn.steer", { input, session });
   }
-  answerApproval(requestId: string, answer: "accept" | "decline"): Promise<unknown> {
-    return this.call("approval.answer", { requestId, answer });
+  answerApproval(requestId: string, answer: "accept" | "decline", session?: string): Promise<unknown> {
+    return this.call("approval.answer", { requestId, answer, session });
   }
-  reviewRun(): Promise<RunReview> {
-    return this.call("run.review", {});
+  reviewRun(session?: string): Promise<RunReview> {
+    return this.call("run.review", { session });
   }
-  rejectRun(): Promise<{ reversed: boolean }> {
-    return this.call("run.reject", {});
+  rejectRun(session?: string): Promise<{ reversed: boolean }> {
+    return this.call("run.reject", { session });
   }
-  bringBackRun(): Promise<BringBackResult> {
-    return this.call("run.bringBack", {});
+  bringBackRun(session?: string): Promise<BringBackResult> {
+    return this.call("run.bringBack", { session });
   }
   listRuns(): Promise<RunList> {
     return this.call("run.list", {});
   }
-  removeRun(worktreeDir: string): Promise<RemoveResult> {
-    return this.call("run.remove", { worktreeDir });
+  removeRun(worktreeDir: string, session?: string): Promise<RemoveResult> {
+    return this.call("run.remove", { worktreeDir, session });
   }
-  recaptureRun(label: string): Promise<unknown> {
-    return this.call("run.recapture", { label });
+  recaptureRun(label: string, session?: string): Promise<unknown> {
+    return this.call("run.recapture", { label, session });
   }
-  exportRun(dir: string, overwrite = false): Promise<ExportResult> {
-    return this.call("run.export", { dir, overwrite });
+  exportRun(dir: string, overwrite = false, session?: string): Promise<ExportResult> {
+    return this.call("run.export", { dir, overwrite, session });
   }
-  stopSession(): Promise<unknown> {
-    return this.call("session.stop", {});
+  stopSession(session?: string): Promise<unknown> {
+    return this.call("session.stop", { session });
+  }
+  listSessions(): Promise<Array<{ threadId: string; runId: string; repoDir: string; goal: string; live: boolean; current: boolean }>> {
+    return this.call("session.list", {});
   }
   pairingStatus(): Promise<{ paired: boolean }> {
     return this.call("pairing.status", {});

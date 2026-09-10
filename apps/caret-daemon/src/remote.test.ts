@@ -235,6 +235,7 @@ describe("M5RemoteGateway", () => {
       "run.reject",
       "run.remove",
       "run.review",
+      "session.list",
       "session.start",
       "session.stop",
       "turn.send",
