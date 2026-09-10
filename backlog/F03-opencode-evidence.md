@@ -15,19 +15,25 @@
   no silent default (L8 "never guess a model slug" enforced in code).
 - Wiring verified live: `startSession({runtimeMode: "approval-required"})`
   → native session `ses_…` → `sendTurn` streams `session.started`,
-  `thread.started`, `turn.started{model}`. Permission/error event surface
-  (`request.opened`, `runtime.error`) confirmed present in adapter code and
-  unit-tested (115/115), but NOT exercised live (see gate).
+  `thread.started`, `turn.started{model}` — then exercised live, see PASS.
 
-## BILLING GATE (blocks live OpenCode inference)
+## PASS — denial trace on free tier (2026-09-10, `opencode/big-pickle`, $0)
 
-Turn failed immediately with provider verbatim:
-`turn.completed{state: "failed", errorMessage: "Insufficient balance. …/billing"}`
-(statusCode 401, non-retryable). The Zen credential has no balance.
-Error mapping works correctly (clean `runtime.error`, no hang, no fake
-success) — but NO approval/permission roundtrip could be observed because
-the model never ran.
+Per official Zen docs there is no separate "Go" provider — Zen IS the managed
+gateway (Go = the subscription on it); the 401 was that workspace's balance.
+Zen's free-tier models (`big-pickle`, `mimo-v2.5-free`, …) run at $0, so the
+control-path spike needs no funding:
 
-Per G-AUTH-01: quota exhausted → stop. No top-up, no silent reroute to a
-billed path. Awaiting user: top up Zen, add a funded provider
-(OpenRouter/Go via `opencode auth login`), or defer the OpenCode driver.
+1. `startSession({runtimeMode: "approval-required"})` → native `ses_…`.
+2. `sendTurn("Create DENIED-PROOF.txt …", model opencode/big-pickle)` →
+   engine attempted `write` with exact path+content (`item.started/updated`).
+3. Adapter emitted `request.opened{file_change_approval}` with the file diff
+   attached (~10s in).
+4. Probe declined → `request.resolved{decline}` → tool failed
+   ("user rejected permission") → **file never created**.
+5. Usage reported: 14,949 tokens, $0.
+
+Observation (non-blocking): after the rejected tool the turn ended
+`failed: "OpenCode became idle after tool calls without producing a final
+assistant response"` — engine quirk, control outcome unaffected. Paid-model
+quality evals still need a funded workspace (unchanged).
