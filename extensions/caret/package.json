@@ -86,6 +86,16 @@
 				"command": "caret.sendToAgent",
 				"title": "%commands.sendToAgent%",
 				"category": "Caret"
+			},
+			{
+				"command": "caret.searchExact",
+				"title": "%commands.searchExact%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.initIgnore",
+				"title": "%commands.initIgnore%",
+				"category": "Caret"
 			}
 		],
 		"configuration": {

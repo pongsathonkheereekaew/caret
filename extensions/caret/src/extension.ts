@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { CaretTabProvider } from './completion';
 import { registerEditCommands } from './edit';
+import { registerSearchCommands } from './search';
 
 const log = vscode.window.createOutputChannel('Caret');
 
@@ -349,11 +350,12 @@ window.addEventListener('message', (event) => {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+	const viewProvider = new CaretViewProvider(context);
 	registerEditCommands(context);
-	const provider = new CaretViewProvider(context);
+	registerSearchCommands(context);
 	const tabProvider = new CaretTabProvider(context);
 	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider('caretComposer', provider, {
+		vscode.window.registerWebviewViewProvider('caretComposer', viewProvider, {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
 		vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, tabProvider),
@@ -376,7 +378,7 @@ export function activate(context: vscode.ExtensionContext): void {
 				return;
 			}
 			const file = editor ? vscode.workspace.asRelativePath(editor.document.uri) : '(no file)';
-			provider.prefill(`${instruction}\n\nContext: ${file}${selection ? `\n\`\`\`\n${selection}\n\`\`\`` : ''}`);
+		viewProvider.prefill(`${instruction}\n\nContext: ${file}${selection ? `\n\`\`\`\n${selection}\n\`\`\`` : ''}`);
 		}),
 	);
 	log.appendLine('[caret] extension active');

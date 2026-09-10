@@ -12,5 +12,7 @@
 	"commands.applyProposal": "Apply Proposal",
 	"commands.rejectProposal": "Reject Proposal",
 	"commands.generateCommand": "Generate Shell Command",
-	"commands.sendToAgent": "Send Selection to Agent"
+	"commands.sendToAgent": "Send Selection to Agent",
+	"commands.searchExact": "Exact Search in Workspace",
+	"commands.initIgnore": "Create .caretignore"
 }
