@@ -6,13 +6,12 @@
 import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 
 // Shell/turn/approval context keys. Declared here, bound where a real source
-// exists — never faked. No native service exposes turn or approval state yet
-// (the extension composer owns both over its webview today), and the mode
-// service (browser/agentWorkbenchMode.ts) has an interface but no
-// implementation yet, so all three keys stay declared-but-unset. Bind each
-// with `<Key>.bindTo(contextKeyService)` when its source lands.
+// exists — never faked. The shell key is bound by AgentWorkbenchModeService;
+// turn and approval have no native source yet (the extension composer owns
+// both over its webview today), so those two stay declared-but-unset until
+// their service lands.
 
-/** Active workbench shell (ide | agents). Future source: IAgentWorkbenchModeService.shell. */
+/** Active workbench shell (ide | agents). Bound by AgentWorkbenchModeService. */
 export const WorkbenchShellContext = new RawContextKey<string>('caretWorkbenchShell', 'ide');
 
 /** True while any agent turn runs. Future source: turn service — no native turn state yet. */

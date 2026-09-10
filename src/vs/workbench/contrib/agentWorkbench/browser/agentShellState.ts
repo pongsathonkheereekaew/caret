@@ -177,3 +177,9 @@ export function captureShellState(input: Partial<IShellState>): IShellState {
 export function restoreShellState(stored: unknown): IShellState {
 	return captureShellState(isShellState(stored) ? stored : EMPTY_SHELL_STATE);
 }
+
+/** Preserve-then-update: normalize `update` over `base` (explicit nulls
+ * clear a field). The bun-exercised merge behind shell switches. */
+export function mergeShellState(base: IShellState, update: Partial<IShellState>): IShellState {
+	return captureShellState({ ...base, ...update });
+}

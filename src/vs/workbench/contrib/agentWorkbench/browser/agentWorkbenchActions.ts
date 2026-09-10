@@ -7,6 +7,7 @@ import { Action2, MenuId } from '../../../../platform/actions/common/actions.js'
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { localize2 } from '../../../../nls.js';
+import { IAgentWorkbenchModeService } from './agentWorkbenchMode.js';
 import { OPEN_AGENTS_WINDOW_COMMAND_ID, OPEN_IDE_COMMAND_ID } from '../common/agentCommands.js';
 
 // Scaffold actions: the Agents shell layout lands with the reference
@@ -21,6 +22,7 @@ export class OpenAgentsWindowAction extends Action2 {
 		});
 	}
 	override async run(accessor: ServicesAccessor): Promise<void> {
+		await accessor.get(IAgentWorkbenchModeService).openAgentsWindow();
 		accessor.get(INotificationService).info('Agents Window shell arrives with the reference atlas (roadmap Phase B).');
 	}
 }
@@ -34,6 +36,7 @@ export class OpenIdeAction extends Action2 {
 		});
 	}
 	override async run(accessor: ServicesAccessor): Promise<void> {
+		await accessor.get(IAgentWorkbenchModeService).openIde();
 		accessor.get(INotificationService).info('You are already in the Caret IDE.');
 	}
 }
