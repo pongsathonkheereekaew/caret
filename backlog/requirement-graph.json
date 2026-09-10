@@ -2104,6 +2104,12 @@
      "title": "resources/prompts/elicitation absent",
      "evidence": "backlog/M4-backend-evidence.md",
      "result": "open"
+    },
+    {
+     "id": "CUS-11-C03",
+     "title": "serve web_fetch+test_run; own client drives own server (3 keepers)",
+     "evidence": "backlog/CUS11-server-evidence.md",
+     "result": "pass"
     }
    ]
   },
