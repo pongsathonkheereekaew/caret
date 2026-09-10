@@ -9,6 +9,7 @@
 import * as Fs from "node:fs";
 import * as Os from "node:os";
 import * as NodePath from "node:path";
+import { parsePort } from "./startup.ts";
 import * as Effect from "effect/Effect";
 import * as Scope from "effect/Scope";
 import { ManagedRuntime } from "effect";
@@ -16,8 +17,8 @@ import { bootDaemonLayer } from "./daemon.ts";
 import { createSessionApi } from "./session-api.ts";
 import { serveRemote } from "./remote.ts";
 
-const host = process.env["CARET_HOST"] ?? "127.0.0.1";
-const port = Number(process.env["CARET_PORT"] ?? 0);
+const host = process.env["CARET_HOST"]?.trim() || "127.0.0.1";
+const port = parsePort(process.env["CARET_PORT"], 0);
 const runtime = ManagedRuntime.make(bootDaemonLayer(process.cwd()));
 // One process-lifetime scope (never closed before exit): session fibers
 // forked under it outlive any single envelope — the server.ts posture.
