@@ -266,6 +266,25 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				await this.listRuns();
 				break;
 			}
+			case 'steer': {
+				const input = await vscode.window.showInputBox({ prompt: 'Steer the live turn' });
+				if (!input) {
+					break;
+				}
+				await daemon.request('turn.steer', { input });
+				this.post({ type: 'status', text: 'steer sent — lands at the next turn boundary' });
+				break;
+			}
+			case 'export': {
+				const picked = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, openLabel: 'Export run here' });
+				if (!picked || picked.length === 0) {
+					break;
+				}
+				await this.ensureSession();
+				const done = await daemon.request('run.export', { dir: picked[0].fsPath }) as { path?: string; files?: number; events?: number };
+				this.post({ type: 'status', text: `exported ${String(done.files ?? 0)} files, ${String(done.events ?? 0)} events → ${String(done.path ?? '')}` });
+				break;
+			}
 		}
 	}
 
@@ -338,6 +357,8 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="bringBack">Bring Back</button>
 <button id="new" class="secondary">New</button>
 <button id="runs" class="secondary">Runs…</button>
+<button id="steer" class="secondary">Steer…</button>
+<button id="export" class="secondary">Export…</button>
 </div>
 <div id="transcript"></div>
 <script nonce="${scriptNonce}">
@@ -383,6 +404,8 @@ document.getElementById('reject').onclick = () => vscode.postMessage({ command: 
 document.getElementById('bringBack').onclick = () => vscode.postMessage({ command: 'bringBack' });
 document.getElementById('new').onclick = () => vscode.postMessage({ command: 'new' });
 document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'runs' });
+document.getElementById('steer').onclick = () => vscode.postMessage({ command: 'steer' });
+document.getElementById('export').onclick = () => vscode.postMessage({ command: 'export' });
 window.addEventListener('message', (event) => {
 	const m = event.data;
 	if (m.type === 'status') status.textContent = m.text;
