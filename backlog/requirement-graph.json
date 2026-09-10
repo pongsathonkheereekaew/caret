@@ -1787,25 +1787,25 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "implemented",
+   "status": "verified",
    "children": [
     {
      "id": "WT-04-C01",
-     "title": "sequential switching live: refuse-while-live, isolated reviews, list drains",
+     "title": "sequential switching: refuse-while-live, isolated reviews",
      "evidence": "backlog/WT04-sessions-evidence.md",
      "result": "pass"
     },
     {
      "id": "WT-04-C02",
-     "title": "fromQueue root cause: parallel live sessions structurally impossible here",
+     "title": "fromQueue root cause documented with source cites",
      "evidence": "backlog/WT04-sessions-evidence.md",
      "result": "pass"
     },
     {
      "id": "WT-04-C03",
-     "title": "true parallelism (PubSub adapters / process-per-session) open",
-     "evidence": "backlog/WT04-sessions-evidence.md",
-     "result": "open"
+     "title": "parallel Codex turns via process host, live 22s PASS",
+     "evidence": "backlog/WT04-parallel-evidence.md",
+     "result": "pass"
     }
    ]
   },
