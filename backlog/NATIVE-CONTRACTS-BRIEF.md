@@ -7,11 +7,11 @@ native workbench track; a separate session owns the daemon.
 
 You are extending Caret's native workbench contribution. Read first:
 
-- `/Users/pond/Documents/LLM Projects/caret/HANDOFF.md` (status + decisions)
-- `/Users/pond/Documents/LLM Projects/caret/docs/TEAM-ONBOARDING.md` (repos, toolchain, hard-won mechanics)
-- `/Users/pond/Documents/LLM Projects/caret/docs/ARCH-CONTRACTS.md` (seam map — daemon is SSOT, you mirror)
-- `/Users/pond/Documents/LLM Projects/caret/backlog/PARITY-ROADMAP.md` (Phase B)
-- `/Users/pond/Documents/LLM Projects/caret/backlog/NATIVE-SCAFFOLD-evidence.md` (what landed)
+- `/Users/pond/caret-work/caret/HANDOFF.md` (status + decisions)
+- `/Users/pond/caret-work/caret/docs/TEAM-ONBOARDING.md` (repos, toolchain, hard-won mechanics)
+- `/Users/pond/caret-work/caret/docs/ARCH-CONTRACTS.md` (seam map — daemon is SSOT, you mirror)
+- `/Users/pond/caret-work/caret/backlog/PARITY-ROADMAP.md` (Phase B)
+- `/Users/pond/caret-work/caret/backlog/NATIVE-SCAFFOLD-evidence.md` (what landed)
 
 Environment (do not re-derive):
 

@@ -19,10 +19,10 @@ that session must NOT touch the daemon or the M4 hooks track.
 You are working on Caret, a Code-OSS desktop fork with an agent extension.
 Your track is UI-only, parallel to a daemon track. Read these files first:
 
-- `/Users/pond/Documents/LLM Projects/caret/HANDOFF.md` (status + mechanics)
-- `/Users/pond/Documents/LLM Projects/caret/agent.md` (spec authority, gates)
-- `/Users/pond/Documents/LLM Projects/caret/backlog/H05-ui-evidence.md` (manual click script + trust posture)
-- `/Users/pond/Documents/LLM Projects/caret/backlog/M4-picker-evidence.md` (the Runs surface you will verify)
+- `/Users/pond/caret-work/caret/HANDOFF.md` (status + mechanics)
+- `/Users/pond/caret-work/caret/agent.md` (spec authority, gates)
+- `/Users/pond/caret-work/caret/backlog/H05-ui-evidence.md` (manual click script + trust posture)
+- `/Users/pond/caret-work/caret/backlog/M4-picker-evidence.md` (the Runs surface you will verify)
 
 Environment (do not re-derive, do not float versions):
 

@@ -48,7 +48,7 @@ M3 tail (multiline/next-edit, Tab keybinding, semantic index), M4 tail
 
 | What | Where |
 |---|---|
-| Control repo (docs, backlog, agent.md) | `/Users/pond/Documents/LLM Projects/caret` |
+| Control repo (docs, backlog, agent.md) | `/Users/pond/caret-work/caret` |
 | Caret fork (`caret` branch) | `~/caret-work/caret-desktop` |
 | Pristine Code-OSS / Synara | `~/caret-work/desktop`, `~/caret-work/upstream-synara` |
 | Daemon (`caret-adapter` branch) | `~/caret-work/upstream-synara/apps/caret-daemon` |

@@ -13,12 +13,13 @@ planning research are NOT production locks — this file is the lock (R02).
 | OpenCode engine | `anomalyco/opencode` | `f69beceaffca94bed05a7669af93602125c37248` (HEAD) | Coverage driver first (Go/OpenRouter/DeepSeek via config) | MIT |
 | Gitea | `go-gitea/gitea` | `92f2f6161b4c4e5c91c38a3615ce8e5711f9457b` (HEAD, M10 scope) | Origin-equivalent forge service | MIT |
 
-## Checkout locations (2026-09-10)
+## Checkout locations (2026-09-10; control repo moved here same day)
 
-Upstream source trees live OUTSIDE this repo at space-free paths — the
-control repo path contains a space (`LLM Projects/`) which breaks
+Everything lives under space-free `~/caret-work/` — the control repo used
+to sit at a path containing a space (`LLM Projects/`), which breaks
 `node-gyp`/`make` native builds (`@vscode/fs-copyfile` failed with an
-unquoted include path, F01 evidence 2026-09-10). Record: Caret itself MUST
+unquoted include path, F01 evidence 2026-09-10); it moved to
+`~/caret-work/caret` on 2026-09-10. Record: Caret itself MUST
 handle space/Unicode paths (IDE-01) — the editor runtime does, the upstream
 build scripts do not.
 
