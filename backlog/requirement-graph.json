@@ -1358,6 +1358,12 @@
      "title": "no daemon index, no symbol granularity, self-authored queries",
      "evidence": "backlog/SEARCH-embed-evidence.md",
      "result": "open"
+    },
+    {
+     "id": "SEARCH-02-C03",
+     "title": "product index module + persistence + ranking (3 keepers)",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "pass"
     }
    ]
   },
@@ -1578,8 +1584,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "REV-04-C01",
+     "title": "review state machine + finding lifecycle (4 keepers with plan file)",
+     "evidence": "backlog/REVIEW-PLAN-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "REV-04-C02",
+     "title": "rendering, auto-review depth, Monaco overlay open",
+     "evidence": "backlog/REVIEW-PLAN-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "REV-05",
@@ -5127,8 +5146,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-24-C01",
+     "title": "ACP init/auth/new/prompt/cancel + approve extension (3 keepers)",
+     "evidence": "backlog/PX24-acp-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-24-C02",
+     "title": "streaming chunks, images, multi-session, stdio loop open",
+     "evidence": "backlog/PX24-acp-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-25",
