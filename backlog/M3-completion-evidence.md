@@ -46,7 +46,17 @@ search `8d8b227`. Extension compiles clean (4 modules emitted).
 ```
 Stopped after measurement to free ~1.2GB RAM; start on demand for Tab use.
 
-## Open M3 tail (not claimed)
+## M3 tail status (2026-09-10)
 
-Multiline/next-edit/cross-file portal (TAB-03…05), Tab keybinding (C-03),
-semantic retrieval (SEARCH-02/06), live UI verification of all three flows.
+- [x] Tab keybinding (C-03): `caret.inlineEdit` bound `cmd+k` / `ctrl+k` with
+  `when: editorTextFocus && editorHasSelection && !editorReadonly` (fork
+  `caret` branch; `tsc -p ./` exit 0). Narrowing rationale: bare-cursor
+  `Cmd/Ctrl+K` still starts the upstream chord; Caret takes it only with a
+  selection, which is EDIT-01's primary path anyway. Cursor-line path stays
+  on the Command Palette. TAB-02 accept/dismiss stays platform-native (no
+  override bindings shipped; the user's keybinding governs ghost-text
+  accept, word-accept, and dismiss). Runtime CONFLICT-GATE / F01-DUMP checks
+  still open per `backlog/command-map.md` — not claimed.
+- [ ] Multiline / next-edit / cross-file portal (TAB-03…05): gates unmet, unclaimed.
+- [ ] Semantic retrieval (SEARCH-02/06): needs embedding endpoint + F-index measurement.
+- [ ] Live UI verification of all three flows.
