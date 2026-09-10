@@ -20,7 +20,7 @@ isolated-by-default binding (6/6), steer/resume-matrix, MCP 5/5, prune.
 
 Open: H05 click-through (manual script in `backlog/H05-ui-evidence.md`),
 M3 tail (multiline/next-edit, Tab keybinding, semantic index), M4 tail
-(retention cap, MCP SSE/OAuth), M5/M6 remote+mobile, M7 release, M8–M11.
+(MCP SSE/OAuth; retention cap done 2026-09-10 → `backlog/M4-retention-evidence.md`), M5/M6 remote+mobile, M7 release, M8–M11.
 
 ## Locked decisions (do not relitigate without new evidence)
 

@@ -1842,6 +1842,12 @@
      "title": "dirty removal refuses incl. picker path",
      "evidence": "backlog/M4-picker-evidence.md",
      "result": "pass"
+    },
+    {
+     "id": "WT-05-C03",
+     "title": "count-based retention cap: newest 20 kept, live/dirty never pruned (3 keepers)",
+     "evidence": "backlog/M4-retention-evidence.md",
+     "result": "pass"
     }
    ]
   },
