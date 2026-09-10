@@ -5193,9 +5193,21 @@
     },
     {
      "id": "PX-24-C02",
-     "title": "streaming chunks, images, multi-session, stdio loop open",
+     "title": "images + multi-session open (no attachment path; one-live-subscription by design)",
      "evidence": "backlog/PX24-acp-evidence.md",
      "result": "open"
+    },
+    {
+     "id": "PX-24-C03",
+     "title": "engine-event streaming as message chunks (1 keeper)",
+     "evidence": "backlog/PX24-acp-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-24-C04",
+     "title": "NDJSON stdio framing shared with serve-acp.ts (1 keeper)",
+     "evidence": "backlog/PX24-acp-evidence.md",
+     "result": "pass"
     }
    ]
   },

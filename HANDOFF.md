@@ -88,6 +88,9 @@ idempotency, resync) + `serve-tcp.ts` entry; `run.export` bundle +
 2026-09-10 night: CUS-11 resources/prompts/elicitation-stdio on both
 transports (suite 104/104: stdio MCP 9/9, HTTP MCP 11/11; HTTP
 elicitation-stream + full OAuth stay open).
+PX-24 ACP streaming (engine events → message chunks) + stdio framing
+keeper (suite 109/109, ACP 5/5; images + multi-session stay open by
+session-API design).
 Live Codex proofs over TCP: turn+review+export (21s), mid-turn steer
 (78s), Gitea 1.27.3 PR matrix (8s, Rosetta binary, /tmp instance).
 Fork `caret`: composer Steer/Export/Runs buttons (8/8 wired, tsc 0),
