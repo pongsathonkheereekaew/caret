@@ -50,7 +50,10 @@ export class LlamaServerFimClient implements FimClient {
 			}
 			const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
 			const text = data.choices?.[0]?.message?.content ?? '';
-			return text.length > 0 ? text : null;
+			// Fence-strip (corpus 2026-09-10: 4/200 opened ```json harmlessly):
+			// a fence-only reply becomes empty (discarded), never ghost text.
+			const stripped = text.replace(/^```[a-zA-Z]*\n?/, '').replace(/```\s*$/, '');
+			return stripped.length > 0 ? stripped : null;
 		} catch {
 			return null;
 		} finally {
