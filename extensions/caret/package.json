@@ -98,6 +98,14 @@
 				"category": "Caret"
 			}
 		],
+		"keybindings": [
+			{
+				"command": "caret.inlineEdit",
+				"key": "ctrl+k",
+				"mac": "cmd+k",
+				"when": "editorTextFocus && editorHasSelection && !editorReadonly"
+			}
+		],
 		"configuration": {
 			"title": "Caret Tab",
 			"properties": {
