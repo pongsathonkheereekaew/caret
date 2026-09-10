@@ -1,11 +1,23 @@
-// Caret MCP client, streamable-HTTP transport (PX-14 tail): POST JSON-RPC
-// with SSE-or-JSON responses, Mcp-Session-Id continuity, per-request
-// timeout, cancellation, and transparent recovery from dropped sessions.
+// Caret MCP client, streamable-HTTP transport (PX-14 tail + CUS-11):
+// POST JSON-RPC with SSE-or-JSON responses, Mcp-Session-Id continuity,
+// per-request timeout, cancellation, and transparent recovery from
+// dropped sessions. Covers tools, resources, and prompts. Elicitation
+// (server-initiated elicitation/create) is NOT here: it needs a
+// long-lived GET event stream, which this request/response client does
+// not open — same documented boundary as server-initiated notifications.
 // No SDK dependency — same owned-wire posture as the stdio client.
 // Full OAuth (discovery + PKCE) is NOT here: callers inject a bearer token
 // via `auth`; HTTP 401 surfaces as McpError so the harness stops/waits
 // instead of silently switching to a billed path.
-import { McpCallResult, McpError, McpTool } from "./mcp.ts";
+import {
+  McpCallResult,
+  McpError,
+  McpPrompt,
+  McpPromptMessage,
+  McpResource,
+  McpResourceContent,
+  McpTool,
+} from "./mcp.ts";
 
 export interface McpHttpAuth {
   token: () => string | undefined;
@@ -101,6 +113,58 @@ export class McpHttpClient {
       throw new McpError(`tools/call ${name} returned malformed result`);
     }
     return result;
+  }
+
+  async listResources(timeoutMs = 10000): Promise<McpResource[]> {
+    const result = (await this.post(
+      { jsonrpc: "2.0", id: this.nextId++, method: "resources/list", params: {} },
+      timeoutMs,
+      true,
+    )) as { resources?: McpResource[] };
+    if (!Array.isArray(result.resources)) {
+      throw new McpError("resources/list returned no resource array");
+    }
+    return result.resources;
+  }
+
+  async readResource(uri: string, timeoutMs = 10000): Promise<McpResourceContent[]> {
+    const result = (await this.post(
+      { jsonrpc: "2.0", id: this.nextId++, method: "resources/read", params: { uri } },
+      timeoutMs,
+      true,
+    )) as { contents?: McpResourceContent[] };
+    if (!result || !Array.isArray(result.contents)) {
+      throw new McpError(`resources/read ${uri} returned malformed result`);
+    }
+    return result.contents;
+  }
+
+  async listPrompts(timeoutMs = 10000): Promise<McpPrompt[]> {
+    const result = (await this.post(
+      { jsonrpc: "2.0", id: this.nextId++, method: "prompts/list", params: {} },
+      timeoutMs,
+      true,
+    )) as { prompts?: McpPrompt[] };
+    if (!Array.isArray(result.prompts)) {
+      throw new McpError("prompts/list returned no prompt array");
+    }
+    return result.prompts;
+  }
+
+  async getPrompt(
+    name: string,
+    args: Record<string, unknown> = {},
+    timeoutMs = 10000,
+  ): Promise<{ description?: string; messages: McpPromptMessage[] }> {
+    const result = (await this.post(
+      { jsonrpc: "2.0", id: this.nextId++, method: "prompts/get", params: { name, arguments: args } },
+      timeoutMs,
+      true,
+    )) as { description?: string; messages?: McpPromptMessage[] };
+    if (!result || !Array.isArray(result.messages)) {
+      throw new McpError(`prompts/get ${name} returned malformed result`);
+    }
+    return { description: result.description, messages: result.messages };
   }
 
   /** Cancel an in-flight call: notify the server (best effort, mirrors stdio). */

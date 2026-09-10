@@ -1,7 +1,11 @@
 // Fixture MCP server (streamable HTTP) for transport conformance. Speaks
 // protocol 2024-11-05 core over POST: initialize (SSE + session id),
-// ping/tools-list (plain JSON), tools/call (SSE), notifications,
-// session expiry (404), optional bearer auth. Kept as test harness.
+// ping/tools-list/resources/prompts (plain JSON), tools/call (SSE),
+// notifications, session expiry (404), optional bearer auth. Kept as test
+// harness. Elicitation is intentionally absent: server-initiated
+// elicitation/create needs a GET event stream, which this fixture and the
+// request/response client do not open — the ask tool says so as a
+// tool-level error instead of pretending.
 // Test-only surface: POST /test/drop clears all sessions.
 import * as http from "node:http";
 
@@ -24,6 +28,44 @@ const TOOLS = [
     name: "sleep",
     description: "Wait ms then return done. Honors notifications/cancelled.",
     inputSchema: { type: "object", properties: { ms: { type: "number" } }, required: ["ms"] },
+  },
+  {
+    name: "ask",
+    description: "Elicitation probe: always a tool-level error over HTTP (no event stream).",
+    inputSchema: { type: "object", properties: {} },
+  },
+];
+
+const RESOURCES = [
+  {
+    uri: "caret://notes/welcome",
+    name: "welcome",
+    description: "Fixture welcome note.",
+    mimeType: "text/plain",
+  },
+  {
+    uri: "caret://config/snippet",
+    name: "snippet",
+    description: "Fixture config snippet.",
+    mimeType: "application/json",
+  },
+];
+
+const RESOURCE_TEXT: Record<string, { text: string; mimeType: string }> = {
+  "caret://notes/welcome": { text: "welcome to the caret fixture", mimeType: "text/plain" },
+  "caret://config/snippet": { text: `{"tab":"single-line"}`, mimeType: "application/json" },
+};
+
+const PROMPTS = [
+  {
+    name: "review",
+    description: "Fixture review prompt.",
+    arguments: [{ name: "diff", description: "Diff to review.", required: true }],
+  },
+  {
+    name: "summarize",
+    description: "Fixture summarize prompt.",
+    arguments: [],
   },
 ];
 
@@ -123,6 +165,60 @@ const server = http.createServer((req, res) => {
         json(res, 200, { jsonrpc: "2.0", id, result: { tools: TOOLS } });
         return;
       }
+      case "resources/list": {
+        json(res, 200, { jsonrpc: "2.0", id, result: { resources: RESOURCES } });
+        return;
+      }
+      case "resources/read": {
+        const uri = String(((msg.params ?? {}) as { uri?: unknown }).uri ?? "");
+        const entry = RESOURCE_TEXT[uri];
+        if (!entry) {
+          json(res, 200, rpcError(id, -32002, `unknown resource ${uri}`));
+          return;
+        }
+        json(res, 200, {
+          jsonrpc: "2.0",
+          id,
+          result: { contents: [{ uri, mimeType: entry.mimeType, text: entry.text }] },
+        });
+        return;
+      }
+      case "prompts/list": {
+        json(res, 200, { jsonrpc: "2.0", id, result: { prompts: PROMPTS } });
+        return;
+      }
+      case "prompts/get": {
+        const params = (msg.params ?? {}) as { name?: string; arguments?: Record<string, unknown> };
+        if (params.name === "review") {
+          json(res, 200, {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              description: "Review the given diff.",
+              messages: [
+                {
+                  role: "user",
+                  content: { type: "text", text: `review this: ${String(params.arguments?.["diff"] ?? "")}` },
+                },
+              ],
+            },
+          });
+          return;
+        }
+        if (params.name === "summarize") {
+          json(res, 200, {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              description: "Summarize the conversation.",
+              messages: [{ role: "user", content: { type: "text", text: "summarize please" } }],
+            },
+          });
+          return;
+        }
+        json(res, 200, rpcError(id, -32602, `unknown prompt ${String(params.name)}`));
+        return;
+      }
       case "tools/call": {
         const params = (msg.params ?? {}) as { name?: string; arguments?: Record<string, unknown> };
         if (params.name === "echo") {
@@ -139,6 +235,17 @@ const server = http.createServer((req, res) => {
             jsonrpc: "2.0",
             id,
             result: { content: [{ type: "text", text: "fixture failure" }], isError: true },
+          }, sid);
+          return;
+        }
+        if (params.name === "ask") {
+          sse(res, 200, {
+            jsonrpc: "2.0",
+            id,
+            result: {
+              content: [{ type: "text", text: "elicitation/create needs a server-initiated stream (unsupported)" }],
+              isError: true,
+            },
           }, sid);
           return;
         }

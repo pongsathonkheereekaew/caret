@@ -46,7 +46,7 @@ describe("McpTransport", () => {
   it("initializes and lists tools", async () => {
     const c = await boot();
     const tools = await c.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual(["echo", "fail", "sleep"]);
+    expect(tools.map((t) => t.name).sort()).toEqual(["ask", "echo", "fail", "sleep"]);
     await c.ping();
   });
 
@@ -57,6 +57,55 @@ describe("McpTransport", () => {
     expect(ok.content[0]?.text).toBe("hello-mcp");
     const failed = await c.callTool("fail", {});
     expect(failed.isError).toBe(true);
+  });
+
+  it("lists and reads resources", async () => {
+    const c = client ?? (await boot());
+    const resources = await c.listResources();
+    expect(resources.map((r) => r.uri).sort()).toEqual([
+      "caret://config/snippet",
+      "caret://notes/welcome",
+    ]);
+    const contents = await c.readResource("caret://notes/welcome");
+    expect(contents[0]?.text).toBe("welcome to the caret fixture");
+    await expect(c.readResource("caret://nope")).rejects.toThrow(/unknown resource/);
+  });
+
+  it("lists and gets prompts", async () => {
+    const c = client ?? (await boot());
+    const prompts = await c.listPrompts();
+    expect(prompts.map((p) => p.name).sort()).toEqual(["review", "summarize"]);
+    const review = await c.getPrompt("review", { diff: "a-b" });
+    expect(review.messages[0]?.content.text).toBe("review this: a-b");
+    await expect(c.getPrompt("nope")).rejects.toThrow(/unknown prompt/);
+  });
+
+  it("elicits with an accept handler through the ask tool", async () => {
+    const next = new McpClient(bunBinary(), ["run", FIXTURE]);
+    next.setElicitationHandler(async (params) => {
+      expect(params.message).toBe("What is your name?");
+      return { action: "accept", content: { name: "bob" } };
+    });
+    await next.start(10000);
+    try {
+      const ok = await next.callTool("ask", {});
+      expect(ok.isError).toBeUndefined();
+      expect(ok.content[0]?.text).toBe("hello bob");
+    } finally {
+      await next.close();
+    }
+  });
+
+  it("fails the ask tool cleanly with no elicitation handler", async () => {
+    const next = new McpClient(bunBinary(), ["run", FIXTURE]);
+    await next.start(10000);
+    try {
+      const failed = await next.callTool("ask", {});
+      expect(failed.isError).toBe(true);
+      expect(failed.content[0]?.text).toMatch(/elicitation/);
+    } finally {
+      await next.close();
+    }
   });
 
   it("rejects unknown tools with protocol errors", async () => {
@@ -78,7 +127,7 @@ describe("McpTransport", () => {
     const c = client ?? (await boot());
     await c.reconnect();
     const tools = await c.listTools();
-    expect(tools.length).toBe(3);
+    expect(tools.length).toBe(4);
     const ok = await c.callTool("echo", { text: "back" });
     expect(ok.content[0]?.text).toBe("back");
   });

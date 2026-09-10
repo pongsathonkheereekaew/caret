@@ -1,5 +1,8 @@
-// Caret MCP client (PX-14 transport core): stdio JSON-RPC for initialize,
-// ping, tools/list, tools/call with timeout, cancellation, and reconnect.
+// Caret MCP client (PX-14 transport core + CUS-11): stdio JSON-RPC for
+// initialize, ping, tools/list, tools/call, resources/list,
+// resources/read, prompts/list, prompts/get with timeout, cancellation,
+// and reconnect. Also answers server-to-client elicitation/create via a
+// caller-provided handler (consent gating lives in the caller, not here).
 // No SDK dependency — the wire surface is small and fully owned here.
 import * as cp from "child_process";
 import * as readline from "node:readline";
@@ -14,6 +17,47 @@ export interface McpCallResult {
   readonly content: Array<{ type: string; text?: string; [key: string]: unknown }>;
   readonly isError?: boolean;
 }
+
+export interface McpResource {
+  readonly uri: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly mimeType?: string;
+}
+
+export interface McpResourceContent {
+  readonly uri: string;
+  readonly mimeType?: string;
+  readonly text?: string;
+  readonly blob?: string;
+}
+
+export interface McpPromptArgument {
+  readonly name: string;
+  readonly description?: string;
+  readonly required?: boolean;
+}
+
+export interface McpPrompt {
+  readonly name: string;
+  readonly description?: string;
+  readonly arguments?: ReadonlyArray<McpPromptArgument>;
+}
+
+export interface McpPromptMessage {
+  readonly role: string;
+  readonly content: { type: string; text?: string; [key: string]: unknown };
+}
+
+export interface McpElicitationResult {
+  readonly action: "accept" | "decline" | "cancel";
+  readonly content?: Record<string, unknown>;
+}
+
+export type McpElicitationHandler = (params: {
+  readonly message?: string;
+  readonly requestedSchema?: unknown;
+}) => Promise<McpElicitationResult>;
 
 export class McpError extends Error {
   constructor(
@@ -41,7 +85,18 @@ export class McpClient {
   constructor(
     private readonly command: string,
     private readonly args: ReadonlyArray<string> = [],
+    private options: { onElicitation?: McpElicitationHandler } = {},
   ) {}
+
+  /** Register (or clear) the handler for server-to-client elicitation/create. */
+  setElicitationHandler(handler: McpElicitationHandler | null): void {
+    if (handler) {
+      this.options = { ...this.options, onElicitation: handler };
+    } else {
+      const { onElicitation: _dropped, ...rest } = this.options;
+      this.options = rest;
+    }
+  }
 
   async start(timeoutMs = 10000): Promise<{ protocolVersion: string; server: string }> {
     this.closed = false;
@@ -60,7 +115,7 @@ export class McpClient {
       "initialize",
       {
         protocolVersion: "2024-11-05",
-        capabilities: {},
+        capabilities: this.options.onElicitation ? { elicitation: {} } : {},
         clientInfo: { name: "caret", version: "0.0.1" },
       },
       timeoutMs,
@@ -90,6 +145,47 @@ export class McpClient {
       throw new McpError(`tools/call ${name} returned malformed result`);
     }
     return result;
+  }
+
+  async listResources(timeoutMs = 10000): Promise<McpResource[]> {
+    const result = (await this.request("resources/list", {}, timeoutMs)) as { resources?: McpResource[] };
+    if (!Array.isArray(result.resources)) {
+      throw new McpError("resources/list returned no resource array");
+    }
+    return result.resources;
+  }
+
+  async readResource(uri: string, timeoutMs = 10000): Promise<McpResourceContent[]> {
+    const result = (await this.request("resources/read", { uri }, timeoutMs)) as {
+      contents?: McpResourceContent[];
+    };
+    if (!result || !Array.isArray(result.contents)) {
+      throw new McpError(`resources/read ${uri} returned malformed result`);
+    }
+    return result.contents;
+  }
+
+  async listPrompts(timeoutMs = 10000): Promise<McpPrompt[]> {
+    const result = (await this.request("prompts/list", {}, timeoutMs)) as { prompts?: McpPrompt[] };
+    if (!Array.isArray(result.prompts)) {
+      throw new McpError("prompts/list returned no prompt array");
+    }
+    return result.prompts;
+  }
+
+  async getPrompt(
+    name: string,
+    args: Record<string, unknown> = {},
+    timeoutMs = 10000,
+  ): Promise<{ description?: string; messages: McpPromptMessage[] }> {
+    const result = (await this.request("prompts/get", { name, arguments: args }, timeoutMs)) as {
+      description?: string;
+      messages?: McpPromptMessage[];
+    };
+    if (!result || !Array.isArray(result.messages)) {
+      throw new McpError(`prompts/get ${name} returned malformed result`);
+    }
+    return { description: result.description, messages: result.messages };
   }
 
   /** Cancel an in-flight call: notify the server, then enforce locally. */
@@ -146,10 +242,22 @@ export class McpClient {
       this.buffer = this.buffer.slice(index + 1);
       index = this.buffer.indexOf("\n");
       if (!line) continue;
-      let msg: { id?: number; result?: unknown; error?: { code?: number; message?: string } };
+      let msg: {
+        id?: string | number;
+        method?: string;
+        params?: unknown;
+        result?: unknown;
+        error?: { code?: number; message?: string };
+      };
       try {
         msg = JSON.parse(line) as typeof msg;
       } catch {
+        continue;
+      }
+      if (typeof msg.method === "string" && msg.id !== undefined) {
+        // Server-to-client request (e.g. elicitation/create). Answered
+        // async; never routed into the client-pending map.
+        void this.serveIncoming(msg.id, msg.method, msg.params);
         continue;
       }
       if (typeof msg.id !== "number") continue;
@@ -163,6 +271,43 @@ export class McpClient {
         waiter.resolve(msg.result);
       }
     }
+  }
+
+  private async serveIncoming(id: string | number, method: string, params: unknown): Promise<void> {
+    if (method === "elicitation/create") {
+      const handler = this.options.onElicitation;
+      if (!handler) {
+        this.respond(id, undefined, { code: -32601, message: "elicitation not supported by client" });
+        return;
+      }
+      try {
+        const p = (params ?? {}) as { message?: string; requestedSchema?: unknown };
+        const outcome = await handler({ message: p.message, requestedSchema: p.requestedSchema });
+        if (outcome.action !== "accept" && outcome.action !== "decline" && outcome.action !== "cancel") {
+          throw new Error(`bad elicitation action ${String((outcome as { action?: unknown }).action)}`);
+        }
+        this.respond(
+          id,
+          outcome.action === "accept"
+            ? { action: outcome.action, content: outcome.content ?? {} }
+            : { action: outcome.action },
+        );
+      } catch (error) {
+        this.respond(id, undefined, {
+          code: -32603,
+          message: error instanceof Error ? error.message : "elicitation handler failed",
+        });
+      }
+      return;
+    }
+    this.respond(id, undefined, { code: -32601, message: `unknown method ${method}` });
+  }
+
+  private respond(id: string | number, result?: unknown, error?: { code?: number; message?: string }): void {
+    const msg = error
+      ? { jsonrpc: "2.0", id, error }
+      : { jsonrpc: "2.0", id, result: result ?? {} };
+    this.proc?.stdin?.write(`${JSON.stringify(msg)}\n`);
   }
 
   private failAll(error: Error): void {
