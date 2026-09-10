@@ -15,18 +15,18 @@ build. Order below is dependency order; anything marked NEEDS-USER waits.
 Queue, typed timeline, chat-search backend, elapsed/compact — all
 committed with keepers; remaining bits need human eyes (click, render,
 virtualized perf). Search UI surface still open.
+## Phase B — native Agents shell: SCAFFOLD LANDED (2026-09-10)
 
-## Phase B — native Agents shell (agent + display, needs reference)
-
-VEHICLE DECIDED 2026-09-10: React agents-shell (Synara-derived
-components, see `backlog/SYNARA-UI-evidence.md`) hosted in an editor
-webview panel, talking daemon RPC through an extension-host bridge
-(webviews cannot do raw TCP). Native workbench contrib stays an option
-only if the panel proves insufficient — NOT the default path anymore.
-Next step: esbuild bundling into `extensions/caret` (toolchain, unstarted).
-`src/vs/workbench/contrib/agentWorkbench/{common/{agentTypes,agentEvents,agentContextKeys,agentCommands,agentConfiguration,agentStorage},browser/{agentsWindow,navigation,home,session,timeline,composer,review,plan,debug,browserDesign,settings},electron-sandbox/agentWorkbench.contribution}.ts`
-- WorkbenchShell mode service + layout via IWorkbenchLayoutService.
-- Shell-switch contract (12 preserved fields — implement + keeper).
+VEHICLE (user decision): native workbench contrib, team to follow.
+`src/vs/workbench/contrib/agentWorkbench/` ships with common contracts
+(types/events/context-keys/commands/config/storage), the mode-service
+interface, two honest scaffold commands, and one additive wire line in
+`workbench.common.main.ts`. Full-fork `tsc --noEmit`: ZERO errors in
+our files. Layout/rendering still waits on the reference atlas — the
+scaffold adds commands, not pixels.
+Next: Agents-window layout + session timeline against the mode service
+(needs reference atlas for geometry); shell-switch contract with the 12
+preserved fields; React-panel vehicle dropped by user decision.
 - NEEDS-USER: reference atlas for every geometry number.
 
 ## Phase C — visual calibration (mostly NEEDS-USER)
