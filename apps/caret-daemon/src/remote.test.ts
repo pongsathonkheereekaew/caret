@@ -135,6 +135,27 @@ describe("M5RemoteGateway", () => {
       c.close();
     }
   });
+  it("resyncs across connections after a network switch", async () => {
+    const gw = await boot();
+    const wifi = await LineClient.connect(gw.port);
+    let first: Record<string, unknown>;
+    try {
+      const before = counter;
+      first = await wifi.request(50, "test.count", {}, gw.token);
+      expect(first).toMatchObject({ id: 50, ok: true, result: { n: before + 1 } });
+    } finally {
+      wifi.close();
+    }
+    const cell = await LineClient.connect(gw.port);
+    try {
+      const replay = await cell.request(50, "test.count", {}, gw.token);
+      expect(replay).toEqual(first);
+      expect(counter).toBe((first["result"] as { n: number }).n);
+    } finally {
+      cell.close();
+    }
+  });
+
 
   it("shares run state with a second client", async () => {
     const gw = await boot();
@@ -157,8 +178,11 @@ describe("M5RemoteGateway", () => {
     try {
       const done = await a.request(30, "test.emit", {}, gw.token);
       expect(done).toMatchObject({ id: 30, ok: true });
-      // TCP preserves per-socket order and broadcast precedes the response,
-      // so both event lines already arrived — no polling.
+      // Sync on b's own next response: same-socket order guarantees the
+      // broadcast (written before any later reply to b) already arrived.
+      // Awaiting a's response alone proves nothing about b's socket.
+      const syncB = await b.request(31, "pairing.status", {}, gw.token);
+      expect(syncB).toMatchObject({ id: 31, ok: true });
       expect(a.events).toContainEqual({ event: "test.ping", n: counter });
       expect(b.events).toContainEqual({ event: "test.ping", n: counter });
     } finally {
