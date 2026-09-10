@@ -247,6 +247,11 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				this.post({ type: 'status', text: rejected.reversed ? 'run changes reversed' : 'nothing to reverse' });
 				break;
 			}
+			case 'bringBack': {
+				const brought = await daemon.request('run.bringBack', {}) as { brought?: boolean };
+				this.post({ type: 'status', text: brought.brought ? 'brought back onto the main checkout' : 'bring-back refused — resolve conflicts first' });
+				break;
+			}
 			case 'new': {
 				try {
 					await daemon.request('session.stop', {});
@@ -291,6 +296,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="send">Send</button>
 <button id="review" class="secondary">Review</button>
 <button id="reject" class="secondary">Reject</button>
+<button id="bringBack">Bring Back</button>
 <button id="new" class="secondary">New</button>
 </div>
 <div id="transcript"></div>
@@ -334,6 +340,7 @@ function card(requestId, requestType, detail) {
 document.getElementById('send').onclick = () => { vscode.postMessage({ command: 'send', text: prompt.value }); prompt.value = ''; };
 document.getElementById('review').onclick = () => vscode.postMessage({ command: 'review' });
 document.getElementById('reject').onclick = () => vscode.postMessage({ command: 'reject' });
+document.getElementById('bringBack').onclick = () => vscode.postMessage({ command: 'bringBack' });
 document.getElementById('new').onclick = () => vscode.postMessage({ command: 'new' });
 window.addEventListener('message', (event) => {
 	const m = event.data;
