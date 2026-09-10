@@ -30,6 +30,30 @@ negotiation, tools list/call, tool-level errors, unknown-tool protocol
 errors, cancellation via `notifications/cancelled` (fixed a double-reply
 race), timeout, reconnect-after-kill (fixed a stale-exit-handler race that
 killed the new session's pending calls). SSE/streamable + OAuth remain open.
+killed the new session's pending calls). Streamable-HTTP later proven in
+`M4-mcp-http-evidence.md`; resources/prompts/elicitation proven in the
+section below. Full OAuth still open (needs a real provider).
+
+## MCP resources/prompts/elicitation (CUS-11): PASS, transport-level
+
+`mcp.ts` + `mcp-http.ts` (owned wire, no SDK) + both fixtures:
+resources/list, resources/read (+ unknown-URI protocol error),
+prompts/list, prompts/get (+ unknown-prompt protocol error) on stdio AND
+streamable-HTTP. Elicitation over stdio only: the `ask` fixture tool sends
+`elicitation/create`; the client routes it to a caller-provided handler
+(accept → greeting, decline/cancel → tool-level error, no handler → clean
+tool-level error, never a hang). Consent gating lives in the caller — the
+transport only routes and validates the action/content shape.
+
+Deliberately NOT here: server-initiated elicitation over HTTP needs a
+long-lived GET event stream, which the request/response client does not
+open (same documented boundary as server-initiated notifications); the
+HTTP `ask` probe returns a tool-level error saying so instead of
+pretending. Full OAuth still needs a real provider (blocked-external).
+
+## Proven
+
+Full daemon suite 104/104 (22 files): stdio MCP 9/9, HTTP MCP 11/11.
 
 ## Retention (WT-05): keepers green
 

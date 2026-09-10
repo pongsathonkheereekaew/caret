@@ -20,7 +20,9 @@ isolated-by-default binding (6/6), steer/resume-matrix, MCP 5/5, prune.
 
 Open: H05 click-through (manual script in `backlog/H05-ui-evidence.md`),
 M3 tail (multiline/next-edit, Tab keybinding, semantic index), M4 tail
-(MCP SSE/OAuth; retention cap done 2026-09-10 → `backlog/M4-retention-evidence.md`), M5/M6 remote+mobile, M7 release, M8–M11.
+(MCP OAuth + HTTP elicitation-stream; retention cap done 2026-09-10 →
+`backlog/M4-retention-evidence.md`; resources/prompts/elicitation-stdio
+done → `backlog/M4-backend-evidence.md`), M5/M6 remote+mobile, M7 release, M8–M11.
 
 ## Locked decisions (do not relitigate without new evidence)
 
@@ -81,6 +83,9 @@ guards); MCP streamable-HTTP (8/8) with auth seam; setup hooks (no
 shell/discovery); session-API factory + TCP gateway (pairing, revoke,
 idempotency, resync) + `serve-tcp.ts` entry; `run.export` bundle +
 `turn.steer` RPC; lease/handoff/webhook/audit/forge primitives.
+2026-09-10 night: CUS-11 resources/prompts/elicitation-stdio on both
+transports (suite 104/104: stdio MCP 9/9, HTTP MCP 11/11; HTTP
+elicitation-stream + full OAuth stay open).
 Live Codex proofs over TCP: turn+review+export (21s), mid-turn steer
 (78s), Gitea 1.27.3 PR matrix (8s, Rosetta binary, /tmp instance).
 Fork `caret`: composer Steer/Export/Runs buttons (8/8 wired, tsc 0),

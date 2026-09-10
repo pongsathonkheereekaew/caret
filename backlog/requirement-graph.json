@@ -2116,7 +2116,7 @@
    ],
    "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "implemented",
+   "status": "verified",
    "children": [
     {
      "id": "CUS-11-C01",
@@ -2126,9 +2126,9 @@
     },
     {
      "id": "CUS-11-C02",
-     "title": "resources/prompts/elicitation absent",
+     "title": "resources/prompts/elicitation wired on owned transports (7 keepers)",
      "evidence": "backlog/M4-backend-evidence.md",
-     "result": "open"
+     "result": "pass"
     },
     {
      "id": "CUS-11-C03",
