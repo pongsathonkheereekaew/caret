@@ -47,7 +47,33 @@
 				"title": "%commands.rejectRun%",
 				"category": "Caret"
 			}
-		]
+		],
+		"configuration": {
+			"title": "Caret Tab",
+			"properties": {
+				"caret.tab.endpoint": {
+					"type": "string",
+					"default": "http://127.0.0.1:8080",
+					"description": "Caret FIM endpoint (llama-server /infill). Local-first; no code leaves the machine."
+				},
+				"caret.tab.timeoutMs": {
+					"type": "number",
+					"default": 1200,
+					"description": "Per-request timeout. Slow responses are discarded, never queued."
+				},
+				"caret.tab.disabledLanguages": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [
+						"markdown",
+						"plaintext"
+					],
+					"description": "Languages where ghost text never triggers."
+				}
+			}
+		}
 	},
 	"scripts": {
 		"compile": "tsc -p ./"
