@@ -200,6 +200,7 @@ describe("M5RemoteGateway", () => {
       "session.start",
       "session.stop",
       "turn.send",
+      "turn.steer",
     ]);
   });
 });

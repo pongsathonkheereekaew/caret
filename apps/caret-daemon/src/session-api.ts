@@ -6,7 +6,7 @@ import {
   startCaretRun,
   sendCaretTurn,
   reviewCaretRun,
-  rejectCaretRun,
+  steerCaretTurn,
   bringBackCaretRun,
   recaptureCaretRun,
   stopCaretRun,
@@ -54,6 +54,13 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         lastGoal = p.input;
         const done = (yield* sendCaretTurn(run, seen, p.input)) as { payload?: { state?: string } };
         return { state: (done.payload as { state?: string } | undefined)?.state ?? "completed" };
+      }),
+    "turn.steer": (p: { input: string }) =>
+      Effect.gen(function* () {
+        if (!run) return yield* Effect.fail(new Error("no session"));
+        lastGoal = p.input;
+        yield* steerCaretTurn(run, p.input);
+        return { steered: true };
       }),
     "run.review": () =>
       Effect.gen(function* () {
