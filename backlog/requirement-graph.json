@@ -892,6 +892,12 @@
      "title": "web/question tools absent",
      "evidence": "backlog/M4-backend-evidence.md",
      "result": "open"
+    },
+    {
+     "id": "AG-07-C03",
+     "title": "file/shell/exec tools exercised across 30 baseline tasks",
+     "evidence": "backlog/Q11-agent-baseline-evidence.md",
+     "result": "pass"
     }
    ]
   },
@@ -920,8 +926,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-08-C01",
+     "title": "30-task unpaired baseline 30/30 on OpenCode path",
+     "evidence": "backlog/Q11-agent-baseline-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-08-C02",
+     "title": "paired-vs-reference ×3 runs still open (needs reference)",
+     "evidence": "backlog/Q11-agent-baseline-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-09",
