@@ -5161,8 +5161,27 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-25-C01",
+     "title": "12 headless commands + dispatcher, exit codes 0/1/2",
+     "evidence": "backlog/PX25-cli-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-25-C02",
+     "title": "live pairing check + auth refusal over real gateway",
+     "evidence": "backlog/PX25-cli-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-25-C03",
+     "title": "--json output and interactive approval loop open",
+     "evidence": "backlog/PX25-cli-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-26",
