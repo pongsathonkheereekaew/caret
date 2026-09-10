@@ -210,6 +210,14 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				detail: String(msg.detail ?? '').slice(0, 500),
 			});
 		}
+		if (msg.event === 'engine') {
+			this.post({
+				type: 'tool',
+				kind: String(msg.kind ?? 'info'),
+				label: String(msg.type ?? 'event'),
+				detail: String(msg.detail ?? ''),
+			});
+		}
 	}
 
 	private postQueue(): void {
@@ -414,6 +422,9 @@ body { font-family: var(--vscode-font-family); padding: 10px; }
 }
 #transcript { margin: 8px 0; font-size: 12px; }
 .msg { border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; }
+.tool { font-size: 11px; color: var(--vscode-descriptionForeground); }
+.tool-failed { border-color: var(--vscode-editorError-foreground); color: var(--vscode-editor-foreground); }
+.tool-done { color: var(--vscode-disabledForeground); }
 .user { background: var(--vscode-textBlockQuote-background); }
 .approval { border-color: var(--vscode-editorWarning-foreground); }
 .approval .detail { color: var(--vscode-descriptionForeground); font-family: var(--vscode-editor-font-family); font-size: 11px; }
@@ -479,6 +490,14 @@ function card(requestId, requestType, detail) {
 	transcript.appendChild(div);
 	div.scrollIntoView(false);
 }
+function trow(kind, label, detail) {
+	const div = document.createElement('div');
+	div.className = 'msg tool tool-' + kind;
+	const mark = kind === 'failed' ? '✕ ' : kind === 'done' ? '✓ ' : kind === 'start' ? '▶ ' : '• ';
+	div.textContent = mark + label + (detail ? ' — ' + detail : '');
+	transcript.appendChild(div);
+	div.scrollIntoView(false);
+}
 document.getElementById('send').onclick = () => { vscode.postMessage({ command: 'send', text: prompt.value }); prompt.value = ''; };
 document.getElementById('review').onclick = () => vscode.postMessage({ command: 'review' });
 document.getElementById('reject').onclick = () => vscode.postMessage({ command: 'reject' });
@@ -511,6 +530,7 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'approval') card(m.requestId, m.requestType, m.detail);
 else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
 else if (m.type === 'queue') renderQueue(m.items || []);
+else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
 });
 </script>
 </body>
