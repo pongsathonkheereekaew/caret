@@ -10,6 +10,10 @@ that session must NOT touch the daemon or the M4 hooks track.
   status text. Daemon files touched: `export.ts` (new), `session-api.ts`
   (+goal tracking), `remote.test.ts` (shape list). No action needed unless
   you take the Export button.
+- 2026-09-10 (main session): new RPC `turn.steer{input} → {steered:true}`
+  on both transports (see `backlog/AG05-steer-rpc-evidence.md`). Suggested
+  composer affordance: Steer button, enabled only while a turn runs.
+  Facade live-proven; RPC-level live proof deferred to next engine run.
 ---
 
 You are working on Caret, a Code-OSS desktop fork with an agent extension.
