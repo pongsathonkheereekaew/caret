@@ -3,19 +3,44 @@
 // (pairing token) / session new+prompt+cancel, review diff as the turn's
 // message content, approvals as `caret/approval` notifications with a
 // `caret/approve` answer method. NOT here: streaming message chunks (one
-// content update per turn), image/audio blocks, multi-session (one live
-// run — a second new fails loudly), ACP-native permission round-trips
-// (extension notification + method instead).
+// message content, engine-event streaming as agent_message_chunk updates,
+// approvals as `caret/approval` notifications with a `caret/approve`
+// answer method, NDJSON stdio framing (`serveAcpLines`, also used by
+// serve-acp.ts). NOT here: image/audio blocks (turn.send is string-only),
+// multi-session (one live run — a second new fails loudly, matching the
+// session API one-live-subscription design), ACP-native permission
+// round-trips (extension notification + method instead).
 import * as Effect from "effect/Effect";
 
 export type AcpHandler = (params: never) => Effect.Effect<unknown, unknown>;
 
-interface AcpRequest {
+export interface AcpRequest {
   jsonrpc?: string;
   id?: string | number;
   method?: string;
   params?: Record<string, unknown>;
 }
+
+/**
+ * Thin NDJSON stdio framing around handle(): lines in, responses out.
+ * serve-acp.ts uses this with real stdin/stdout; keepers drive it with
+ * in-memory streams so the framing is pinned without booting a daemon.
+ */
+export const serveAcpLines = async (opts: {
+  lines: AsyncIterable<string>;
+  send: (msg: unknown) => void;
+  handle: (message: AcpRequest) => Promise<unknown>;
+}): Promise<void> => {
+  for await (const line of opts.lines) {
+    const trimmed = String(line).trim();
+    if (!trimmed) continue;
+    try {
+      opts.send(await opts.handle(JSON.parse(trimmed) as AcpRequest));
+    } catch {
+      opts.send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } });
+    }
+  }
+};
 
 const ok = (id: string | number, result: unknown) => ({ jsonrpc: "2.0", id, result });
 const fail = (id: string | number | null, code: number, message: string) => ({
@@ -61,10 +86,25 @@ export const createAcpAdapter = (deps: {
     }
   };
 
-  /** Translate session-API notifications for the ACP client. */
+  /**
+   * Translate session-API notifications for the ACP client. Engine events
+   * carrying text detail stream as `session/update` agent_message_chunk
+   * updates for the live session; everything else keeps the caret/*
+   * extension channel. With no live session there is nothing to attribute
+   * a chunk to, so events fall back to caret/notify.
+   */
   const onApiNotify = (msg: { event?: unknown; [key: string]: unknown }): void => {
     if (msg.event === "approval.requested") {
       notify({ jsonrpc: "2.0", method: "caret/approval", params: msg });
+    } else if (msg.event === "engine" && typeof msg.detail === "string" && liveSession) {
+      notify({
+        jsonrpc: "2.0",
+        method: "session/update",
+        params: {
+          sessionId: liveSession,
+          update: { sessionUpdate: "agent_message_chunk", content: [{ type: "text", text: msg.detail }] },
+        },
+      });
     } else {
       notify({ jsonrpc: "2.0", method: "caret/notify", params: msg });
     }

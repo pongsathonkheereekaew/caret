@@ -1,10 +1,11 @@
 // ACP adapter conformance (PX-24): negotiate, auth, session loop with
-// diff-as-message, busy/unknown guards, approval translation — against a
-// stub session API. No engine, no stdio loop (thin entry tracked open).
+// diff-as-message, engine-event streaming, busy/unknown guards, approval
+// translation, NDJSON stdio framing — against a stub session API.
+// No engine (images/multi-session stay open by session-API design).
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 
-import { createAcpAdapter } from "./acp.ts";
+import { createAcpAdapter, serveAcpLines } from "./acp.ts";
 
 const stubApi = () => {
   const calls: string[] = [];
@@ -92,5 +93,37 @@ describe("AcpAdapter", () => {
     expect(methods).toEqual(["caret/approval", "caret/notify"]);
     expect(await adapter.handle(req(20, "caret/approve", { requestId: "a1", answer: "accept" }))).toMatchObject({ id: 20, result: {} });
     expect(calls).toContain("approval.answer");
+  });
+
+  it("streams engine events as message chunks for the live session", async () => {
+    const { sent, adapter } = setup();
+    const opened = (await adapter.handle(req(30, "session/new", { cwd: "/tmp/r" }))) as {
+      result?: { sessionId?: string };
+    };
+    const sessionId = opened.result?.sessionId ?? "";
+    adapter.onApiNotify({ event: "engine", type: "tool.call", detail: "running tests" });
+    adapter.onApiNotify({ event: "engine", type: "tool.result", detail: "3 passed" });
+    const chunks = (sent as Array<{ method?: string; params?: { sessionId?: string; update?: { content?: Array<{ text?: string }> } } }>).filter(
+      (m) => m.method === "session/update",
+    );
+    expect(chunks.map((c) => c.params?.update?.content?.[0]?.text)).toEqual(["running tests", "3 passed"]);
+    expect(chunks[0]?.params?.sessionId).toBe(sessionId);
+    // No live session left: chunks have nowhere to go, back to caret/notify.
+    expect(await adapter.handle(req(31, "session/cancel", { sessionId }))).toMatchObject({ id: 31, result: {} });
+    adapter.onApiNotify({ event: "engine", type: "turn.completed", detail: "late" });
+    expect(sent[sent.length - 1]).toMatchObject({ method: "caret/notify" });
+  });
+
+  it("frames NDJSON stdio around handle()", async () => {
+    const { adapter } = setup();
+    const sent: unknown[] = [];
+    await serveAcpLines({
+      lines: ["", "not json", JSON.stringify(req(40, "initialize", {}))],
+      send: (msg) => sent.push(msg),
+      handle: (msg) => adapter.handle(msg),
+    });
+    expect(sent).toHaveLength(2);
+    expect(sent[0]).toMatchObject({ id: null, error: { code: -32700 } });
+    expect(sent[1]).toMatchObject({ id: 40, result: { protocolVersion: 1 } });
   });
 });

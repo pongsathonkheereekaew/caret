@@ -8,7 +8,7 @@ import * as Scope from "effect/Scope";
 import { ManagedRuntime } from "effect";
 import { bootDaemonLayer } from "./daemon.ts";
 import { createSessionApi } from "./session-api.ts";
-import { createAcpAdapter } from "./acp.ts";
+import { createAcpAdapter, serveAcpLines } from "./acp.ts";
 
 const token = process.env["CARET_PAIRING"] ?? "";
 if (!token) {
@@ -41,13 +41,4 @@ adapter = createAcpAdapter({
 send({ jsonrpc: "2.0", method: "caret/ready", params: { transports: ["acp"] } });
 
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
-for await (const line of rl) {
-  const trimmed = String(line).trim();
-  if (!trimmed) continue;
-  try {
-    const response = await adapter.handle(JSON.parse(trimmed) as never);
-    send(response);
-  } catch {
-    send({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } });
-  }
-}
+await serveAcpLines({ lines: rl, send, handle: (msg) => adapter.handle(msg) });
