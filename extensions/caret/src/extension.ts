@@ -512,9 +512,10 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 <style nonce="${styleNonce}">
 body { font-family: var(--vscode-font-family); padding: 10px; }
 :root {
-	/* Provisional parity tokens (blueprint §13 starting values, NOT measured).
-	 * Frozen values need the Cursor 3.19 reference build. No literal
-	 * agent colors outside these variables. */
+	/* Caret agent tokens (blueprint §13 roles; Synara token NAMESPACE
+	 * studied, not imported — engine + Codex-styled skins stay theirs).
+	 * Values resolve from the active VS Code theme TODAY (real, adaptive);
+	 * frozen Cursor-3.19 measurements replace them when reference lands. */
 	--agent-space: 4px;
 	--agent-font-ui: 13px;
 	--agent-font-meta: 11px;
@@ -525,21 +526,37 @@ body { font-family: var(--vscode-font-family); padding: 10px; }
 	--agent-radius-composer: 10px;
 	--agent-transition-fast: 120ms;
 	--agent-transition-pane: 180ms;
+	--agent-surface-base: var(--vscode-editor-background);
+	--agent-surface-raised: var(--vscode-sideBar-background);
+	--agent-surface-hover: var(--vscode-list-hoverBackground);
+	--agent-surface-selected: var(--vscode-list-activeSelectionBackground);
+	--agent-border-subtle: var(--vscode-panel-border);
+	--agent-border-strong: var(--vscode-focusBorder);
+	--agent-text-primary: var(--vscode-editor-foreground);
+	--agent-text-secondary: var(--vscode-descriptionForeground);
+	--agent-text-disabled: var(--vscode-disabledForeground);
+	--agent-focus-ring: var(--vscode-focusBorder);
+	--agent-success: var(--vscode-testing-iconPassed);
+	--agent-warning: var(--vscode-editorWarning-foreground);
+	--agent-error: var(--vscode-editorError-foreground);
+	--agent-info: var(--vscode-editorInfo-foreground);
+	--agent-diff-added: var(--vscode-diffEditor-insertedTextBackground);
+	--agent-diff-removed: var(--vscode-diffEditor-removedTextBackground);
 }
 #transcript { margin: 8px 0; font-size: 12px; }
-.msg { border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; }
-.tool { font-size: 11px; color: var(--vscode-descriptionForeground); }
-.tool-failed { border-color: var(--vscode-editorError-foreground); color: var(--vscode-editor-foreground); }
-.tool-done { color: var(--vscode-disabledForeground); }
+#transcript.compact-done .tool-done { display: none; }
+.msg { border: 1px solid var(--agent-border-subtle); border-radius: var(--agent-radius-card); padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; }
+.tool { font-size: var(--agent-font-meta); color: var(--agent-text-secondary); }
+.tool-failed { border-color: var(--agent-error); color: var(--agent-text-primary); }
+.tool-done { color: var(--agent-text-disabled); }
 .user { background: var(--vscode-textBlockQuote-background); }
-.approval { border-color: var(--vscode-editorWarning-foreground); }
+.approval { border-color: var(--agent-warning); }
 .approval .detail { color: var(--vscode-descriptionForeground); font-family: var(--vscode-editor-font-family); font-size: 11px; }
 .row { display: flex; gap: 6px; margin-top: 6px; }
 button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
 button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 #prompt { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: var(--agent-radius-composer); padding: 6px; font-family: inherit; font-size: var(--agent-font-ui); min-height: var(--agent-composer-min-height); }
-#status { color: var(--vscode-descriptionForeground); font-size: 11px; min-height: 16px; }
-#transcript.compact-done .tool-done { display: none; }
+#status { color: var(--agent-text-secondary); font-size: var(--agent-font-meta); min-height: 16px; }
 </style>
 </head>
 <body>
