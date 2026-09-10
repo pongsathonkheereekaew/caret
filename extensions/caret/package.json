@@ -1,0 +1,58 @@
+{
+	"name": "caret",
+	"displayName": "%displayName%",
+	"description": "%description%",
+	"publisher": "caret",
+	"version": "0.0.1",
+	"license": "MIT",
+	"private": true,
+	"engines": {
+		"vscode": "^1.138.0"
+	},
+	"categories": [
+		"AI",
+		"Other"
+	],
+	"activationEvents": [
+		"onView:caretComposer"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "caretAgents",
+					"title": "%viewsContainers.caretAgents%",
+					"icon": "media/caret.svg"
+				}
+			]
+		},
+		"views": {
+			"caretAgents": [
+				{
+					"id": "caretComposer",
+					"name": "%views.caretComposer%",
+					"type": "webview"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "caret.reviewRun",
+				"title": "%commands.reviewRun%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.rejectRun",
+				"title": "%commands.rejectRun%",
+				"category": "Caret"
+			}
+		]
+	},
+	"scripts": {
+		"compile": "tsc -p ./"
+	},
+	"devDependencies": {
+		"@types/node": "^24.13.4"
+	}
+}

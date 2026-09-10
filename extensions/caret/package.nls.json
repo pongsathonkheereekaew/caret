@@ -1,0 +1,8 @@
+{
+	"displayName": "Caret Agents",
+	"description": "Caret agent sessions: prompt, approve, review, reject.",
+	"viewsContainers.caretAgents": "Caret",
+	"views.caretComposer": "Agents",
+	"commands.reviewRun": "Review Run Diff",
+	"commands.rejectRun": "Reject Run Changes"
+}
