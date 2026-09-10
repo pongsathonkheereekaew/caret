@@ -1,13 +1,9 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Caret contributors. All rights reserved.
- *  Licensed under the MIT License.
- *--------------------------------------------------------------------------------------------*/
-
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import { CaretTabProvider } from './completion';
 
 const log = vscode.window.createOutputChannel('Caret');
 
@@ -343,10 +339,12 @@ window.addEventListener('message', (event) => {
 
 export function activate(context: vscode.ExtensionContext): void {
 	const provider = new CaretViewProvider(context);
+	const tabProvider = new CaretTabProvider(context);
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider('caretComposer', provider, {
 			webviewOptions: { retainContextWhenHidden: true },
 		}),
+		vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, tabProvider),
 		vscode.commands.registerCommand('caret.reviewRun', async () => {
 			const doc = await vscode.workspace.openTextDocument({ content: '(use the Agents view Review button with a live session)', language: 'markdown' });
 			await vscode.window.showTextDocument(doc, { preview: true });
