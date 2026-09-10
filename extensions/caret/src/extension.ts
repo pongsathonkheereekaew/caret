@@ -333,6 +333,21 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${styleNonce}'; script-src 'nonce-${scriptNonce}';">
 <style nonce="${styleNonce}">
 body { font-family: var(--vscode-font-family); padding: 10px; }
+:root {
+	/* Provisional parity tokens (blueprint §13 starting values, NOT measured).
+	 * Frozen values need the Cursor 3.19 reference build. No literal
+	 * agent colors outside these variables. */
+	--agent-space: 4px;
+	--agent-font-ui: 13px;
+	--agent-font-meta: 11px;
+	--agent-sidebar-width: 208px;
+	--agent-composer-min-height: 110px;
+	--agent-radius-control: 4px;
+	--agent-radius-card: 8px;
+	--agent-radius-composer: 10px;
+	--agent-transition-fast: 120ms;
+	--agent-transition-pane: 180ms;
+}
 #transcript { margin: 8px 0; font-size: 12px; }
 .msg { border: 1px solid var(--vscode-panel-border); border-radius: 6px; padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; }
 .user { background: var(--vscode-textBlockQuote-background); }
@@ -341,7 +356,7 @@ body { font-family: var(--vscode-font-family); padding: 10px; }
 .row { display: flex; gap: 6px; margin-top: 6px; }
 button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
 button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
-#prompt { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: 4px; padding: 6px; font-family: inherit; }
+#prompt { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: var(--agent-radius-composer); padding: 6px; font-family: inherit; font-size: var(--agent-font-ui); min-height: var(--agent-composer-min-height); }
 #status { color: var(--vscode-descriptionForeground); font-size: 11px; min-height: 16px; }
 </style>
 </head>
