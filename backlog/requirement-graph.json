@@ -5175,8 +5175,27 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-26-C01",
+     "title": "typed TCP client: all 12 session methods + events + retry + revoke",
+     "evidence": "backlog/PX26-sdk-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-26-C02",
+     "title": "4 keepers vs real gateway; full suite 55/55",
+     "evidence": "backlog/PX26-sdk-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-26-C03",
+     "title": "extraction to packages/ rides vendor-out; CLI/REST unstarted",
+     "evidence": "backlog/PX26-sdk-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-27",
