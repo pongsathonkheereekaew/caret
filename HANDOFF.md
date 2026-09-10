@@ -71,3 +71,19 @@ choice · APNs sender · next-surface priority (recommended: M7, Agents, mobile,
 Codex resume silence (declared, flagged) · Zen $0 blocks paid evals ·
 visual claims reference-gated · Windows/Linux need CI · Copilot
 disentangle at M1 (raw derefs) · no update server/signing yet.
+
+## Addendum 2026-09-10 evening (solo push, no human)
+
+Daemon suite 51/51 on `caret-adapter`. Shipped since the brief: scoped
+`cmd+k` inline-edit keybinding; multiline REJECTED with probe evidence
+(truncation + repetition); run picker (`run.list`/`run.remove`, 6-way
+guards); MCP streamable-HTTP (8/8) with auth seam; setup hooks (no
+shell/discovery); session-API factory + TCP gateway (pairing, revoke,
+idempotency, resync) + `serve-tcp.ts` entry; `run.export` bundle +
+`turn.steer` RPC; lease/handoff/webhook/audit/forge primitives.
+Live Codex proofs over TCP: turn+review+export (21s), mid-turn steer
+(78s), Gitea 1.27.3 PR matrix (8s, Rosetta binary, /tmp instance).
+Fork `caret`: composer Steer/Export/Runs buttons (8/8 wired, tsc 0),
+`CARET.md` user guide. UI session left no artifacts (branch `caret-ui`
+empty); its scope absorbed. Still human/external: click-through,
+signing/repo-remote, devices/APNs, cloud/OAuth providers, Zen top-up.
