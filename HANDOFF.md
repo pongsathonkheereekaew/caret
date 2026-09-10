@@ -101,3 +101,12 @@ signing/repo-remote, devices/APNs, cloud/OAuth providers, Zen top-up.
   Control repo pushes here; code monorepo follows ARCHITECTURE layout.
 - Relay: NONE (no Tailscale — matches Paseo). Remote = loopback +
   LAN-direct only; LOC-04 relay stays open, loopback verified.
+
+## User decisions 2026-09-10, part 2 (billing + platform)
+
+- Billing: LEAVE IT. No card ever attached; the payment-failure flag is
+  account-side. CI runs on the self-hosted Mac runner (green, 29s) —
+  github-hosted matrix stays off.
+- Platform: MAC ONLY. Windows/Linux support dropped from the matrix
+  (was: pending CI). C-04 upstream-chord gate now macOS-scoped.
+- Repo is PRIVATE (stays so until user says otherwise).

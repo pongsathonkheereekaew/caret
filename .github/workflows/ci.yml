@@ -3,9 +3,8 @@ on:
   push:
     branches: [main]
   pull_request:
-# NOTE (2026-09-10): github-hosted runners are blocked by an account
-# billing flag, so CI runs on the always-on Mac (caret-mac) until billing
-# is fixed — then restore the ubuntu/macos/windows matrix.
+# NOTE (2026-09-10): macOS-only by decision (billing left untouched).
+# Runs on the always-on Mac (caret-mac). No ubuntu/windows matrix.
 jobs:
   validate:
     runs-on: [self-hosted, macOS, ARM64]
