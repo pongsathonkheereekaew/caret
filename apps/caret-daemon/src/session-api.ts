@@ -16,6 +16,7 @@ import {
 } from "./daemon.ts";
 import { listCaretRuns, removeWorktreeDir } from "./worktree.ts";
 import { assembleRunBundle, writeRunBundle } from "./export.ts";
+import { engineRowKind } from "./session-state.ts";
 
 export type SessionApi = Record<string, (params: never) => Effect.Effect<unknown, Error>>;
 
@@ -37,6 +38,13 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
                 const id = `appr_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
                 parked.set(id, resolve);
                 notify({ event: "approval.requested", requestId: id, requestType: q.requestType, detail: String(q.detail)?.slice(0, 500) });
+              }),
+            onEvent: (type, payload) =>
+              notify({
+                event: "engine",
+                type,
+                kind: engineRowKind(type),
+                detail: typeof payload === "string" ? payload.slice(0, 500) : undefined,
               }),
           },
           p.repoDir,

@@ -7,6 +7,8 @@ import {
   AVAILABLE_RUNTIMES,
   EMITTED_EVENTS,
   TARGET_EVENTS,
+  shouldForwardEngineEvent,
+  engineRowKind,
   type AgentSessionStatus,
 } from "./session-state.ts";
 
@@ -53,5 +55,20 @@ describe("SessionState", () => {
     for (const status of ALL) {
       expect(canTransition(status, status)).toBe(false);
     }
+  });
+
+  it("forwards states, drops deltas and the approval duplicate", () => {
+    expect(shouldForwardEngineEvent("turn.completed")).toBe(true);
+    expect(shouldForwardEngineEvent("thread.started")).toBe(true);
+    expect(shouldForwardEngineEvent("checkpoint.created")).toBe(true);
+    expect(shouldForwardEngineEvent("assistant.messageDelta")).toBe(false);
+    expect(shouldForwardEngineEvent("tool.progress.delta")).toBe(false);
+    expect(shouldForwardEngineEvent("request.opened")).toBe(false);
+    expect(shouldForwardEngineEvent("")).toBe(false);
+    expect(shouldForwardEngineEvent(undefined)).toBe(false);
+    expect(engineRowKind("turn.failed")).toBe("failed");
+    expect(engineRowKind("session/threadOpenResolved")).toBe("done");
+    expect(engineRowKind("thread.started")).toBe("start");
+    expect(engineRowKind("something.unknown")).toBe("info");
   });
 });

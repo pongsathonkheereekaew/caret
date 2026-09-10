@@ -21,6 +21,7 @@ import {
   type IsolatedRun,
   type SetupHook,
 } from "./worktree.ts";
+import { shouldForwardEngineEvent } from "./session-state.ts";
 
 export interface ApprovalQuery {
   readonly requestType: unknown;
@@ -57,9 +58,10 @@ export interface DaemonOptions {
   /** Scratch/config cwd for the (interim) test server config. */
   readonly configCwd: string;
   /** Called for every engine approval request. Must resolve explicitly. */
-  readonly onApproval: (q: ApprovalQuery) => Promise<ApprovalAnswer>;
   /** JSONL journal path (Caret event journal seed). */
   readonly journalPath: string;
+  /** Live sink for forwarded engine states (timeline UI). Optional. */
+  readonly onEvent?: (type: string, payload: unknown) => void;
   /** Resume a prior native thread: opaque cursor (AG-06). */
   readonly resumeCursor?: unknown;
 }
@@ -121,6 +123,10 @@ export const startCaretRun = (
         const payload = (event as { payload?: unknown }).payload;
         seen.push({ type: t, payload });
         yield* journal(opts.journalPath, { type: t, payload: JSON.stringify(payload)?.slice(0, 2000) });
+        if (typeof t === "string" && shouldForwardEngineEvent(t)) {
+          const sink = opts.onEvent;
+          if (sink) yield* Effect.sync(() => sink(t, payload));
+        }
         if (t === "request.opened") {
           const rid = (event as { requestId?: string }).requestId;
           const answer = yield* Effect.promise(() =>
