@@ -196,6 +196,60 @@ export const listIsolatedRuns = (repoDir: string) =>
   });
 export const CARET_WORKTREE_PREFIX = "caret-wt-";
 
+/** Caret-owned isolated runs for a repo (picker source). Foreign worktrees
+ *  (other tools, linked checkouts) are listed by git but never managed here. */
+export const listCaretRuns = (repoDir: string) =>
+  Effect.gen(function* () {
+    const all = yield* listIsolatedRuns(repoDir);
+    return all.filter((dir) => NodePath.basename(dir).startsWith(CARET_WORKTREE_PREFIX));
+  });
+
+/** Remove one worktree dir by path (picker action). Guard order is the
+ *  safety case: canonicalize → refuse the main checkout → caret prefix
+ *  only → tmp-root only (prefix spoofing inside the repo still refuses) →
+ *  never the live run's dir → refuse dirty (no force on this path; reverse
+ *  or bring back first). `true` = removed, `false` = refused-dirty; guard
+ *  violations fail with the reason. Unregistered orphan dirs are NOT
+ *  removed here (`git worktree remove` refuses them) — they stay on the
+ *  prune path (WT-05, proven). */
+export const removeWorktreeDir = (repoDir: string, worktreeDir: string, liveDir?: string) =>
+  Effect.gen(function* () {
+    let realRepo: string;
+    let realTarget: string;
+    try {
+      realRepo = NodeFs.realpathSync(repoDir);
+      realTarget = NodeFs.realpathSync(worktreeDir);
+    } catch {
+      return yield* fail("worktree remove", repoDir, `not found: ${worktreeDir}`);
+    }
+    if (realTarget === realRepo) {
+      return yield* fail("worktree remove", repoDir, "refusing the main checkout");
+    }
+    if (!NodePath.basename(realTarget).startsWith(CARET_WORKTREE_PREFIX)) {
+      return yield* fail("worktree remove", repoDir, `not a Caret worktree: ${worktreeDir}`);
+    }
+    const tmpRoot = NodeFs.realpathSync(NodeOs.tmpdir());
+    if (realTarget !== tmpRoot && !realTarget.startsWith(tmpRoot + NodePath.sep)) {
+      return yield* fail("worktree remove", repoDir, `outside the tmp root: ${worktreeDir}`);
+    }
+    if (liveDir !== undefined) {
+      try {
+        if (NodeFs.realpathSync(liveDir) === realTarget) {
+          return yield* fail("worktree remove", repoDir, "stop the live session first");
+        }
+      } catch {
+        // Live dir already gone — nothing to protect, fall through.
+      }
+    }
+    const handle: IsolatedRun = {
+      repoDir: realRepo,
+      worktreeDir: realTarget,
+      baseCommit: "",
+      runId: NodePath.basename(realTarget),
+    };
+    return yield* removeIsolatedRun(handle);
+  });
+
 export const pruneOrphanWorktreeDirs = (tmpRoot: string, olderThanMs: number, nowMs = Date.now()) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;

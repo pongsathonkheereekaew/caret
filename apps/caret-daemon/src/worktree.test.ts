@@ -2,7 +2,7 @@
 // no mocks: isolation, clean bring-back, collision refusal, dirty-remove refusal.
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync, utimesSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -14,10 +14,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   bringBackRun,
   createIsolatedRun,
+  listCaretRuns,
   listIsolatedRuns,
   pruneOldRuns,
   pruneOrphanWorktreeDirs,
   removeIsolatedRun,
+  removeWorktreeDir,
   worktreeDiff,
   type IsolatedRun,
 } from "./worktree.ts";
@@ -166,5 +168,64 @@ describe("CaretWorktree", () => {
     expect(remaining).not.toContain(oldRun.worktreeDir);
     expect(remaining).toContain(dirtyRun.worktreeDir);
   });
+
+  it("picker lists caret runs only, removes clean ones by path", async () => {
+    const id = boot();
+    const isolated: IsolatedRun = await run(createIsolatedRun(mainDir, id));
+    // Foreign linked checkout: visible to git, never picker-managed.
+    const foreign = mkdtempSync(join(tmpdir(), "foreign-wt-"));
+    git(mainDir, ["worktree", "add", foreign]);
+    try {
+      const listed = await run(listCaretRuns(mainDir));
+      expect(listed).toContain(isolated.worktreeDir);
+      expect(listed).not.toContain(foreign);
+      expect(listed).not.toContain(mainDir);
+      expect(await run(removeWorktreeDir(mainDir, isolated.worktreeDir))).toBe(true);
+      expect(existsSync(isolated.worktreeDir)).toBe(false);
+      expect(await run(listCaretRuns(mainDir))).not.toContain(isolated.worktreeDir);
+    } finally {
+      try { execFileSync("git", ["-C", mainDir, "worktree", "remove", "--force", foreign], { stdio: "pipe" }); } catch { /* best effort */ }
+      rmSync(foreign, { recursive: true, force: true });
+    }
+  });
+
+  it("picker remove refuses dirty runs, dirs survive", async () => {
+    const id = boot();
+    const isolated: IsolatedRun = await run(createIsolatedRun(mainDir, id));
+    writeFileSync(join(isolated.worktreeDir, "wip.txt"), "wip\n");
+    expect(await run(removeWorktreeDir(mainDir, isolated.worktreeDir))).toBe(false);
+    expect(existsSync(isolated.worktreeDir)).toBe(true);
+  });
+
+  it("picker remove refuses main checkout, foreign dirs, live dir, spoofs", async () => {
+    const id = boot();
+    const isolated: IsolatedRun = await run(createIsolatedRun(mainDir, id));
+    await expect(run(removeWorktreeDir(mainDir, mainDir))).rejects.toThrow(/main checkout/);
+    await expect(run(removeWorktreeDir(mainDir, join(tmpdir(), "caret-wt-gone-xyz")))).rejects.toThrow(/not found/);
+    const junk = mkdtempSync(join(tmpdir(), "junk-"));
+    try {
+      await expect(run(removeWorktreeDir(mainDir, junk))).rejects.toThrow(/not a Caret worktree/);
+    } finally {
+      rmSync(junk, { recursive: true, force: true });
+    }
+    await expect(run(removeWorktreeDir(mainDir, isolated.worktreeDir, isolated.worktreeDir))).rejects.toThrow(/live session/);
+    // Caret prefix but outside the tmp root: the tmp-root guard fires first.
+    const outside = join(dirname(realpathSync(tmpdir())), `caret-wt-outside-${Date.now() % 100000}`);
+    mkdirSync(outside);
+    try {
+      await expect(run(removeWorktreeDir(mainDir, outside))).rejects.toThrow(/outside the tmp root/);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+    // Caret prefix inside the repo tree but never registered as a worktree:
+    // guards pass (fixtures live under tmp) and git itself refuses loudly.
+    // Unregistered orphans stay on the prune path — never rm -rf'd here.
+    const spoof = join(mainDir, "caret-wt-spoof");
+    mkdirSync(spoof);
+    await expect(run(removeWorktreeDir(mainDir, spoof))).rejects.toThrow(/not a working tree/);
+    expect(existsSync(isolated.worktreeDir)).toBe(true);
+  });
+
+
 
 });

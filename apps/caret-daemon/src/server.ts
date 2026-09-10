@@ -14,6 +14,7 @@ import {
   type ApprovalAnswer,
   type CaretRun,
 } from "./daemon.ts";
+import { listCaretRuns, removeWorktreeDir } from "./worktree.ts";
 
 const send = (msg: unknown) => process.stdout.write(`${JSON.stringify(msg)}\n`);
 
@@ -67,6 +68,17 @@ const program = Effect.gen(function* () {
         if (!run) return yield* Effect.fail(new Error("no session"));
         const brought = yield* bringBackCaretRun(run);
         return { brought };
+      }),
+    "run.list": () =>
+      Effect.gen(function* () {
+        if (!run) return yield* Effect.fail(new Error("no session"));
+        return { runs: yield* listCaretRuns(run.repoDir) };
+      }),
+    "run.remove": (p: { worktreeDir: string }) =>
+      Effect.gen(function* () {
+        if (!run) return yield* Effect.fail(new Error("no session"));
+        const removed = yield* removeWorktreeDir(run.repoDir, p.worktreeDir, run.isolated?.worktreeDir);
+        return { removed };
       }),
     "run.recapture": (p: { label: string }) =>
       Effect.gen(function* () {
