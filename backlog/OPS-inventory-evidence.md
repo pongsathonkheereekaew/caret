@@ -47,3 +47,14 @@ children=92`). Fix is on the account (phone-doable), then re-run.
 Vendor-out of daemon/extension sources deferred with reason: the
 upstream import fan-out (opencode SDK, agentGateway, skills…) makes
 vendoring a license/patch project of its own — tracked, not started.
+
+## CI green via self-hosted runner (2026-09-10)
+
+Billing flag blocks github-hosted jobs, so the always-on Mac runs them:
+`caret-mac` (actions-runner v2.337.0, `~/.caret-tools/actions-runner`,
+labels macos/arm64/caret) under LaunchAgent `com.caret.gha-runner`
+(reboot-persistent, no sudo). Workflow retargeted to
+`[self-hosted, macOS, ARM64]`; ubuntu/windows matrix returns when
+billing is fixed. First run: **success in 29s**. Risk note: self-hosted
+runners execute repo code — acceptable with zero outside contributors;
+revisit before accepting external PRs.
