@@ -236,8 +236,9 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				this.post({ type: 'user', text });
 				this.post({ type: 'status', text: 'turn running…' });
 				try {
+					const t0 = Date.now();
 					const done = await daemon.request('turn.send', { input: text }) as { state?: string };
-					this.post({ type: 'turn', state: String(done.state ?? 'completed') });
+					this.post({ type: 'turn', state: String(done.state ?? 'completed'), ms: Date.now() - t0 });
 				} catch (error) {
 					this.post({ type: 'status', text: `turn failed — queue held: ${error instanceof Error ? error.message : String(error)}` });
 					break;
@@ -433,6 +434,7 @@ button { background: var(--vscode-button-background); color: var(--vscode-button
 button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 #prompt { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: var(--agent-radius-composer); padding: 6px; font-family: inherit; font-size: var(--agent-font-ui); min-height: var(--agent-composer-min-height); }
 #status { color: var(--vscode-descriptionForeground); font-size: 11px; min-height: 16px; }
+#transcript.compact-done .tool-done { display: none; }
 </style>
 </head>
 <body>
@@ -443,6 +445,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <div class="row">
 <button id="send">Send</button>
 <button id="stop" class="secondary">Stop</button>
+<button id="compact" class="secondary">Compact</button>
 <button id="review" class="secondary">Review</button>
 <button id="reject" class="secondary">Reject</button>
 <button id="bringBack">Bring Back</button>
@@ -507,6 +510,11 @@ document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'r
 document.getElementById('steer').onclick = () => vscode.postMessage({ command: 'steer' });
 document.getElementById('export').onclick = () => vscode.postMessage({ command: 'export' });
 document.getElementById('stop').onclick = () => vscode.postMessage({ command: 'stop' });
+document.getElementById('compact').onclick = (event) => {
+	const box = document.getElementById('transcript');
+	const on = box.classList.toggle('compact-done');
+	event.target.textContent = on ? 'Expand' : 'Compact';
+};
 function renderQueue(items) {
 	const box = document.getElementById('queue');
 	box.textContent = '';
@@ -526,7 +534,7 @@ window.addEventListener('message', (event) => {
 	const m = event.data;
 	if (m.type === 'status') status.textContent = m.text;
 	else if (m.type === 'user') add('user', 'You: ' + m.text);
-	else if (m.type === 'turn') add('', 'Turn: ' + m.state);
+	else if (m.type === 'turn') add('', 'Turn: ' + m.state + (typeof m.ms === 'number' ? ' (' + Math.round(m.ms / 1000) + 's)' : ''));
 	else if (m.type === 'approval') card(m.requestId, m.requestType, m.detail);
 else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
 else if (m.type === 'queue') renderQueue(m.items || []);
