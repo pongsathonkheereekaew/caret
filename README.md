@@ -1,17 +1,32 @@
 # Caret
 
-**[แผนเดียวฉบับละเอียดสำหรับส่งต่อ](docs/IMPLEMENTATION-PLAN.th.md)** — ฉบับ 5, 9 กันยายน 2026
+IDE ที่รันเอเจนต์บนเครื่องตัวเอง (local-first): Code-OSS fork (Caret UI) + Synara daemon (Codex/OpenCode engines). Private repo, Mac-only, ไม่มี cloud. สถานะล่าสุดดู `HANDOFF.md`
 
-Code - OSS fork + conditional Paseo backend + Codex/OpenCode engines พร้อม Caret UI ตาม Cursor public reference
+เป้าคือ clone-verified gate ใน [แผนรวม v5](docs/IMPLEMENTATION-PLAN.th.md) (authoritative): 198 parent requirements, 75 UI families — [ผล scrutinize](docs/SCRUTINIZE-REVIEW.th.md) กับ [reuse assessment](docs/SYNARA-ASSESSMENT.th.md) ยังเป็นประตูก่อนลงมือ
 
-- 198 parent requirements (158 baseline + 40 supplementary)
-- 75 UI screen families (57 baseline + 18 supplementary)
-- 29 tool contracts และ 16 implementation work packets
-- 261 retrieved docs/help URLs พร้อม source routing ledger
-- [ผล scrutinize](docs/SCRUTINIZE-REVIEW.th.md): แก้ omissions ที่พบแล้ว; ยังมี reference/schema/engine evidence gates
+## สถานะ (2026-09-10)
 
-Planning only ยังไม่เริ่มโค้ด ติดตั้ง build หรือใช้ inference quota แผนรวมเป็น authoritative specification; supporting files เป็น snapshots ต้องอ่านส่วน J/K ซึ่งเป็นข้อแก้ไขล่าสุดก่อนลงมือ
+Backend พิสูจน์แล้ว 31/31 tasks: daemon suite เขียว, composer Steer/Export/Runs, FIM Tab single-line, worktrees, MCP streamable-HTTP, TCP gateway + live proofs; native Agents shell อยู่ขั้น contracts (types/transitions ครบ, rendering รอ reference atlas). เปิดค้าง: click-through, signing, devices/APNs, reference build
 
-พร้อมส่งต่อเพื่อเริ่ม reference/feasibility และเดิน implementation ตามแผน ไม่ใช่คำรับรอง pixel-perfect/private-engine 1:1 หรือทุก API field ว่า verified แล้ว
+## การตัดสินใจที่ล็อกแล้ว (ห้ามรื้อโดยไม่มี evidence ใหม่)
 
-ผู้ใช้เลือก **Synara UI เป็นฐานเริ่มต้น** ดู [reuse assessment](docs/SYNARA-ASSESSMENT.th.md) และส่วน L ของแผนรวม ซึ่งเป็นข้อเลือก UI/backend ล่าสุด
+- Local-only: โค้ดไม่ออกจากเครื่อง (M8 CLOUD blocked-external เหลือ CLOUD-08)
+- Mac-only: ไม่ทำ Windows/Linux; CI บน self-hosted Mac runner
+- Approval-gated writes; bring-back ชนแล้วปฏิเสธ ไม่ force
+- Daemon เป็น SSOT ของ status/event/transition; fork แค่ render
+
+## โครง (อ่าน `docs/TEAM-ONBOARDING.md` ก่อนแตะโค้ด)
+
+| Checkout | Branch | ของข้างใน |
+|---|---|---|
+| `~/caret-work/caret-desktop` | `caret` (+ `caret-native`) | composer UI + native workbench contrib |
+| `~/caret-work/upstream-synara/apps/caret-daemon` | `caret-adapter` | daemon ทั้งก้อน |
+| control repo (ตรงนี้) | `main` | docs, `backlog/` evidence, requirement graph, CI |
+
+Toolchain: `~/.caret-tools/node-v24.18.0-darwin-arm64`, `~/.bun`, `~/.opencode`, `~/.local/bin/codex`
+
+## คำสั่งหลัก
+
+- `node scripts/ci-validate.mjs` — gate ของ control repo
+- `bun x vitest run apps/caret-daemon/src/` (จาก `upstream-synara`) — daemon suite
+- `node_modules/.bin/tsc -p src/tsconfig.json --noEmit` (จาก `caret-desktop`) — fork typecheck
