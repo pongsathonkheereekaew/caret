@@ -87,3 +87,17 @@ Fork `caret`: composer Steer/Export/Runs buttons (8/8 wired, tsc 0),
 `CARET.md` user guide. UI session left no artifacts (branch `caret-ui`
 empty); its scope absorbed. Still human/external: click-through,
 signing/repo-remote, devices/APNs, cloud/OAuth providers, Zen top-up.
+
+## User decisions 2026-09-10 (from chat, no Mac needed)
+
+- Apple Developer: EXISTS, personal-use only for now (no TestFlight /
+  external distribution). Signing certs install on the Mac later.
+- Engine budget: OpenCode Go subscription (NOT Zen). OpenCode driver is
+  the entitled path; Zen $0 balance is irrelevant.
+- Cloud: NONE — local-only, machine stays on always. M8 CLOUD parents
+  (except the local-useful CLOUD-08 seed) marked blocked-external by
+  explicit user decision, not by evidence gap.
+- Remote: `https://github.com/pongsathonkheereekaew/caret` (exists).
+  Control repo pushes here; code monorepo follows ARCHITECTURE layout.
+- Relay: NONE (no Tailscale — matches Paseo). Remote = loopback +
+  LAN-direct only; LOC-04 relay stays open, loopback verified.

@@ -2914,8 +2914,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-01-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-02",
@@ -2934,8 +2941,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-02-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-03",
@@ -2954,8 +2968,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-03-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-04",
@@ -2974,8 +2995,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-04-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-05",
@@ -2994,8 +3022,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-05-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-06",
@@ -3014,8 +3049,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-06-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-07",
@@ -3034,8 +3076,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-07-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-08",
@@ -3087,8 +3136,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-09-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-10",
@@ -3107,8 +3163,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-10-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "CLOUD-11",
@@ -3127,8 +3190,15 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "blocked-external",
+   "children": [
+    {
+     "id": "CLOUD-11-D01",
+     "title": "user decision 2026-09-10: local-only, no cloud features",
+     "evidence": "HANDOFF.md",
+     "result": "blocked"
+    }
+   ]
   },
   {
    "id": "AUTO-01",
