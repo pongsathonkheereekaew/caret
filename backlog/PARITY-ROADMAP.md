@@ -10,18 +10,20 @@ build. Order below is dependency order; anything marked NEEDS-USER waits.
   emitted-vs-target event catalog (suite 66/66).
 - Provisional `--agent-*` tokens wired to the composer (tsc 0).
 
-## Phase A — IDE sidepane depth (agent, no user)
+## Phase A — IDE sidepane depth: DONE machine-side (2026-09-10)
 
-1. Typed timeline rendering over the journal (tool/status blocks,
-   collapsed-succeeded, failed-expanded + retry affordance text).
-2. Queue/steer visuals per the state contract (queued ≠ steered).
-3. Review states incl. worktree-removed + huge-diff guards (text-level).
-4. Search/history across chats (daemon journal index — extends audit.ts).
-5. Virtualized transcript + rAF batching budgets as checks.
+Queue, typed timeline, chat-search backend, elapsed/compact — all
+committed with keepers; remaining bits need human eyes (click, render,
+virtualized perf). Search UI surface still open.
 
 ## Phase B — native Agents shell (agent + display, needs reference)
 
-Files (new, isolated per §11B):
+VEHICLE DECIDED 2026-09-10: React agents-shell (Synara-derived
+components, see `backlog/SYNARA-UI-evidence.md`) hosted in an editor
+webview panel, talking daemon RPC through an extension-host bridge
+(webviews cannot do raw TCP). Native workbench contrib stays an option
+only if the panel proves insufficient — NOT the default path anymore.
+Next step: esbuild bundling into `extensions/caret` (toolchain, unstarted).
 `src/vs/workbench/contrib/agentWorkbench/{common/{agentTypes,agentEvents,agentContextKeys,agentCommands,agentConfiguration,agentStorage},browser/{agentsWindow,navigation,home,session,timeline,composer,review,plan,debug,browserDesign,settings},electron-sandbox/agentWorkbench.contribution}.ts`
 - WorkbenchShell mode service + layout via IWorkbenchLayoutService.
 - Shell-switch contract (12 preserved fields — implement + keeper).
