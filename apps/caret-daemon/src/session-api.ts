@@ -3,7 +3,6 @@
 // shared run state. No behavior change — `send` became an injected sink.
 import * as Effect from "effect/Effect";
 import {
-  bootDaemonLayer,
   startCaretRun,
   sendCaretTurn,
   reviewCaretRun,
@@ -11,10 +10,12 @@ import {
   bringBackCaretRun,
   recaptureCaretRun,
   stopCaretRun,
+  summarizeRunForHandoff,
   type ApprovalAnswer,
   type CaretRun,
 } from "./daemon.ts";
 import { listCaretRuns, removeWorktreeDir } from "./worktree.ts";
+import { assembleRunBundle, writeRunBundle } from "./export.ts";
 
 export type SessionApi = Record<string, (params: never) => Effect.Effect<unknown, Error>>;
 
@@ -23,6 +24,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
   let seen: Array<{ type: unknown; payload?: unknown }> = [];
   const parked = new Map<string, (a: ApprovalAnswer) => void>();
   let reviewCount = 0;
+  let lastGoal = "";
   return {
     "session.start": (p: { repoDir: string; runId: string }) =>
       Effect.gen(function* () {
@@ -43,11 +45,13 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         run = started.run;
         seen = started.seen;
         reviewCount = 0;
+        lastGoal = "";
         return { threadId: String(started.run.threadId) };
       }),
     "turn.send": (p: { input: string }) =>
       Effect.gen(function* () {
         if (!run) return yield* Effect.fail(new Error("no session"));
+        lastGoal = p.input;
         const done = (yield* sendCaretTurn(run, seen, p.input)) as { payload?: { state?: string } };
         return { state: (done.payload as { state?: string } | undefined)?.state ?? "completed" };
       }),
@@ -79,6 +83,19 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         if (!run) return yield* Effect.fail(new Error("no session"));
         const removed = yield* removeWorktreeDir(run.repoDir, p.worktreeDir, run.isolated?.worktreeDir);
         return { removed };
+      }),
+    "run.export": (p: { dir: string; overwrite?: boolean }) =>
+      Effect.gen(function* () {
+        if (!run) return yield* Effect.fail(new Error("no session"));
+        const handoff = yield* summarizeRunForHandoff(run, seen, lastGoal);
+        const bundle = assembleRunBundle({
+          threadId: String(run.threadId),
+          goal: lastGoal,
+          handoff,
+          journal: seen.slice(-500),
+        });
+        const path = yield* writeRunBundle(p.dir, bundle, p.overwrite ?? false);
+        return { path, files: handoff.filesChanged.length, events: bundle.journal.length };
       }),
     "run.recapture": (p: { label: string }) =>
       Effect.gen(function* () {

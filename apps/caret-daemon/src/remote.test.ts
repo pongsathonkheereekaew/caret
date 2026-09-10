@@ -191,6 +191,7 @@ describe("M5RemoteGateway", () => {
     expect(keys).toEqual([
       "approval.answer",
       "run.bringBack",
+      "run.export",
       "run.list",
       "run.recapture",
       "run.reject",
