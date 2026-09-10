@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { CaretTabProvider } from './completion';
+import { registerEditCommands } from './edit';
 
 const log = vscode.window.createOutputChannel('Caret');
 
@@ -127,10 +128,10 @@ function nonce(): string {
 class CaretViewProvider implements vscode.WebviewViewProvider {
 	private view: vscode.WebviewView | null = null;
 	private daemon: DaemonClient | null = null;
+	private pendingPrefill: string | null = null;
 	private sessionOn = false;
 
 	constructor(private readonly context: vscode.ExtensionContext) { }
-
 	resolveWebviewView(view: vscode.WebviewView): void {
 		this.view = view;
 		view.webview.options = {
@@ -141,6 +142,16 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		view.webview.onDidReceiveMessage((message: { command?: string; [key: string]: unknown }) => {
 			void this.onUiMessage(message).catch((error: Error) => this.post({ type: 'error', text: error.message }));
 		});
+		if (this.pendingPrefill) {
+			const text = this.pendingPrefill;
+			this.pendingPrefill = null;
+			view.webview.postMessage({ type: 'prefill', text });
+		}
+	}
+	prefill(text: string): void {
+		this.pendingPrefill = text;
+		this.view?.webview.postMessage({ type: 'prefill', text });
+		void vscode.commands.executeCommand('caretComposer.focus');
 	}
 
 	private post(message: unknown): void {
@@ -329,7 +340,7 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'user') add('user', 'You: ' + m.text);
 	else if (m.type === 'turn') add('', 'Turn: ' + m.state);
 	else if (m.type === 'approval') card(m.requestId, m.requestType, m.detail);
-	else if (m.type === 'error') add('', 'Error: ' + m.text);
+	else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
 });
 </script>
 </body>
@@ -338,6 +349,7 @@ window.addEventListener('message', (event) => {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+	registerEditCommands(context);
 	const provider = new CaretViewProvider(context);
 	const tabProvider = new CaretTabProvider(context);
 	context.subscriptions.push(
@@ -351,6 +363,20 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 		vscode.commands.registerCommand('caret.rejectRun', async () => {
 			void vscode.window.showInformationMessage('Use the Reject button in the Caret Agents view.');
+		}),
+		vscode.commands.registerCommand('caret.sendToAgent', async (preset?: string) => {
+			const editor = vscode.window.activeTextEditor;
+			const selection = editor && !editor.selection.isEmpty
+				? editor.document.getText(editor.selection)
+				: '';
+			const instruction = typeof preset === 'string' && preset.length > 0
+				? preset
+				: await vscode.window.showInputBox({ prompt: 'Instruction for the agent' });
+			if (!instruction) {
+				return;
+			}
+			const file = editor ? vscode.workspace.asRelativePath(editor.document.uri) : '(no file)';
+			provider.prefill(`${instruction}\n\nContext: ${file}${selection ? `\n\`\`\`\n${selection}\n\`\`\`` : ''}`);
 		}),
 	);
 	log.appendLine('[caret] extension active');

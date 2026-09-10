@@ -46,6 +46,46 @@
 				"command": "caret.rejectRun",
 				"title": "%commands.rejectRun%",
 				"category": "Caret"
+			},
+			{
+				"command": "caret.toggleTab",
+				"title": "%commands.toggleTab%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.snoozeTab",
+				"title": "%commands.snoozeTab%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.inlineEdit",
+				"title": "%commands.inlineEdit%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.refineProposal",
+				"title": "%commands.refineProposal%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.applyProposal",
+				"title": "%commands.applyProposal%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.rejectProposal",
+				"title": "%commands.rejectProposal%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.generateCommand",
+				"title": "%commands.generateCommand%",
+				"category": "Caret"
+			},
+			{
+				"command": "caret.sendToAgent",
+				"title": "%commands.sendToAgent%",
+				"category": "Caret"
 			}
 		],
 		"configuration": {

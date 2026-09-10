@@ -4,5 +4,13 @@
 	"viewsContainers.caretAgents": "Caret",
 	"views.caretComposer": "Agents",
 	"commands.reviewRun": "Review Run Diff",
-	"commands.rejectRun": "Reject Run Changes"
+	"commands.rejectRun": "Reject Run Changes",
+	"commands.toggleTab": "Toggle Caret Tab",
+	"commands.snoozeTab": "Snooze Caret Tab 10 min",
+	"commands.inlineEdit": "Inline Edit Selection",
+	"commands.refineProposal": "Refine Proposal",
+	"commands.applyProposal": "Apply Proposal",
+	"commands.rejectProposal": "Reject Proposal",
+	"commands.generateCommand": "Generate Shell Command",
+	"commands.sendToAgent": "Send Selection to Agent"
 }
