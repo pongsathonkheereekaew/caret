@@ -60,3 +60,29 @@ Stopped after measurement to free ~1.2GB RAM; start on demand for Tab use.
 - [ ] Multiline / next-edit / cross-file portal (TAB-03…05): gates unmet, unclaimed.
 - [ ] Semantic retrieval (SEARCH-02/06): needs embedding endpoint + F-index measurement.
 - [ ] Live UI verification of all three flows.
+
+## Multiline probe (2026-09-10) — REJECTED for V1 with evidence
+
+Harness: throwaway `/tmp/caret-multiline/probe.mjs` (seed 20260910, 20
+split points from daemon sources + 5 warmup, chat-mode n_predict 96,
+T 0.2, no stop). Server: llama.cpp v0.4.0 + Qwen2.5-Coder-1.5B-Instruct
+Q4_K_M, same as F05. Results in `/tmp/caret-multiline/results.json`.
+
+| n | p50 | p95 | empty | ≥2 lines |
+|---|---|---|---|---|
+| 20 | 1114ms | 1756ms | 0/20 | 15/20 (75%) |
+
+Rates pass a lenient gate, but samples fail validity:
+
+- Truncation at the token ceiling: outputs end mid-token
+  (`Effect.provide(boo`, `stats.m`) — shipped ghost text would insert
+  broken code.
+- Repetition pathology: the same line emitted 3x before the cutoff
+  (instruct-model chat-mode loop).
+- Latency already over the V1 single-line gates (700/1000) at n=96;
+  raising the budget to fix truncation worsens it further.
+
+Decision: V1 Tab stays single-line chat-mode (shipped == measured).
+Multiline reopens only on its own track: base FIM quant (F05) or a
+stop-at-blank-line + truncation-guard experiment with fresh validity
+samples. Server stopped after measurement (RAM).
