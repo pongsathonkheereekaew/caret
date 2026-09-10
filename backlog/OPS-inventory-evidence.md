@@ -35,3 +35,15 @@ Rule: verified = every child passes on an OBSERVED run (suites count —
 they run real git/HTTP/TCP; behavior-at-its-layer counts, UI rendering
 needs UI observation); shipped-but-unobserved = implemented; failed
 attempts stay planned with fail-result children (TAB-03).
+
+## CI first run (2026-09-10) — blocked by account billing, not by repo
+
+Workflow `.github/workflows/ci.yml` (graph+lock validation × 3 OS)
+pushed and triggered, but every job died in ~4s with zero steps:
+`The job was not started because recent account payments have failed or
+your spending limit needs to be increased` (Billing & plans settings).
+Validator itself is green locally (`CI-OK parents=198 ui=75
+children=92`). Fix is on the account (phone-doable), then re-run.
+Vendor-out of daemon/extension sources deferred with reason: the
+upstream import fan-out (opencode SDK, agentGateway, skills…) makes
+vendoring a license/patch project of its own — tracked, not started.
