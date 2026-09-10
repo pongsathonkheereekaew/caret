@@ -3,6 +3,13 @@
 Paste everything below the line into a NEW session. It is self-contained;
 that session must NOT touch the daemon or the M4 hooks track.
 
+- 2026-09-10 (main session): new RPC `run.export{dir, overwrite?} →
+  {path, files, events}` on BOTH transports (see
+  `backlog/M7-export-evidence.md`). Suggested composer affordance: directory
+  picker → status `{files} files, {events} events → {path}`; refusals as
+  status text. Daemon files touched: `export.ts` (new), `session-api.ts`
+  (+goal tracking), `remote.test.ts` (shape list). No action needed unless
+  you take the Export button.
 ---
 
 You are working on Caret, a Code-OSS desktop fork with an agent extension.
