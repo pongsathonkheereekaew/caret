@@ -19,12 +19,37 @@ import {
   removeIsolatedRun,
   type IsolatedRun,
 } from "./worktree.ts";
+
 export interface ApprovalQuery {
   readonly requestType: unknown;
   readonly detail: unknown;
   readonly args: unknown;
 }
 export type ApprovalAnswer = "accept" | "decline";
+
+/**
+ * L8 capability envelope (seed). Each flag was earned by a live proof or a
+ * root-caused failure — never declared from docs alone.
+ */
+export interface DriverCapabilities {
+  /** Mid-turn steering lands at the next turn boundary (proven). */
+  readonly steerLiveTurn: true;
+  /** Pre-execution approval gating (proven). */
+  readonly approvalBeforeSideEffects: true;
+  /**
+   * Resurrecting a STOPPED session via cursor. FALSE on Codex: stopSession
+   * tears down the per-session provider process, and turn/start on the
+   * orphaned native thread stalls silently (no response, no timeout).
+   * Continuity across sessions uses semantic handoff instead.
+   */
+  readonly resumeStoppedSession: false;
+}
+
+export const CODEX_DRIVER_CAPABILITIES: DriverCapabilities = {
+  steerLiveTurn: true,
+  approvalBeforeSideEffects: true,
+  resumeStoppedSession: false,
+};
 
 export interface DaemonOptions {
   /** Scratch/config cwd for the (interim) test server config. */
@@ -177,6 +202,56 @@ export const rejectCaretRun = (run: CaretRun) =>
       fromCheckpointRef: CheckpointRef.makeUnsafe(run.preRef),
       toCheckpointRef: CheckpointRef.makeUnsafe(run.postRef),
     });
+  });
+/**
+ * Semantic handoff: portable continuity for session switches and engine
+ * changes (ARCHITECTURE: explicit handoff, never lossy native transfer).
+ * Captures current state, diffs against pre-turn, and extracts the approval
+ * record from the event log. No engine call — pure assembly.
+ */
+export interface RunHandoff {
+  readonly goal: string;
+  readonly workDir: string;
+  readonly baseCommit: string | null;
+  readonly filesChanged: string[];
+  readonly approvals: Array<{ type: unknown; decision: unknown }>;
+  readonly diff: string;
+}
+
+export const summarizeRunForHandoff = (
+  run: CaretRun,
+  seen: Array<{ type: unknown; payload?: unknown }>,
+  goal: string,
+) =>
+  Effect.gen(function* () {
+    const store = yield* CheckpointStore;
+    const ref = `refs/caret-slice/${run.threadId}/handoff`;
+    yield* store.captureCheckpoint({ cwd: run.workDir, checkpointRef: CheckpointRef.makeUnsafe(ref) });
+    const diff = yield* store.diffCheckpoints({
+      cwd: run.workDir,
+      fromCheckpointRef: CheckpointRef.makeUnsafe(run.preRef),
+      toCheckpointRef: CheckpointRef.makeUnsafe(ref),
+      ignoreWhitespace: false,
+    });
+    const decisions = new Map<string, unknown>();
+    for (const event of seen) {
+      const payload = (event.payload ?? {}) as { requestType?: unknown; decision?: unknown };
+      if (event.type === "request.resolved" && typeof payload.requestType === "string") {
+        decisions.set(payload.requestType, payload.decision ?? "answered");
+      }
+    }
+    const filesChanged = [...new Set(
+      diff.split("\n").filter((line) => line.startsWith("+++ b/")).map((line) => line.slice("+++ b/".length)),
+    )];
+    const handoff: RunHandoff = {
+      goal,
+      workDir: run.workDir,
+      baseCommit: run.isolated?.baseCommit ?? null,
+      filesChanged,
+      approvals: [...decisions].map(([type, decision]) => ({ type, decision })),
+      diff: diff.slice(0, 20000),
+    };
+    return handoff;
   });
 export const bringBackCaretRun = (run: CaretRun) =>
   Effect.gen(function* () {
