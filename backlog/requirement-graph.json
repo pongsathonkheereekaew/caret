@@ -300,8 +300,27 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "TAB-01-C01",
+     "title": "single-line ghost text serves on the measured path",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "TAB-01-C02",
+     "title": "stale-guard discards moved-buffer suggestions (code, unobserved live)",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "open"
+    },
+    {
+     "id": "TAB-01-C03",
+     "title": "ghost-text rendering in host never observed (no UI run)",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "TAB-02",
@@ -319,8 +338,21 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "TAB-02-C01",
+     "title": "no override bindings: user keybinding governs accept/dismiss",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "TAB-02-C02",
+     "title": "accept flow never clicked live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "TAB-03",
@@ -339,7 +371,20 @@
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
    "status": "planned",
-   "children": []
+   "children": [
+    {
+     "id": "TAB-03-C01",
+     "title": "multiline probe 20-case: truncation + repetition, rejected",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "fail"
+    },
+    {
+     "id": "TAB-03-C02",
+     "title": "gated re-probe: accept 8/20 < 60% bar, rejected again",
+     "evidence": "backlog/M3-multiline-gated-evidence.md",
+     "result": "fail"
+    }
+   ]
   },
   {
    "id": "TAB-04",
@@ -395,8 +440,21 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "TAB-06-C01",
+     "title": "toggle + 10-min snooze + per-language disables ship",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "TAB-06-C02",
+     "title": "controls never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "TAB-07",
@@ -414,8 +472,27 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "TAB-07-C01",
+     "title": "200-case corpus p50 521ms / p95 683ms ≤ 700/1000 gates",
+     "evidence": "backlog/M3-corpus-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "TAB-07-C02",
+     "title": "0% empty, 100% ship ≤1200ms over 200",
+     "evidence": "backlog/M3-corpus-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "TAB-07-C03",
+     "title": "validity split: 193/200 strict-clean, fence-strip shipped for 4",
+     "evidence": "backlog/M3-corpus-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "EDIT-01",
@@ -433,8 +510,21 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "EDIT-01-C01",
+     "title": "selection → proposal → atomic apply / conflict choice ships",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "EDIT-01-C02",
+     "title": "never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "EDIT-02",
@@ -452,8 +542,21 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "EDIT-02-C01",
+     "title": "cursor-line edit + refine-proposal commands ship",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "EDIT-02-C02",
+     "title": "never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "EDIT-03",
@@ -471,8 +574,21 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "EDIT-03-C01",
+     "title": "send-to-agent prefill handoff ships (no double-apply)",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "EDIT-03-C02",
+     "title": "never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "EDIT-04",
@@ -490,8 +606,21 @@
    ],
    "cluster": "TAB / EDIT — Predictive editing",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "EDIT-04-C01",
+     "title": "command proposal → explicit Copy/Run/Cancel ships",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "EDIT-04-C02",
+     "title": "never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-01",
@@ -518,8 +647,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-01-C01",
+     "title": "composer webview loads, activates with zero errors (machine)",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-01-C02",
+     "title": "click-through (send→approve→review) needs a human",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-02",
@@ -574,8 +716,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-03-C01",
+     "title": "turn states + approval cards post to transcript (code)",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-03-C02",
+     "title": "token streaming absent; rendering unobserved",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-04",
@@ -630,8 +785,27 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "AG-05-C01",
+     "title": "Codex mid-flight steer: turn.steered + 3 files injected (live)",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-05-C02",
+     "title": "turn.steer RPC over TCP: slow turn + steer, both effects in review (live, 78s)",
+     "evidence": "backlog/AG05-steer-rpc-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-05-C03",
+     "title": "session.stop proven across live proofs",
+     "evidence": "backlog/M5-tcp-live-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "AG-06",
@@ -658,8 +832,27 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-06-C01",
+     "title": "OpenCode resume-after-stop SUPPORTED (24s live recall)",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-06-C02",
+     "title": "Codex resume-after-stop UNSUPPORTED: silent stall, flagged + handoff path",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-06-C03",
+     "title": "uniform resume across drivers does not exist",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-07",
@@ -686,8 +879,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-07-C01",
+     "title": "file edit + shell via approval gate, live repeatedly",
+     "evidence": "backlog/H05-slice-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-07-C02",
+     "title": "web/question tools absent",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-08",
@@ -798,8 +1004,27 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "AG-11-C01",
+     "title": "bring-back applies clean delta, refuses overlap (live + 6/6)",
+     "evidence": "backlog/M4-binding-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-11-C02",
+     "title": "semantic handoff assembly + export bundle live (files+events verified)",
+     "evidence": "backlog/M7-export-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-11-C03",
+     "title": "Gitea PR open→merge→refs matrix live (8s)",
+     "evidence": "backlog/M10-forge-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "CTX-01",
@@ -1069,8 +1294,21 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "SEARCH-01-C01",
+     "title": "bundled rg --json 5ms on fixture, flags live",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "SEARCH-01-C02",
+     "title": "per-result errors surfaced per search.exact shape",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "SEARCH-02",
@@ -1088,8 +1326,21 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "SEARCH-02-C01",
+     "title": "file-level embed seed: recall@3/@5 = 1.0, MRR 0.95, 10 queries",
+     "evidence": "backlog/SEARCH-embed-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "SEARCH-02-C02",
+     "title": "no daemon index, no symbol granularity, self-authored queries",
+     "evidence": "backlog/SEARCH-embed-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "SEARCH-03",
@@ -1126,8 +1377,21 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "SEARCH-04-C01",
+     "title": "ignore hierarchy + initIgnore + cursorignore import ship",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "SEARCH-04-C02",
+     "title": "exclusion behavior never observed live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "SEARCH-05",
@@ -1229,8 +1493,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "REV-02-C01",
+     "title": "reject reverses run (file gone, base intact) live",
+     "evidence": "backlog/H05-slice-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "REV-02-C02",
+     "title": "bring-back accept applies verified delta live",
+     "evidence": "backlog/M4-binding-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "REV-03",
@@ -1252,8 +1529,15 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "REV-03-C01",
+     "title": "checkpoint capture/diff/reverse across slice + reject runs (live)",
+     "evidence": "backlog/H05-slice-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "REV-04",
@@ -1321,8 +1605,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "REV-06-C01",
+     "title": "Gitea PR open/read/merge/refs live locally",
+     "evidence": "backlog/M10-forge-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "REV-06-C02",
+     "title": "no hosted origin, no commit lifecycle, no sync",
+     "evidence": "backlog/M10-forge-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "WT-01",
@@ -1344,8 +1641,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "WT-01-C01",
+     "title": "detached-HEAD worktrees 4/4 keepers, real git",
+     "evidence": "backlog/M4-worktree-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "WT-01-C02",
+     "title": "picker lists caret-only runs; removes clean by path (3 keepers)",
+     "evidence": "backlog/M4-picker-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "WT-02",
@@ -1367,8 +1677,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "WT-02-C01",
+     "title": "explicit hooks run in order, OS-skipped, fail loud (2 keepers)",
+     "evidence": "backlog/M4-hooks-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "WT-02-C02",
+     "title": "wired into startCaretRun + journaled",
+     "evidence": "backlog/M4-hooks-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "WT-03",
@@ -1390,8 +1713,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "WT-03-C01",
+     "title": "clean bring-back lands; overlap refuses, user content kept (live)",
+     "evidence": "backlog/M4-worktree-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "WT-03-C02",
+     "title": "isolated-by-default end-to-end 6/6 with Bring Back UI",
+     "evidence": "backlog/M4-binding-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "WT-04",
@@ -1436,8 +1772,21 @@
    ],
    "cluster": "REV / WT — ตรวจและจัดการการเปลี่ยนแปลง",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "WT-05-C01",
+     "title": "orphan + old-run prune keepers green (live dirs survive)",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "WT-05-C02",
+     "title": "dirty removal refuses incl. picker path",
+     "evidence": "backlog/M4-picker-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "CUS-01",
@@ -1612,8 +1961,21 @@
    ],
    "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "CUS-08-C01",
+     "title": "post-create setup hooks with OS filter + timeout (keepers)",
+     "evidence": "backlog/M4-hooks-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "CUS-08-C02",
+     "title": "no event coverage/matchers/lifecycle — narrow scope only",
+     "evidence": "backlog/M4-hooks-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "CUS-09",
@@ -1656,8 +2018,21 @@
    ],
    "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "CUS-10-C01",
+     "title": "MCP stdio 5/5 keepers (init/list/call/error/cancel/reconnect)",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "CUS-10-C02",
+     "title": "streamable HTTP 8/8: SSE+JSON, session recovery, auth seam",
+     "evidence": "backlog/M4-mcp-http-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "CUS-11",
@@ -1678,8 +2053,21 @@
    ],
    "cluster": "CUS — Rules, skills, plugins, MCP, hooks",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "CUS-11-C01",
+     "title": "tools list/call + tool-level errors over both transports",
+     "evidence": "backlog/M4-mcp-http-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "CUS-11-C02",
+     "title": "resources/prompts/elicitation absent",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "CUS-12",
@@ -2034,8 +2422,21 @@
    ],
    "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "LOC-01-C01",
+     "title": "per-envelope bearer auth, constant-time compare (6/6 gateway)",
+     "evidence": "backlog/M5-remote-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "LOC-01-C02",
+     "title": "revoke rotates without self-lockout; 0600 pairing file",
+     "evidence": "backlog/M5-remote-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "LOC-02",
@@ -2062,8 +2463,21 @@
    ],
    "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "LOC-02-C01",
+     "title": "full turn over TCP: approval→review→export→stop (live, 21s)",
+     "evidence": "backlog/M5-tcp-live-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "LOC-02-C02",
+     "title": "second client shares run state; events fan out (keepers)",
+     "evidence": "backlog/M5-remote-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "LOC-03",
@@ -2118,8 +2532,21 @@
    ],
    "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "LOC-04-C01",
+     "title": "loopback gateway live; host flag exists",
+     "evidence": "backlog/M5-tcp-live-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "LOC-04-C02",
+     "title": "LAN/relay untested, vendor undecided",
+     "evidence": "backlog/M5-remote-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "LOC-05",
@@ -2398,8 +2825,21 @@
    ],
    "cluster": "LOC / MOB — ใช้งานข้ามอุปกรณ์",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "MOB-09-C01",
+     "title": "network-switch resync keeper: replay across sockets, exec once",
+     "evidence": "backlog/M6-mobile-boundary-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "MOB-09-C02",
+     "title": "everything device-bound absent",
+     "evidence": "backlog/M6-mobile-boundary-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "MOB-10",
@@ -2614,8 +3054,21 @@
    ],
    "cluster": "CLOUD — เครื่องรันงานและ environments",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "CLOUD-08-C01",
+     "title": "manifest hash + env-drift rejection (3 keepers)",
+     "evidence": "backlog/M8-lease-handoff-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "CLOUD-08-C02",
+     "title": "no cross-host transfer exercised",
+     "evidence": "backlog/M8-lease-handoff-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "CLOUD-09",
@@ -3988,8 +4441,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-07-C01",
+     "title": "trailing-? routes to agent instead of editing (code)",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-07-C02",
+     "title": "never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-08",
@@ -4021,8 +4487,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-08-C01",
+     "title": "generateCommand proposal flow ships",
+     "evidence": "backlog/M3-completion-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-08-C02",
+     "title": "never exercised live",
+     "evidence": "backlog/H05-ui-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-09",
@@ -4216,8 +4695,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "verified",
+   "children": [
+    {
+     "id": "PX-14-C01",
+     "title": "stdio transport 5/5 (same kernel as CUS-10)",
+     "evidence": "backlog/M4-backend-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-14-C02",
+     "title": "SSE/streamable 8/8 + transparent 404 recovery",
+     "evidence": "backlog/M4-mcp-http-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "PX-15",
@@ -4811,8 +5303,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-32-C01",
+     "title": "lease acquire/renew/release/expiry/sweep, fake clock (3 keepers)",
+     "evidence": "backlog/M8-lease-handoff-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-32-C02",
+     "title": "no workers/pools/capacity/health",
+     "evidence": "backlog/M8-lease-handoff-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-33",
@@ -4945,8 +5450,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-36-C01",
+     "title": "local forge repo/PR/merge/refs matrix live",
+     "evidence": "backlog/M10-forge-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-36-C02",
+     "title": "no hosted/GHE/GitLab/Bitbucket/Azure adapters or triggers",
+     "evidence": "backlog/M10-forge-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "PX-37",
@@ -5075,8 +5593,21 @@
    ],
    "cluster": "J2. Additional requirements — เพิ่มจาก 158 เป็น 198 parent requirements",
    "source_doc": "docs/HANDOFF-DETAILS.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "PX-40-C01",
+     "title": "run.export bundle: single file, validated, overwrite-refusing",
+     "evidence": "backlog/M7-export-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "PX-40-C02",
+     "title": "no diagnostics/proxy/cert/performance surface",
+     "evidence": "backlog/M7-export-evidence.md",
+     "result": "open"
+    }
+   ]
   }
  ],
  "ui_families": [
