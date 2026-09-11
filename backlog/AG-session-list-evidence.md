@@ -1,6 +1,7 @@
 # AG-02/04/09 — session list, queue edit, plan todos (2026-09-11)
 
-Machine-side slice. Click-through still open (H05).
+Machine-side slice. Human click 2026-09-11 11:27: session row + Review
+diff confirmed (`hello-ui.txt`). Queue/todo live mapping still open.
 
 ## AG-02 Multi-project/task list — implemented, not verified
 

@@ -68,3 +68,19 @@ rendering. No GUI automation harness exists here; manual script below
 - Re-test: during a reconnect stall, Stop should show `turn cancelled`
   / `stopped` without waiting for network; warnings should appear in
   status, not only as a flood of tool rows.
+
+### Observed 2026-09-11 11:27 (human: pond — "ใช้ได้")
+
+Screenshot of Caret Agents + Review diff on `/tmp/caret-click`:
+
+- **Worked:** session row `hello · live` with Open/Rename/Pin/Archive/Delete;
+  Send wrote `hello-ui.txt` (`hello ui`); Review opened a unified diff;
+  `item.started` / `item.completed` for that file; `turn.completed` arrived
+  (with an error payload — see below).
+- **Codex quota:** `runtime.error` — ChatGPT usage limit, retry after
+  2026-09-16 09:43. Not a Caret bug; the turn finished as failed.
+- **Still ugly (not blockers for this click):** toolbar wraps into one
+  mashed line; most engine events render as raw `eventunmapped` JSON;
+  Code Mode host missing (`codex-code-mode-host`); todos (AG-09) did not
+  appear — Codex used `item.*`, not `todo.updated`.
+- Reject / New / queue Up-Down-Edit not in this frame.

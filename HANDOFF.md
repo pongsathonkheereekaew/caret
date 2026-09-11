@@ -157,3 +157,7 @@ signing certs, devices/APNs, MCP OAuth provider.
 AG-02/04/09 implemented (not verified): session list
 (select/rename/pin/archive/forget), queue Up/Down/Edit, plan todos from
 explicit events only. Evidence: `backlog/AG-session-list-evidence.md`.
+
+Human 2026-09-11 11:27: Agents + session row + Review diff on
+`hello-ui.txt` confirmed. Codex ChatGPT quota exhausted (retry ~Sep 16).
+Next polish: collapse `eventunmapped` JSON, map `item.*` into todos.
