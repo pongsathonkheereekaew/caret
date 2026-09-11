@@ -9,6 +9,7 @@ import {
   setTaskDone,
   markPlanBuilt,
   canPlanTransition,
+  applyPlanEvent,
 } from "./plan.ts";
 
 describe("PlanStore", () => {
@@ -42,5 +43,21 @@ describe("PlanStore", () => {
     expect(done.tasks.filter((t) => t.done)).toHaveLength(2);
     expect(() => setTaskDone(plan, "task-999", true)).toThrow(/unknown task/);
     expect(() => markPlanBuilt(plan, "")).toThrow(/runId/);
+  });
+
+  it("applies explicit todo events and ignores turn.completed", () => {
+    let plan = createPlan("p", "work");
+    plan = applyPlanEvent(plan, "todo.updated", {
+      tasks: [{ title: "write file", status: "pending" }, { title: "run tests", status: "completed" }],
+    });
+    expect(plan.tasks.map((t) => [t.title, t.done])).toEqual([
+      ["write file", false],
+      ["run tests", true],
+    ]);
+    const before = plan;
+    plan = applyPlanEvent(plan, "turn.completed", { state: "completed" });
+    expect(plan.tasks).toEqual(before.tasks);
+    plan = applyPlanEvent(plan, "todo.updated", { id: plan.tasks[0]?.id, done: true });
+    expect(plan.tasks[0]?.done).toBe(true);
   });
 });

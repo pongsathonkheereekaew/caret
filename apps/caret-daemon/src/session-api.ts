@@ -25,6 +25,12 @@ import { engineRowKind } from "./session-state.ts";
 import { searchChats } from "./search.ts";
 import { EmbedClient } from "./embed-client.ts";
 import { buildFileIndex, embedAndRank } from "./search-index.ts";
+import {
+  applyPlanEvent,
+  createPlan,
+  revisePlan,
+  type PlanDocument,
+} from "./plan.ts";
 import * as Fiber from "effect/Fiber";
 import * as path from "node:path";
 
@@ -108,6 +114,10 @@ interface SessionState {
   fiber: Fiber.RuntimeFiber<unknown, unknown> | null;
   /** Mutable token for the in-flight turn.send wait loop. */
   turnCancel: { cancelled: boolean } | null;
+  title: string;
+  archived: boolean;
+  pinned: boolean;
+  plan: PlanDocument;
 }
 
 type JournalEvent = {
@@ -163,7 +173,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
   return {
     "session.start": (p: { repoDir: string; runId: string }) =>
       Effect.gen(function* () {
-        if (sessions.size > 0) {
+        if ([...sessions.values()].some((s) => s.run !== null)) {
           return yield* Effect.fail(
             new Error("another session is live (stop it first — one live subscription per daemon)"),
           );
@@ -180,7 +190,19 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
           createdAt: Date.now(),
           fiber: null,
           turnCancel: null,
+          title: "",
+          archived: false,
+          pinned: false,
+          plan: createPlan(`plan-${p.runId}`, p.runId),
         };
+        const pushPlan = () =>
+          notify({
+            event: "plan",
+            threadId,
+            title: st.plan.title,
+            revision: st.plan.revision,
+            tasks: st.plan.tasks,
+          });
         const started = yield* startCaretRun(
           {
             configCwd: p.repoDir,
@@ -191,13 +213,19 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
                 st.parked.set(id, resolve);
                 notify({ event: "approval.requested", requestId: id, requestType: q.requestType, detail: String(q.detail)?.slice(0, 500) });
               }),
-            onEvent: (type, payload) =>
+            onEvent: (type, payload) => {
+              const next = applyPlanEvent(st.plan, type, payload);
+              if (next !== st.plan) {
+                st.plan = next;
+                pushPlan();
+              }
               notify({
                 event: "engine",
                 type,
                 kind: engineRowKind(type),
                 detail: engineDetail(payload),
-              }),
+              });
+            },
           },
           p.repoDir,
           p.runId,
@@ -209,22 +237,94 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         current = threadId;
         return { threadId };
       }),
-    "session.list": () =>
-      Effect.gen(function* () {
-        return [...sessions].map(([threadId, st]) => ({
-          threadId,
-          runId: st.runId,
-          repoDir: st.repoDir,
-          goal: st.lastGoal,
-          live: st.run !== null,
-          current: threadId === current,
-        }));
+    "session.list": (p: { query?: string; archived?: boolean } = {}) =>
+      Effect.sync(() => {
+        const q = String(p?.query ?? "").trim().toLowerCase();
+        return [...sessions]
+          .filter(([, st]) => {
+            if (p?.archived === true) return st.archived;
+            if (st.archived) return false;
+            if (!q) return true;
+            const hay = `${st.title} ${st.lastGoal} ${st.repoDir} ${st.runId}`.toLowerCase();
+            return hay.includes(q);
+          })
+          .sort((a, b) => Number(b[1].pinned) - Number(a[1].pinned) || b[1].createdAt - a[1].createdAt)
+          .map(([threadId, st]) => ({
+            threadId,
+            runId: st.runId,
+            repoDir: st.repoDir,
+            goal: st.lastGoal,
+            title: st.title || st.lastGoal || st.runId,
+            live: st.run !== null,
+            current: threadId === current,
+            archived: st.archived,
+            pinned: st.pinned,
+          }));
+      }),
+    "session.select": (p: { session: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        current = p.session;
+        return { threadId: p.session, live: st.run !== null };
+      }),
+    "session.rename": (p: { title: string; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        const title = (p.title ?? "").trim();
+        if (!title) throw new Error("title required");
+        st.title = title.slice(0, 120);
+        return { title: st.title };
+      }),
+    "session.pin": (p: { pinned?: boolean; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        st.pinned = p.pinned !== false;
+        if (p.pinned === false) st.pinned = false;
+        return { pinned: st.pinned };
+      }),
+    "session.archive": (p: { archived?: boolean; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        st.archived = p.archived !== false;
+        if (p.archived === false) st.archived = false;
+        return { archived: st.archived };
+      }),
+    "session.forget": (p: { session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        if (st.run) throw new Error("stop the live session before forget");
+        const id = p.session ?? current;
+        if (!id) return {};
+        sessions.delete(id);
+        if (current === id) {
+          const remaining = [...sessions.keys()];
+          current = remaining.length > 0 ? (remaining[remaining.length - 1] as string) : null;
+        }
+        return { forgotten: true };
+      }),
+    "plan.get": (p: { session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        return { title: st.plan.title, revision: st.plan.revision, tasks: st.plan.tasks };
+      }),
+    "plan.revise": (p: { title?: string; tasks?: Array<{ title: string; done?: boolean }>; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        st.plan = revisePlan(st.plan, { title: p.title, tasks: p.tasks });
+        notify({
+          event: "plan",
+          title: st.plan.title,
+          revision: st.plan.revision,
+          tasks: st.plan.tasks,
+        });
+        return { title: st.plan.title, revision: st.plan.revision, tasks: st.plan.tasks };
       }),
     "turn.send": (p: { input: string; session?: string }) =>
       Effect.gen(function* () {
         const st = need(p.session);
         const run = live(st);
         st.lastGoal = p.input;
+        if (!st.title) st.title = p.input.slice(0, 80);
         const cancel = { cancelled: false };
         st.turnCancel = cancel;
         try {
@@ -324,17 +424,15 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         }
         if (st?.fiber) yield* Fiber.interrupt(st.fiber).pipe(Effect.catch(() => Effect.succeed(false)));
         if (st?.run) yield* stopCaretRun(st.run);
-        // Retention cap (M4 tail): bound retained run worktrees on the way
-        // out. Best-effort — retention must never fail session teardown.
+        // Keep a metadata row for the task list (AG-02). Worktree teardown
+        // still happens in stopCaretRun; this record is title/goal only.
         if (st) {
-          yield* pruneRunsBeyondCap(st.repoDir, DEFAULT_RUN_RETENTION, st.run?.isolated?.worktreeDir).pipe(
+          st.run = null;
+          st.fiber = null;
+          st.turnCancel = null;
+          yield* pruneRunsBeyondCap(st.repoDir, DEFAULT_RUN_RETENTION, undefined).pipe(
             Effect.catch(() => Effect.succeed({ removed: [], keptDirty: [], kept: [] })),
           );
-        }
-        sessions.delete(id);
-        if (current === id) {
-          const remaining = [...sessions.keys()];
-          current = remaining.length > 0 ? (remaining[remaining.length - 1] as string) : null;
         }
         return {};
       }),

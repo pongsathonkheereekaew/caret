@@ -97,3 +97,57 @@ export const markPlanBuilt = (plan: PlanDocument, runId: string): PlanDocument =
   const building = setPlanState(plan, "building");
   return { ...building, builtRunId: runId };
 };
+
+const asRecord = (payload: unknown): Record<string, unknown> =>
+  payload !== null && typeof payload === "object" && !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+
+const explicitDone = (value: unknown): boolean | undefined => {
+  if (value === true || value === false) return value;
+  if (value === "completed" || value === "done") return true;
+  if (value === "pending" || value === "in_progress" || value === "todo") return false;
+  return undefined;
+};
+
+const taskFromUnknown = (item: unknown): { title: string; done: boolean } | null => {
+  if (typeof item === "string") {
+    const title = item.trim();
+    return title.length > 0 ? { title, done: false } : null;
+  }
+  if (!item || typeof item !== "object") return null;
+  const o = item as Record<string, unknown>;
+  const title = String(o.title ?? o.text ?? o.content ?? "").trim();
+  if (!title) return null;
+  return { title, done: explicitDone(o.done) ?? explicitDone(o.status) ?? explicitDone(o.state) ?? false };
+};
+
+/**
+ * Fold an engine event into the plan. Completion is taken only from
+ * explicit task fields — never inferred from turn.completed / errors.
+ */
+export const applyPlanEvent = (plan: PlanDocument, type: string, payload: unknown): PlanDocument => {
+  if (typeof type !== "string" || type.length === 0) return plan;
+  if (/turn\.(completed|failed)|request\.(opened|resolved)/i.test(type)) return plan;
+  if (!/todo|plan\.task|plan\.updated|item_todo/i.test(type)) return plan;
+  const body = asRecord(payload);
+  const list = body.tasks ?? body.items ?? body.todos;
+  if (Array.isArray(list)) {
+    const tasks = list.map(taskFromUnknown).filter((t): t is { title: string; done: boolean } => t !== null);
+    return revisePlan(plan, { tasks });
+  }
+  const taskId = typeof body.taskId === "string" ? body.taskId : typeof body.id === "string" ? body.id : "";
+  const done = explicitDone(body.done) ?? explicitDone(body.status);
+  if (taskId && done !== undefined) {
+    try {
+      return setTaskDone(plan, taskId, done);
+    } catch {
+      return plan;
+    }
+  }
+  const added = taskFromUnknown(payload);
+  if (added) {
+    return revisePlan(plan, { tasks: [...plan.tasks.map((t) => ({ title: t.title, done: t.done })), added] });
+  }
+  return plan;
+};
