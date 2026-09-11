@@ -3,7 +3,8 @@
 // arrive through the embed-server seam (local nomic Q4 measured); this
 // module owns chunking, storage shape, and ranking — keeper-pinned
 // without a model.
-import { chunkText, rankChunks } from "./semantic.ts";
+import { MAX_EMBED_CHARS, PREFIX_DOC, PREFIX_QUERY } from "./embed-client.ts";
+import { chunkText, rankChunks, type RankedDoc } from "./semantic.ts";
 
 export interface IndexedChunk {
   readonly doc: string;
@@ -160,4 +161,29 @@ export const rankIndex = (
     index.chunks.map((chunk, i) => ({ doc: chunk.doc, vec: chunkVecs[i] as ReadonlyArray<number> })),
     k,
   );
+};
+
+/** Keep prefixed payload under the measured llama.cpp ~1000-char reject. */
+export const clipForEmbed = (text: string, kind: "document" | "query"): string => {
+  const prefix = kind === "query" ? PREFIX_QUERY : PREFIX_DOC;
+  const budget = MAX_EMBED_CHARS - prefix.length - 1;
+  return text.slice(0, Math.max(0, budget));
+};
+
+export interface Embedder {
+  embed(text: string, kind: "document" | "query"): Promise<number[]>;
+}
+
+/** Embed every chunk + the query, then rank. Caller owns the HTTP client. */
+export const embedAndRank = async (
+  embed: Embedder,
+  index: FileIndex,
+  query: string,
+  k: number,
+): Promise<RankedDoc[]> => {
+  const chunkVecs = await Promise.all(
+    index.chunks.map((chunk) => embed.embed(clipForEmbed(chunk.text, "document"), "document")),
+  );
+  const queryVec = await embed.embed(clipForEmbed(query, "query"), "query");
+  return rankIndex(index, queryVec, chunkVecs, k);
 };

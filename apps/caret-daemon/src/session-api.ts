@@ -23,7 +23,10 @@ import { DEFAULT_RUN_RETENTION, listCaretRuns, pruneRunsBeyondCap, removeWorktre
 import { assembleRunBundle, writeRunBundle } from "./export.ts";
 import { engineRowKind } from "./session-state.ts";
 import { searchChats } from "./search.ts";
+import { EmbedClient } from "./embed-client.ts";
+import { buildFileIndex, embedAndRank } from "./search-index.ts";
 import * as Fiber from "effect/Fiber";
+import * as path from "node:path";
 
 export type SessionApi = Record<string, (params: never) => Effect.Effect<unknown, Error>>;
 
@@ -42,6 +45,55 @@ const engineDetail = (payload: unknown): string | undefined => {
     }
   }
   return undefined;
+};
+
+const SKIP_DIRS = new Set([".git", "node_modules", "dist", "out", ".build", ".cursor"]);
+const TEXT_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".md", ".py", ".json", ".go", ".rs", ".txt"]);
+const MAX_INDEX_FILES = 40;
+const MAX_FILE_BYTES = 64_000;
+
+const collectRepoTexts = (repoDir: string): Array<{ path: string; text: string }> => {
+  const out: Array<{ path: string; text: string }> = [];
+  const walk = (dir: string): void => {
+    if (out.length >= MAX_INDEX_FILES) return;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (out.length >= MAX_INDEX_FILES) return;
+      if (entry.name.startsWith(".") && entry.name !== ".gitignore") {
+        if (entry.isDirectory()) continue;
+      }
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        walk(full);
+        continue;
+      }
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!TEXT_EXT.has(ext)) continue;
+      let stat: fs.Stats;
+      try {
+        stat = fs.statSync(full);
+      } catch {
+        continue;
+      }
+      if (stat.size > MAX_FILE_BYTES) continue;
+      let text: string;
+      try {
+        text = fs.readFileSync(full, "utf8");
+      } catch {
+        continue;
+      }
+      if (text.includes("\0")) continue;
+      out.push({ path: path.relative(repoDir, full), text });
+    }
+  };
+  walk(repoDir);
+  return out;
 };
 
 interface SessionState {
@@ -331,6 +383,45 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
             until: p.until,
             limit: p.limit,
           }),
+        };
+      }),
+    "code.search": (p: {
+      query: string;
+      files?: Array<{ path: string; text: string }>;
+      limit?: number;
+      session?: string;
+    }) =>
+      Effect.gen(function* () {
+        const url = process.env["CARET_EMBED_URL"];
+        if (!url) {
+          return yield* Effect.fail(
+            new Error("CARET_EMBED_URL not set — start llama-server --embedding (see SEARCH-embed-evidence.md)"),
+          );
+        }
+        const query = (p.query ?? "").trim();
+        if (!query) return { hits: [] as Array<{ id: string; score: number; snippet: string }> };
+        let files = p.files;
+        if (!files) {
+          const st = p.session
+            ? (sessions.get(p.session) ?? null)
+            : current
+              ? (sessions.get(current) ?? null)
+              : null;
+          if (!st) return yield* Effect.fail(new Error("no session"));
+          files = collectRepoTexts(st.repoDir);
+        }
+        const index = buildFileIndex(files, 900, 100);
+        const ranked = yield* Effect.tryPromise({
+          try: () => embedAndRank(new EmbedClient(url), index, query, p.limit ?? 8),
+          catch: (e) => new Error(e instanceof Error ? e.message : String(e)),
+        });
+        const byDoc = new Map(index.chunks.map((c) => [c.doc, c.text]));
+        return {
+          hits: ranked.map((hit) => ({
+            id: hit.id,
+            score: hit.score,
+            snippet: (byDoc.get(hit.id) ?? hit.id).slice(0, 120),
+          })),
         };
       }),
   };

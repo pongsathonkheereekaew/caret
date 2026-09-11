@@ -1,10 +1,13 @@
 // File index conformance (SEARCH-02): chunking, persistence round-trip
 // with loud rejection, vector-count guard, ranking. Fixture vectors.
-import { describe, expect, it } from "vitest";
+import * as http from "node:http";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { EmbedClient, PREFIX_DOC, PREFIX_QUERY } from "./embed-client.ts";
 import {
   attributeSymbols,
   buildFileIndex,
+  embedAndRank,
   indexToJSON,
   indexFromJSON,
   rankIndex,
@@ -94,5 +97,61 @@ describe("FileIndex", () => {
   it("rejects incremental updates with a mismatched shape", () => {
     const index = buildFileIndex([{ path: "a.ts", text: "x" }], 900, 100);
     expect(() => updateFileIndex(index, [{ path: "a.ts", text: "y" }], 500, 100)).toThrow(/shape mismatch/);
+  });
+});
+
+describe("embedAndRank", () => {
+  let port = 0;
+  const server = http.createServer((req, res) => {
+    let raw = "";
+    req.on("data", (chunk: Buffer) => {
+      raw += chunk.toString("utf8");
+    });
+    req.on("end", () => {
+      let content = "";
+      try {
+        content = String((JSON.parse(raw) as { content?: unknown }).content ?? "");
+      } catch {
+        res.writeHead(400);
+        res.end();
+        return;
+      }
+      const body = content.replace(new RegExp(`^(${PREFIX_DOC}|${PREFIX_QUERY})\\s*`), "");
+      const vec = body.includes("alpha") ? [1, 0, 0] : body.includes("beta") ? [0, 1, 0] : [0, 0, 1];
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ embedding: vec }));
+    });
+  });
+
+  beforeAll(
+    () =>
+      new Promise<void>((resolve) => {
+        server.listen(0, "127.0.0.1", () => {
+          const addr = server.address();
+          port = typeof addr === "object" && addr ? addr.port : 0;
+          resolve();
+        });
+      }),
+  );
+  afterAll(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      }),
+  );
+
+  it("ranks files through the embed HTTP seam", async () => {
+    const index = buildFileIndex(
+      [
+        { path: "alpha.ts", text: "export const alpha = 1" },
+        { path: "beta.ts", text: "export const beta = 2" },
+      ],
+      900,
+      0,
+    );
+    const client = new EmbedClient(`http://127.0.0.1:${port}`);
+    const ranked = await embedAndRank(client, index, "alpha helper", 2);
+    expect(ranked[0]?.id).toBe("alpha.ts");
+    expect(ranked[0]!.score).toBeGreaterThan(ranked[1]?.score ?? 0);
   });
 });

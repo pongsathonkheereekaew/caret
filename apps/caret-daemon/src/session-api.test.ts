@@ -72,4 +72,57 @@ describe("SessionScoping", () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("fails code.search loud without CARET_EMBED_URL", async () => {
+    const api = createSessionApi(() => {});
+    const prev = process.env["CARET_EMBED_URL"];
+    delete process.env["CARET_EMBED_URL"];
+    try {
+      await expect(run(api["code.search"]({ query: "alpha" } as never))).rejects.toThrow(/CARET_EMBED_URL/);
+    } finally {
+      if (prev !== undefined) process.env["CARET_EMBED_URL"] = prev;
+    }
+  });
+
+  it("ranks code.search hits through a fixture embed server", async () => {
+    const http = await import("node:http");
+    const server = http.createServer((req, res) => {
+      let raw = "";
+      req.on("data", (chunk: Buffer) => {
+        raw += chunk.toString("utf8");
+      });
+      req.on("end", () => {
+        const content = String((JSON.parse(raw) as { content?: unknown }).content ?? "");
+        const vec = content.includes("alpha") ? [1, 0] : [0, 1];
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ embedding: vec }));
+      });
+    });
+    const port = await new Promise<number>((resolve) => {
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address();
+        resolve(typeof addr === "object" && addr ? addr.port : 0);
+      });
+    });
+    const prev = process.env["CARET_EMBED_URL"];
+    process.env["CARET_EMBED_URL"] = `http://127.0.0.1:${port}`;
+    try {
+      const api = createSessionApi(() => {});
+      const found = (await run(
+        api["code.search"]({
+          query: "alpha",
+          files: [
+            { path: "alpha.ts", text: "export const alpha = 1" },
+            { path: "beta.ts", text: "export const beta = 2" },
+          ],
+          limit: 2,
+        } as never),
+      )) as { hits: Array<{ id: string }> };
+      expect(found.hits[0]?.id).toBe("alpha.ts");
+    } finally {
+      if (prev === undefined) delete process.env["CARET_EMBED_URL"];
+      else process.env["CARET_EMBED_URL"] = prev;
+      await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+    }
+  });
 });

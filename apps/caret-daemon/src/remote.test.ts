@@ -229,6 +229,7 @@ describe("M5RemoteGateway", () => {
     expect(keys).toEqual([
       "approval.answer",
       "chat.search",
+      "code.search",
       "run.bringBack",
       "run.export",
       "run.list",
