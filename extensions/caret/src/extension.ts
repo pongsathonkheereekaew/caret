@@ -1078,7 +1078,8 @@ function renderIndexStatus(s) {
 			: phase === 'ready'
 				? ' · ' + files + ' files, ' + chunks + ' chunks'
 				: '';
-	node.textContent = 'Index: ' + phase + progress + (s.error ? ' — ' + s.error : '');
+	const fails = Array.isArray(s.failures) ? s.failures.length : 0;
+	node.textContent = 'Index: ' + phase + progress + (fails ? ' · ' + fails + ' file errors' : '') + (s.error ? ' — ' + s.error : '');
 }
 window.addEventListener('message', (event) => {
 	const m = event.data;
