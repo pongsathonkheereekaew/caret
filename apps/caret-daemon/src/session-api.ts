@@ -25,6 +25,7 @@ import { engineRowKind } from "./session-state.ts";
 import { searchChats } from "./search.ts";
 import { EmbedClient } from "./embed-client.ts";
 import { buildFileIndex, embedAndRank } from "./search-index.ts";
+import { IndexJob } from "./index-job.ts";
 import {
   applyPlanEvent,
   createPlan,
@@ -149,6 +150,7 @@ const readJournalEvents = (path: string): JournalEvent[] => {
 
 export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => {
   const sessions = new Map<string, SessionState>();
+  const indexJobs = new Map<string, IndexJob>();
   let current: string | null = null;
 
   const sel = (session?: string): SessionState | null => {
@@ -168,6 +170,23 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
   const live = (st: SessionState): CaretRun => {
     if (!st.run) throw new Error("session has no live run");
     return st.run;
+  };
+
+  const indexJob = (root: string): IndexJob => {
+    const existing = indexJobs.get(root);
+    if (existing) return existing;
+    const url = process.env["CARET_EMBED_URL"];
+    if (!url) {
+      throw new Error("CARET_EMBED_URL not set — start llama-server --embedding (see SEARCH-embed-evidence.md)");
+    }
+    const job = new IndexJob(
+      root,
+      async () => collectRepoTexts(root),
+      new EmbedClient(url),
+      (status) => notify({ event: "index.progress", status }),
+    );
+    indexJobs.set(root, job);
+    return job;
   };
 
   return {
@@ -483,6 +502,39 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
           }),
         };
       }),
+    "index.status": (p: { root?: string; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        const root = p.root ?? st.repoDir;
+        return indexJobs.get(root)?.status() ?? {
+          root,
+          phase: "idle",
+          filesDone: 0,
+          filesTotal: 0,
+          chunksDone: 0,
+          chunksTotal: 0,
+          generation: 0,
+        };
+      }),
+    "index.rebuild": (p: { root?: string; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        const job = indexJob(p.root ?? st.repoDir);
+        void job.rebuild();
+        return { started: true, status: job.status() };
+      }),
+    "index.pause": (p: { root?: string; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        return indexJob(p.root ?? st.repoDir).pause();
+      }),
+    "index.resume": (p: { root?: string; session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        const job = indexJob(p.root ?? st.repoDir);
+        void job.resume();
+        return { started: true, status: job.status() };
+      }),
     "code.search": (p: {
       query: string;
       files?: Array<{ path: string; text: string }>;
@@ -506,7 +558,16 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
               ? (sessions.get(current) ?? null)
               : null;
           if (!st) return yield* Effect.fail(new Error("no session"));
-          files = collectRepoTexts(st.repoDir);
+          const job = indexJob(st.repoDir);
+          if (job.status().phase === "idle") {
+            void job.rebuild();
+            return yield* Effect.fail(new Error("index build started — retry when index status is ready"));
+          }
+          const ranked = yield* Effect.tryPromise({
+            try: () => job.search(query, p.limit ?? 8),
+            catch: (e) => new Error(e instanceof Error ? e.message : String(e)),
+          });
+          return { hits: ranked.map((hit) => ({ id: hit.id, score: hit.score, snippet: hit.id })) };
         }
         const index = buildFileIndex(files, 900, 100);
         const ranked = yield* Effect.tryPromise({
