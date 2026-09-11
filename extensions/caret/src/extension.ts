@@ -568,6 +568,25 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 			case 'find': {
 				const query = String(message.text ?? '').trim();
 				const type = String(message.filter ?? '').trim();
+				if (type === 'semantic') {
+					try {
+						const found = await daemon.request('code.search', { query, limit: 10 }) as {
+							hits?: Array<{ id?: string; snippet?: string; score?: number }>;
+						};
+						this.post({
+							type: 'searchHits',
+							query,
+							hits: (found.hits ?? []).map((hit) => ({
+								type: 'code',
+								snippet: `${String(hit.id ?? '')} — ${String(hit.snippet ?? '')}`,
+							})),
+						});
+					} catch (error) {
+						this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+						this.post({ type: 'searchHits', query, hits: [] });
+					}
+					break;
+				}
 				const found = await daemon.request('chat.search', {
 					query,
 					limit: 20,
@@ -686,6 +705,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <option value="">all types</option>
 <option value="turn.completed">turns</option>
 <option value="request.resolved">approvals</option>
+<option value="semantic">files (semantic)</option>
 </select>
 <button id="findGo" class="secondary">Find</button>
 </div>

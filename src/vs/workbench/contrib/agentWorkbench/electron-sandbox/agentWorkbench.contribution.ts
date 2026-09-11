@@ -10,5 +10,5 @@ import { IAgentWorkbenchModeService } from '../browser/agentWorkbenchMode.js';
 import { AgentWorkbenchModeService } from '../browser/agentWorkbenchModeService.js';
 
 registerSingleton(IAgentWorkbenchModeService, AgentWorkbenchModeService, InstantiationType.Delayed);
- registerAction2(OpenAgentsWindowAction);
- registerAction2(OpenIdeAction);
+registerAction2(OpenAgentsWindowAction);
+registerAction2(OpenIdeAction);
