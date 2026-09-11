@@ -26,6 +26,10 @@ import { searchChats } from "./search.ts";
 import { EmbedClient } from "./embed-client.ts";
 import { buildFileIndex, embedAndRank } from "./search-index.ts";
 import { IndexJob } from "./index-job.ts";
+import { canAttachToPrompt } from "./context-policy.ts";
+import { isIgnored } from "./ignore.ts";
+import { canonRoot } from "./path-id.ts";
+import { readIgnorePatterns, scanRepoTexts } from "./scan-repo.ts";
 import {
   applyPlanEvent,
   createPlan,
@@ -52,55 +56,6 @@ const engineDetail = (payload: unknown): string | undefined => {
     }
   }
   return undefined;
-};
-
-const SKIP_DIRS = new Set([".git", "node_modules", "dist", "out", ".build", ".cursor"]);
-const TEXT_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".md", ".py", ".json", ".go", ".rs", ".txt"]);
-const MAX_INDEX_FILES = 40;
-const MAX_FILE_BYTES = 64_000;
-
-const collectRepoTexts = (repoDir: string): Array<{ path: string; text: string }> => {
-  const out: Array<{ path: string; text: string }> = [];
-  const walk = (dir: string): void => {
-    if (out.length >= MAX_INDEX_FILES) return;
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      if (out.length >= MAX_INDEX_FILES) return;
-      if (entry.name.startsWith(".") && entry.name !== ".gitignore") {
-        if (entry.isDirectory()) continue;
-      }
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (SKIP_DIRS.has(entry.name)) continue;
-        walk(full);
-        continue;
-      }
-      const ext = path.extname(entry.name).toLowerCase();
-      if (!TEXT_EXT.has(ext)) continue;
-      let stat: fs.Stats;
-      try {
-        stat = fs.statSync(full);
-      } catch {
-        continue;
-      }
-      if (stat.size > MAX_FILE_BYTES) continue;
-      let text: string;
-      try {
-        text = fs.readFileSync(full, "utf8");
-      } catch {
-        continue;
-      }
-      if (text.includes("\0")) continue;
-      out.push({ path: path.relative(repoDir, full), text });
-    }
-  };
-  walk(repoDir);
-  return out;
 };
 
 interface SessionState {
@@ -173,6 +128,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
   };
 
   const indexJob = (root: string): IndexJob => {
+    root = canonRoot(root);
     const existing = indexJobs.get(root);
     if (existing) return existing;
     const url = process.env["CARET_EMBED_URL"];
@@ -181,7 +137,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
     }
     const job = new IndexJob(
       root,
-      async () => collectRepoTexts(root),
+      async () => scanRepoTexts(root),
       new EmbedClient(url),
       (status) => notify({ event: "index.progress", status }),
     );
@@ -505,7 +461,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
     "index.status": (p: { root?: string; session?: string }) =>
       Effect.sync(() => {
         const st = need(p.session);
-        const root = p.root ?? st.repoDir;
+        const root = canonRoot(p.root ?? st.repoDir);
         return indexJobs.get(root)?.status() ?? {
           root,
           phase: "idle",
@@ -514,6 +470,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
           chunksDone: 0,
           chunksTotal: 0,
           generation: 0,
+          failures: [],
         };
       }),
     "index.rebuild": (p: { root?: string; session?: string }) =>
@@ -551,6 +508,17 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         const query = (p.query ?? "").trim();
         if (!query) return { hits: [] as Array<{ id: string; score: number; snippet: string }> };
         let files = p.files;
+        if (files) {
+          const st = p.session
+            ? (sessions.get(p.session) ?? null)
+            : current
+              ? (sessions.get(current) ?? null)
+              : null;
+          const patterns = st ? readIgnorePatterns(st.repoDir) : [];
+          files = files.filter((file) =>
+            canAttachToPrompt({ ignored: isIgnored(file.path, patterns), sandboxDenied: false }),
+          );
+        }
         if (!files) {
           const st = p.session
             ? (sessions.get(p.session) ?? null)

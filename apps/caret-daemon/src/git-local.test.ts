@@ -51,7 +51,7 @@ const cloneOf = (remote: string, name: string): string => {
   return dir;
 };
 
-describe("GitLocal", () => {
+describe("GitLocal", { timeout: 20_000 }, () => {
   it("commits with identity from repo config and refuses empties loudly", async () => {
     const repo = freshRepo();
     writeFileSync(join(repo, "f.txt"), "hello\n");

@@ -30,6 +30,23 @@ describe("IndexJob", () => {
     expect(phases[0]).toBe("scanning");
     expect(phases.at(-1)).toBe("ready");
     expect((await job.search("alpha", 2))[0]?.id).toBe("alpha.ts");
+    expect(done.failures).toEqual([]);
+  });
+
+  it("keeps ready when some files fail", async () => {
+    const job = new IndexJob(
+      "/repo",
+      async () => ({
+        files: [{ path: "ok.ts", text: "alpha" }],
+        failures: [{ path: "big.ts", reason: "too-large" }],
+      }),
+      embedder,
+    );
+    await expect(job.rebuild()).resolves.toMatchObject({
+      phase: "ready",
+      filesDone: 1,
+      failures: [{ path: "big.ts", reason: "too-large" }],
+    });
   });
 
   it("deduplicates rebuilds and reaches a terminal failure", async () => {

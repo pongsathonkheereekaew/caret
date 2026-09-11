@@ -1,5 +1,6 @@
 import { buildFileIndex, clipForEmbed, rankIndex, type Embedder, type FileIndex } from "./search-index.ts";
 import type { RankedDoc } from "./semantic.ts";
+import type { ScanFailure, ScanFile } from "./scan-repo.ts";
 
 export type IndexPhase = "idle" | "scanning" | "embedding" | "ready" | "paused" | "failed";
 
@@ -11,6 +12,7 @@ export interface IndexStatus {
   readonly chunksDone: number;
   readonly chunksTotal: number;
   readonly generation: number;
+  readonly failures: ReadonlyArray<ScanFailure>;
   readonly error?: string;
 }
 
@@ -28,7 +30,9 @@ export class IndexJob {
 
   constructor(
     readonly root: string,
-    private readonly scan: () => Promise<ReadonlyArray<{ path: string; text: string }>>,
+    private readonly scan: () => Promise<
+      ReadonlyArray<ScanFile> | { files: ReadonlyArray<ScanFile>; failures?: ReadonlyArray<ScanFailure> }
+    >,
     private readonly embedder: Embedder,
     private readonly onProgress: (status: IndexStatus) => void = () => {},
   ) {
@@ -73,7 +77,9 @@ export class IndexJob {
     try {
       this.state = this.makeStatus("scanning", { generation });
       this.emit();
-      const files = await this.scan();
+      const raw = await this.scan();
+      const files = Array.isArray(raw) ? raw : raw.files;
+      const failures = Array.isArray(raw) ? [] : (raw.failures ?? []);
       if (this.paused || generation !== this.generation) return this.pause();
 
       const index = buildFileIndex(files, 900, 100);
@@ -82,6 +88,7 @@ export class IndexJob {
         filesDone: files.length,
         filesTotal: files.length,
         chunksTotal: index.chunks.length,
+        failures,
       });
       this.emit();
 
@@ -120,6 +127,7 @@ export class IndexJob {
       chunksDone: 0,
       chunksTotal: 0,
       generation: this.generation,
+      failures: [],
       ...patch,
       phase,
     };
