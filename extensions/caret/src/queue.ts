@@ -33,6 +33,27 @@ export class PendingQueue {
     return this.items.splice(index, 1)[0] as string;
   }
 
+  /** Move item at `from` to `to` (0-based). Throws on out of range. */
+  move(from: number, to: number): void {
+    if (from < 0 || from >= this.items.length) {
+      throw new Error(`queue has no #${from + 1}`);
+    }
+    if (to < 0 || to >= this.items.length) {
+      throw new Error(`queue has no #${to + 1}`);
+    }
+    const [item] = this.items.splice(from, 1) as [string];
+    this.items.splice(to, 0, item);
+  }
+
+  replace(index: number, text: string): void {
+    const trimmed = text.trim();
+    if (!trimmed) throw new Error("cannot queue empty prompt");
+    if (index < 0 || index >= this.items.length) {
+      throw new Error(`queue has no #${index + 1}`);
+    }
+    this.items[index] = trimmed;
+  }
+
   takeNext(): string | null {
     return this.items.shift() ?? null;
   }

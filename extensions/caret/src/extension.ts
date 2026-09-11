@@ -326,6 +326,24 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		}) as { threadId?: string };
 		this.sessionOn = true;
 		this.post({ type: 'status', text: `session live (${String(started.threadId ?? '').slice(0, 18)}…)` });
+		await this.refreshSessions();
+	}
+
+	private async refreshSessions(query = ''): Promise<void> {
+		try {
+			const daemon = await this.ensureDaemon();
+			const listed = await daemon.request('session.list', { query }) as Array<{
+				threadId?: string;
+				title?: string;
+				goal?: string;
+				live?: boolean;
+				current?: boolean;
+				pinned?: boolean;
+			}>;
+			this.post({ type: 'sessions', items: Array.isArray(listed) ? listed : [] });
+		} catch {
+			this.post({ type: 'sessions', items: [] });
+		}
 	}
 
 	private onDaemonNotification(msg: RpcResponse): void {
@@ -360,6 +378,13 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 					this.post({ type: 'status', text: `engine warning — ${text}` });
 				}
 			}
+		}
+		if (msg.event === 'plan') {
+			this.post({
+				type: 'plan',
+				title: String(msg.title ?? ''),
+				tasks: Array.isArray(msg.tasks) ? msg.tasks : [],
+			});
 		}
 	}
 
@@ -478,6 +503,76 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				}
 				break;
 			}
+			case 'queueMove': {
+				try {
+					this.queue.move(Number(message.from), Number(message.to));
+					this.postQueue();
+				} catch (error) {
+					this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+				}
+				break;
+			}
+			case 'queueEdit': {
+				const index = Number(message.index ?? -1);
+				const current = this.queue.list()[index];
+				const next = await vscode.window.showInputBox({ prompt: 'Edit queued prompt', value: current ?? '' });
+				if (next === undefined) {
+					break;
+				}
+				try {
+					this.queue.replace(index, next);
+					this.postQueue();
+				} catch (error) {
+					this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+				}
+				break;
+			}
+			case 'sessions': {
+				await this.refreshSessions(String(message.text ?? ''));
+				break;
+			}
+			case 'sessionSelect': {
+				const id = String(message.session ?? '');
+				const selected = await daemon.request('session.select', { session: id }) as { live?: boolean };
+				this.sessionOn = Boolean(selected.live);
+				this.post({ type: 'status', text: selected.live ? `switched to ${id.slice(0, 24)}…` : `selected stopped session ${id.slice(0, 18)}… — New to run` });
+				await this.refreshSessions();
+				try {
+					const plan = await daemon.request('plan.get', {}) as { title?: string; tasks?: unknown };
+					this.post({ type: 'plan', title: String(plan.title ?? ''), tasks: Array.isArray(plan.tasks) ? plan.tasks : [] });
+				} catch {
+					this.post({ type: 'plan', title: '', tasks: [] });
+				}
+				break;
+			}
+			case 'sessionRename': {
+				const title = await vscode.window.showInputBox({ prompt: 'Rename session', value: String(message.title ?? '') });
+				if (!title) {
+					break;
+				}
+				await daemon.request('session.rename', { title, session: String(message.session ?? '') });
+				await this.refreshSessions();
+				break;
+			}
+			case 'sessionPin': {
+				await daemon.request('session.pin', { pinned: message.pinned !== false, session: String(message.session ?? '') });
+				await this.refreshSessions();
+				break;
+			}
+			case 'sessionArchive': {
+				await daemon.request('session.archive', { archived: true, session: String(message.session ?? '') });
+				await this.refreshSessions();
+				break;
+			}
+			case 'sessionForget': {
+				try {
+					await daemon.request('session.forget', { session: String(message.session ?? '') });
+					await this.refreshSessions();
+				} catch (error) {
+					this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+				}
+				break;
+			}
 			case 'stop': {
 				const n = this.queue.clear();
 				this.postQueue();
@@ -486,6 +581,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				this.sending = false;
 				this.post({ type: 'reset' });
 				this.post({ type: 'status', text: n > 0 ? `stopped, dropped ${n} queued` : 'stopped' });
+				await this.refreshSessions();
 				break;
 			}
 			case 'answer': {
@@ -695,6 +791,11 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 .find-hit { border: 1px solid var(--agent-border-subtle); border-radius: var(--agent-radius-control); padding: 4px 8px; margin: 4px 0; cursor: pointer; color: var(--agent-text-secondary); }
 .find-hit:hover { background: var(--agent-surface-hover); }
 .msg.jump-target { border-color: var(--agent-border-strong); }
+#sessions, #todos, #queue { margin: 6px 0; }
+.session.current { border-color: var(--agent-border-strong); }
+.todo-done { color: var(--agent-text-disabled); text-decoration: line-through; }
+.tiny { font-size: 11px; padding: 2px 8px; }
+
 </style>
 </head>
 <body>
@@ -725,6 +826,12 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="steer" class="secondary">Steer…</button>
 <button id="export" class="secondary">Export…</button>
 </div>
+<div class="row">
+<input id="sessionFilter" type="search" placeholder="Filter sessions" />
+<button id="sessionsGo" class="secondary">Sessions</button>
+</div>
+<div id="sessions"></div>
+<div id="todos"></div>
 <div id="transcript"></div>
 <div id="queue"></div>
 <script nonce="${scriptNonce}">
@@ -791,6 +898,16 @@ document.getElementById('findGo').onclick = () => runFind();
 document.getElementById('find').addEventListener('keydown', (event) => {
 	if (event.key === 'Enter') { event.preventDefault(); runFind(); }
 });
+document.getElementById('sessionsGo').onclick = () => {
+	const box = document.getElementById('sessionFilter');
+	vscode.postMessage({ command: 'sessions', text: box.value });
+};
+document.getElementById('sessionFilter').addEventListener('keydown', (event) => {
+	if (event.key === 'Enter') {
+		event.preventDefault();
+		vscode.postMessage({ command: 'sessions', text: event.target.value });
+	}
+});
 function renderHits(query, hits) {
 	findHits.textContent = '';
 	if (!query) return;
@@ -835,11 +952,78 @@ function renderQueue(items) {
 		const div = document.createElement('div');
 		div.className = 'msg';
 		div.textContent = 'Queued #' + (i + 1) + ': ' + text;
+		const up = document.createElement('button');
+		up.className = 'secondary tiny';
+		up.textContent = 'Up';
+		up.disabled = i === 0;
+		up.onclick = () => vscode.postMessage({ command: 'queueMove', from: i, to: i - 1 });
+		const down = document.createElement('button');
+		down.className = 'secondary tiny';
+		down.textContent = 'Down';
+		down.disabled = i === items.length - 1;
+		down.onclick = () => vscode.postMessage({ command: 'queueMove', from: i, to: i + 1 });
+		const edit = document.createElement('button');
+		edit.className = 'secondary tiny';
+		edit.textContent = 'Edit';
+		edit.onclick = () => vscode.postMessage({ command: 'queueEdit', index: i });
 		const drop = document.createElement('button');
-		drop.className = 'secondary';
+		drop.className = 'secondary tiny';
 		drop.textContent = 'Drop';
 		drop.onclick = () => vscode.postMessage({ command: 'dequeue', index: i });
+		div.appendChild(up);
+		div.appendChild(down);
+		div.appendChild(edit);
 		div.appendChild(drop);
+		box.appendChild(div);
+	});
+}
+function renderSessions(items) {
+	const box = document.getElementById('sessions');
+	box.textContent = '';
+	(items || []).forEach((item) => {
+		const div = document.createElement('div');
+		div.className = 'msg session' + (item.current ? ' current' : '');
+		div.textContent = (item.pinned ? '★ ' : '') + (item.title || item.goal || item.threadId || 'session') + (item.live ? ' · live' : ' · stopped');
+		const open = document.createElement('button');
+		open.className = 'tiny';
+		open.textContent = 'Open';
+		open.onclick = () => vscode.postMessage({ command: 'sessionSelect', session: item.threadId });
+		const rename = document.createElement('button');
+		rename.className = 'secondary tiny';
+		rename.textContent = 'Rename';
+		rename.onclick = () => vscode.postMessage({ command: 'sessionRename', session: item.threadId, title: item.title || '' });
+		const pin = document.createElement('button');
+		pin.className = 'secondary tiny';
+		pin.textContent = item.pinned ? 'Unpin' : 'Pin';
+		pin.onclick = () => vscode.postMessage({ command: 'sessionPin', session: item.threadId, pinned: !item.pinned });
+		const arch = document.createElement('button');
+		arch.className = 'secondary tiny';
+		arch.textContent = 'Archive';
+		arch.onclick = () => vscode.postMessage({ command: 'sessionArchive', session: item.threadId });
+		const forget = document.createElement('button');
+		forget.className = 'secondary tiny';
+		forget.textContent = 'Delete';
+		forget.onclick = () => vscode.postMessage({ command: 'sessionForget', session: item.threadId });
+		div.appendChild(open);
+		div.appendChild(rename);
+		div.appendChild(pin);
+		div.appendChild(arch);
+		div.appendChild(forget);
+		box.appendChild(div);
+	});
+}
+function renderPlan(title, tasks) {
+	const box = document.getElementById('todos');
+	box.textContent = '';
+	if (!tasks || tasks.length === 0) return;
+	const head = document.createElement('div');
+	head.className = 'msg';
+	head.textContent = 'Todos' + (title ? ' — ' + title : '');
+	box.appendChild(head);
+	tasks.forEach((task) => {
+		const div = document.createElement('div');
+		div.className = 'msg tool' + (task.done ? ' todo-done' : '');
+		div.textContent = (task.done ? '✓ ' : '○ ') + (task.title || '');
 		box.appendChild(div);
 	});
 }
@@ -851,12 +1035,15 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'approval') card(m.requestId, m.requestType, m.detail);
 	else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
 	else if (m.type === 'queue') renderQueue(m.items || []);
+	else if (m.type === 'sessions') renderSessions(m.items || []);
+	else if (m.type === 'plan') renderPlan(m.title || '', m.tasks || []);
 	else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
 	else if (m.type === 'searchHits') renderHits(m.query || '', m.hits || []);
 	else if (m.type === 'reset') {
 		transcript.textContent = '';
 		findHits.textContent = '';
 		renderQueue([]);
+		renderPlan('', []);
 		const compact = document.getElementById('compact');
 		if (compact) compact.textContent = 'Compact';
 		transcript.classList.remove('compact-done');
