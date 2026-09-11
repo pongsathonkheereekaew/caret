@@ -711,6 +711,50 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				this.post({ type: 'status', text: `opened ${kind} ${abs.split('/').pop() ?? abs}` });
 				break;
 			}
+			case 'docsFetch': {
+				const url = String(message.url ?? '').trim();
+				if (!url) {
+					this.post({ type: 'status', text: 'docs URL required — Caret has no @Docs index (unverified vs Cursor)' });
+					break;
+				}
+				const done = await daemon.request('docs.fetch', { url }) as {
+					url?: string;
+					cached?: boolean;
+					bytes?: number;
+					truncated?: boolean;
+					fetchedAt?: string;
+				};
+				this.post({
+					type: 'status',
+					text: `${done.cached ? 'cached' : 'fetched'} ${String(done.bytes ?? 0)}B${done.truncated ? ' truncated' : ''} ${String(done.url ?? url)}`,
+				});
+				const listed = await daemon.request('docs.list', {}) as { items?: unknown[] };
+				this.post({ type: 'docs', items: Array.isArray(listed.items) ? listed.items : [] });
+				break;
+			}
+			case 'docsList': {
+				const listed = await daemon.request('docs.list', {}) as { items?: unknown[] };
+				this.post({ type: 'docs', items: Array.isArray(listed.items) ? listed.items : [] });
+				break;
+			}
+			case 'docsRefresh': {
+				const url = String(message.url ?? '').trim();
+				await daemon.request('docs.refresh', { url });
+				const listed = await daemon.request('docs.list', {}) as { items?: unknown[] };
+				this.post({ type: 'docs', items: Array.isArray(listed.items) ? listed.items : [] });
+				this.post({ type: 'status', text: `refreshed ${url}` });
+				break;
+			}
+			case 'docsOpen': {
+				const url = String(message.url ?? '').trim();
+				const rec = await daemon.request('docs.get', { url }) as { text?: string; stale?: boolean };
+				const doc = await vscode.workspace.openTextDocument({
+					content: `<!-- ${url}${rec.stale ? ' stale' : ''} -->\n${String(rec.text ?? '')}`,
+					language: 'markdown',
+				});
+				await vscode.window.showTextDocument(doc, { preview: true });
+				break;
+			}
 			case 'find': {
 				const query = String(message.text ?? '').trim();
 				const type = String(message.filter ?? '').trim();
@@ -861,7 +905,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 .find-hit { border: 1px solid var(--agent-border-subtle); border-radius: var(--agent-radius-control); padding: 4px 8px; margin: 4px 0; cursor: pointer; color: var(--agent-text-secondary); }
 .find-hit:hover { background: var(--agent-surface-hover); }
 .msg.jump-target { border-color: var(--agent-border-strong); }
-#sessions, #todos, #queue, #artifacts { margin: 6px 0; }
+#sessions, #todos, #queue, #artifacts, #docs { margin: 6px 0; }
 .session.current { border-color: var(--agent-border-strong); }
 .todo-done { color: var(--agent-text-disabled); text-decoration: line-through; }
 .tiny { font-size: 11px; padding: 2px 8px; }
@@ -903,6 +947,12 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 </div>
 <div id="sessions"></div>
 <div id="artifacts"></div>
+<div class="row">
+<input id="docUrl" type="url" placeholder="https://… explicit docs URL (not @Docs)" />
+<button id="docsFetch" class="secondary">Fetch docs</button>
+<button id="docsList" class="secondary">Cached docs</button>
+</div>
+<div id="docs"></div>
 <div class="row">
 <span id="indexStatus">Index: idle</span>
 <button id="indexRebuild" class="secondary tiny">Rebuild index</button>
@@ -967,6 +1017,10 @@ document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'r
 document.getElementById('steer').onclick = () => vscode.postMessage({ command: 'steer' });
 document.getElementById('export').onclick = () => vscode.postMessage({ command: 'export' });
 document.getElementById('artifactsGo').onclick = () => vscode.postMessage({ command: 'artifacts' });
+document.getElementById('docsFetch').onclick = () => {
+	vscode.postMessage({ command: 'docsFetch', url: document.getElementById('docUrl').value });
+};
+document.getElementById('docsList').onclick = () => vscode.postMessage({ command: 'docsList' });
 document.getElementById('stop').onclick = () => vscode.postMessage({ command: 'stop' });
 function runFind() {
 	const box = document.getElementById('find');
@@ -990,6 +1044,33 @@ document.getElementById('sessionFilter').addEventListener('keydown', (event) => 
 document.getElementById('indexRebuild').onclick = () => vscode.postMessage({ command: 'indexRebuild' });
 document.getElementById('indexPause').onclick = () => vscode.postMessage({ command: 'indexPause' });
 document.getElementById('indexResume').onclick = () => vscode.postMessage({ command: 'indexResume' });
+function renderDocs(items) {
+	const box = document.getElementById('docs');
+	box.textContent = '';
+	if (!items || items.length === 0) {
+		const empty = document.createElement('div');
+		empty.className = 'msg tool';
+		empty.textContent = 'No cached docs — paste an explicit URL. Legacy Cursor @Docs is not claimed.';
+		box.appendChild(empty);
+		return;
+	}
+	items.forEach((item) => {
+		const div = document.createElement('div');
+		div.className = 'msg';
+		div.textContent = (item.url || '') + ' · ' + (item.bytes || 0) + 'B' + (item.truncated ? ' truncated' : '');
+		const open = document.createElement('button');
+		open.className = 'secondary tiny';
+		open.textContent = 'Open';
+		open.onclick = () => vscode.postMessage({ command: 'docsOpen', url: item.url });
+		const refresh = document.createElement('button');
+		refresh.className = 'secondary tiny';
+		refresh.textContent = 'Refresh';
+		refresh.onclick = () => vscode.postMessage({ command: 'docsRefresh', url: item.url });
+		div.appendChild(open);
+		div.appendChild(refresh);
+		box.appendChild(div);
+	});
+}
 function renderArtifacts(runId, revision, items) {
 	const box = document.getElementById('artifacts');
 	box.textContent = '';
@@ -1165,6 +1246,7 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'indexStatus') renderIndexStatus(m.status || {});
 	else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
 	else if (m.type === 'artifacts') renderArtifacts(m.runId || '', m.revision || '', m.items || []);
+	else if (m.type === 'docs') renderDocs(m.items || []);
 	else if (m.type === 'searchHits') renderHits(m.query || '', m.hits || []);
 	else if (m.type === 'reset') {
 		transcript.textContent = '';
@@ -1172,6 +1254,7 @@ window.addEventListener('message', (event) => {
 		renderQueue([]);
 		renderPlan('', []);
 		renderArtifacts('', '', []);
+		renderDocs([]);
 		const compact = document.getElementById('compact');
 		if (compact) compact.textContent = 'Compact';
 		transcript.classList.remove('compact-done');
