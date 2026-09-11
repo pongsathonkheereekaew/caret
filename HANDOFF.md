@@ -142,3 +142,12 @@ Shipped this round, daemon suite **120/120** on `caret-adapter`:
 
 Still human/external: H05 click-through, visual atlas vs frozen 3.19,
 signing certs, devices/APNs, MCP OAuth provider.
+
+## Addendum 2026-09-11 late morning
+
+- `turn.cancel` + reconnect warnings in Agents UI (soft Stop/New).
+- `code.search` / `embedAndRank`: fixture-ranked semantic retrieval;
+  composer Find option **files (semantic)**; fails loud without
+  `CARET_EMBED_URL`.
+- `caret.openAgentsWindow` focuses the real `caretComposer` view
+  (no invented Agents-window geometry).

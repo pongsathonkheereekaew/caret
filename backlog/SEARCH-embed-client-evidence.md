@@ -16,6 +16,7 @@ model this round.
 
 ## Open
 
-Live nomic wiring + independent-query benchmark still needs the embed
-server started on demand (`llama-server --embedding`). UI for semantic
-hits is not this module.
+Live nomic + independent-query benchmark still needs `llama-server
+--embedding` on `CARET_EMBED_URL` (measured recipe in
+SEARCH-embed-evidence.md). Composer Find has a **files (semantic)**
+option that calls `code.search`; without the env it fails loud.

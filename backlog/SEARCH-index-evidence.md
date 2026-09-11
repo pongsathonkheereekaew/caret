@@ -18,6 +18,7 @@ Embeddings still arrive through the measured local-nomic seam
 
 ## Open
 
-Embed-server **client** wired (`embed-client.ts`, fixture keepers;
-`backlog/SEARCH-embed-client-evidence.md`). Live nomic + independent-query
-benchmark still open. Search UI implemented in composer (click unverified).
+`embedAndRank` + `code.search` RPC wired through the fixture HTTP seam
+(2026-09-11). Live nomic + independent-query benchmark still need
+`CARET_EMBED_URL` / `llama-server --embedding`. Search UI implemented in
+composer (click unverified).
