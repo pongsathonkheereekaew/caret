@@ -688,8 +688,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-02-C01",
+     "title": "session.list/select/rename/pin/archive/forget RPCs + composer list",
+     "evidence": "backlog/AG-session-list-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-02-C02",
+     "title": "grouped/multi-root workspace identity click-through",
+     "evidence": "backlog/AG-session-list-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-03",
@@ -757,8 +770,15 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-04-C01",
+     "title": "queue Up/Down/Edit/Drop keepers + composer buttons",
+     "evidence": "backlog/AG-session-list-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "AG-05",
@@ -967,8 +987,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-09-C01",
+     "title": "applyPlanEvent ignores turn.completed; plan RPC + read-only UI",
+     "evidence": "backlog/AG-session-list-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-09-C02",
+     "title": "live Codex/OpenCode todo event mapping observed",
+     "evidence": "backlog/AG-session-list-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-10",

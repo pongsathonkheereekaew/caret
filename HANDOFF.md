@@ -151,3 +151,9 @@ signing certs, devices/APNs, MCP OAuth provider.
   `CARET_EMBED_URL`.
 - `caret.openAgentsWindow` focuses the real `caretComposer` view
   (no invented Agents-window geometry).
+
+## Addendum 2026-09-11 Agents slice
+
+AG-02/04/09 implemented (not verified): session list
+(select/rename/pin/archive/forget), queue Up/Down/Edit, plan todos from
+explicit events only. Evidence: `backlog/AG-session-list-evidence.md`.
