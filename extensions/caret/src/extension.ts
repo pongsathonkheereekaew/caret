@@ -402,6 +402,25 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		this.post({ type: 'queue', items: this.queue.list() });
 	}
 
+	private async refreshArtifacts(): Promise<void> {
+		const daemon = this.daemon ?? this.tcp;
+		if (!daemon || !this.sessionOn) {
+			this.post({ type: 'artifacts', runId: '', revision: '', items: [] });
+			return;
+		}
+		const listed = await daemon.request('run.artifacts', {}) as {
+			runId?: string;
+			revision?: string;
+			items?: unknown[];
+		};
+		this.post({
+			type: 'artifacts',
+			runId: String(listed.runId ?? ''),
+			revision: String(listed.revision ?? ''),
+			items: Array.isArray(listed.items) ? listed.items : [],
+		});
+	}
+
 	/**
 	 * Prefer turn.cancel (unblocks hung turn.send) then session.stop.
 	 * Kill the local stdio daemon only if both stall — e.g. Codex reconnect
@@ -478,6 +497,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		}
 		if (!aborted && this.queue.size === 0) {
 			this.post({ type: 'status', text: 'turn done — Review or Reject' });
+			await this.refreshArtifacts().catch(() => undefined);
 		}
 	}
 
@@ -671,6 +691,26 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				this.post({ type: 'status', text: `exported ${String(done.files ?? 0)} files, ${String(done.events ?? 0)} events → ${String(done.path ?? '')}` });
 				break;
 			}
+			case 'artifacts': {
+				await this.ensureSession();
+				await this.refreshArtifacts();
+				break;
+			}
+			case 'openArtifact': {
+				const abs = String(message.absPath ?? '');
+				const kind = String(message.kind ?? 'file');
+				if (!abs) {
+					break;
+				}
+				const uri = vscode.Uri.file(abs);
+				if (kind === 'image' || kind === 'video') {
+					await vscode.commands.executeCommand('vscode.open', uri);
+				} else {
+					await vscode.window.showTextDocument(uri, { preview: true });
+				}
+				this.post({ type: 'status', text: `opened ${kind} ${abs.split('/').pop() ?? abs}` });
+				break;
+			}
 			case 'find': {
 				const query = String(message.text ?? '').trim();
 				const type = String(message.filter ?? '').trim();
@@ -821,7 +861,7 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 .find-hit { border: 1px solid var(--agent-border-subtle); border-radius: var(--agent-radius-control); padding: 4px 8px; margin: 4px 0; cursor: pointer; color: var(--agent-text-secondary); }
 .find-hit:hover { background: var(--agent-surface-hover); }
 .msg.jump-target { border-color: var(--agent-border-strong); }
-#sessions, #todos, #queue { margin: 6px 0; }
+#sessions, #todos, #queue, #artifacts { margin: 6px 0; }
 .session.current { border-color: var(--agent-border-strong); }
 .todo-done { color: var(--agent-text-disabled); text-decoration: line-through; }
 .tiny { font-size: 11px; padding: 2px 8px; }
@@ -855,12 +895,14 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="runs" class="secondary">Runs…</button>
 <button id="steer" class="secondary">Steer…</button>
 <button id="export" class="secondary">Export…</button>
+<button id="artifactsGo" class="secondary">Artifacts</button>
 </div>
 <div class="row">
 <input id="sessionFilter" type="search" placeholder="Filter sessions" />
 <button id="sessionsGo" class="secondary">Sessions</button>
 </div>
 <div id="sessions"></div>
+<div id="artifacts"></div>
 <div class="row">
 <span id="indexStatus">Index: idle</span>
 <button id="indexRebuild" class="secondary tiny">Rebuild index</button>
@@ -924,6 +966,7 @@ document.getElementById('new').onclick = () => vscode.postMessage({ command: 'ne
 document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'runs' });
 document.getElementById('steer').onclick = () => vscode.postMessage({ command: 'steer' });
 document.getElementById('export').onclick = () => vscode.postMessage({ command: 'export' });
+document.getElementById('artifactsGo').onclick = () => vscode.postMessage({ command: 'artifacts' });
 document.getElementById('stop').onclick = () => vscode.postMessage({ command: 'stop' });
 function runFind() {
 	const box = document.getElementById('find');
@@ -947,6 +990,34 @@ document.getElementById('sessionFilter').addEventListener('keydown', (event) => 
 document.getElementById('indexRebuild').onclick = () => vscode.postMessage({ command: 'indexRebuild' });
 document.getElementById('indexPause').onclick = () => vscode.postMessage({ command: 'indexPause' });
 document.getElementById('indexResume').onclick = () => vscode.postMessage({ command: 'indexResume' });
+function renderArtifacts(runId, revision, items) {
+	const box = document.getElementById('artifacts');
+	box.textContent = '';
+	if (!items || items.length === 0) {
+		if (runId) {
+			const empty = document.createElement('div');
+			empty.className = 'msg tool';
+			empty.textContent = 'No artifacts for ' + runId.slice(0, 18) + '…';
+			box.appendChild(empty);
+		}
+		return;
+	}
+	const head = document.createElement('div');
+	head.className = 'msg tool';
+	head.textContent = 'Artifacts · ' + items.length + ' · ' + (revision || '').slice(0, 40);
+	box.appendChild(head);
+	items.forEach((item) => {
+		const div = document.createElement('div');
+		div.className = 'msg';
+		div.textContent = item.kind + ' · ' + (item.path || item.title || '');
+		const open = document.createElement('button');
+		open.className = 'secondary tiny';
+		open.textContent = 'Open';
+		open.onclick = () => vscode.postMessage({ command: 'openArtifact', absPath: item.absPath, kind: item.kind });
+		div.appendChild(open);
+		box.appendChild(div);
+	});
+}
 function renderHits(query, hits) {
 	findHits.textContent = '';
 	if (!query) return;
@@ -1093,12 +1164,14 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'plan') renderPlan(m.title || '', m.tasks || []);
 	else if (m.type === 'indexStatus') renderIndexStatus(m.status || {});
 	else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
+	else if (m.type === 'artifacts') renderArtifacts(m.runId || '', m.revision || '', m.items || []);
 	else if (m.type === 'searchHits') renderHits(m.query || '', m.hits || []);
 	else if (m.type === 'reset') {
 		transcript.textContent = '';
 		findHits.textContent = '';
 		renderQueue([]);
 		renderPlan('', []);
+		renderArtifacts('', '', []);
 		const compact = document.getElementById('compact');
 		if (compact) compact.textContent = 'Compact';
 		transcript.classList.remove('compact-done');
