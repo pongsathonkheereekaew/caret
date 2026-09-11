@@ -9,7 +9,7 @@ Build Caret to the **clone-verified** gate in `docs/IMPLEMENTATION-PLAN.th.md`
 (v5, authoritative): 198 parent requirements, 75 UI families, behavior +
 visual + quality + ops evidence. No scope cuts, no silent descopes.
 
-## Status: graph 17 verified / 34 implemented / 137 planned / 10 blocked-external
+## Status: graph 17 verified / 35 implemented / 136 planned / 10 blocked-external
 
 Done with evidence in `backlog/`: M0 pins/graph/command-map · F01 Code-OSS
 macOS pass · F02 approval control-path PASS · F03 Codex+OpenCode ready ·
@@ -176,6 +176,10 @@ Evidence: `backlog/SEARCH-index-evidence.md`.
 AG-10 implemented (not verified): artifact catalog bound to run+revision;
 composer Artifacts/Open routes image/video vs text. Evidence:
 `backlog/AG-artifacts-evidence.md`.
+
+SEARCH-07 implemented (not verified): explicit docs URL fetch/cache/refresh;
+`@Docs` stays open pending reference. Evidence:
+`backlog/SEARCH-docs-evidence.md`.
 
 ## Addendum 2026-09-11 12:07 (user)
 

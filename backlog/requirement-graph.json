@@ -1557,8 +1557,21 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "SEARCH-07-C01",
+     "title": "explicit URL fetch + disk cache + refresh; private hosts refused",
+     "evidence": "backlog/SEARCH-docs-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "SEARCH-07-C02",
+     "title": "legacy Cursor @Docs index/parity — needs reference verification",
+     "evidence": "backlog/SEARCH-docs-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "REV-01",
