@@ -13,6 +13,7 @@ const program = Effect.gen(function* () {
 
   const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
   yield* Effect.sync(() => send({ event: "daemon.ready", version: "0.0.1" }));
+  // Fork each RPC: a hung turn.send must not block session.stop / New.
   yield* Stream.runForEach(Stream.fromAsyncIterable(rl, (e) => e as Error), (line) =>
     Effect.gen(function* () {
       const trimmed = String(line).trim();
@@ -27,14 +28,17 @@ const program = Effect.gen(function* () {
       if (!handler) {
         return yield* Effect.sync(() => send({ id: req.id, ok: false, error: `unknown method ${req.method}` }));
       }
-      const exit = yield* Effect.exit(handler(req.params as never));
-      if (Exit.isFailure(exit)) {
-        const detail = Cause.squash(exit.cause);
-        const message = detail instanceof Error ? detail.message : String(detail);
-        yield* Effect.sync(() => send({ id: req.id, ok: false, error: message.slice(0, 500) }));
-      } else {
-        yield* Effect.sync(() => send({ id: req.id, ok: true, result: exit.value }));
-      }
+      const work = Effect.gen(function* () {
+        const exit = yield* Effect.exit(handler(req.params as never));
+        if (Exit.isFailure(exit)) {
+          const detail = Cause.squash(exit.cause);
+          const message = detail instanceof Error ? detail.message : String(detail);
+          yield* Effect.sync(() => send({ id: req.id, ok: false, error: message.slice(0, 500) }));
+        } else {
+          yield* Effect.sync(() => send({ id: req.id, ok: true, result: exit.value }));
+        }
+      });
+      yield* Effect.forkScoped(work);
     }),
   );
 });

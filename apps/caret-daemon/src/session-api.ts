@@ -4,10 +4,12 @@
 // the current (last-started) session, so single-session clients (composer,
 // CLI) work unchanged. Approvals park per session; unknown ids fail loud.
 import * as Effect from "effect/Effect";
+import * as fs from "node:fs";
 import {
   startCaretRun,
   sendCaretTurn,
   reviewCaretRun,
+  rejectCaretRun,
   steerCaretTurn,
   bringBackCaretRun,
   recaptureCaretRun,
@@ -19,6 +21,7 @@ import {
 import { DEFAULT_RUN_RETENTION, listCaretRuns, pruneRunsBeyondCap, removeWorktreeDir } from "./worktree.ts";
 import { assembleRunBundle, writeRunBundle } from "./export.ts";
 import { engineRowKind } from "./session-state.ts";
+import { searchChats } from "./search.ts";
 import * as Fiber from "effect/Fiber";
 
 export type SessionApi = Record<string, (params: never) => Effect.Effect<unknown, Error>>;
@@ -28,11 +31,39 @@ interface SessionState {
   seen: Array<{ type: unknown; payload?: unknown }>;
   parked: Map<string, (a: ApprovalAnswer) => void>;
   reviewCount: number;
+  lastGoal: string;
   repoDir: string;
   runId: string;
   createdAt: number;
   fiber: Fiber.RuntimeFiber<unknown, unknown> | null;
 }
+
+type JournalEvent = {
+  t?: unknown;
+  type?: unknown;
+  payload?: unknown;
+  goal?: unknown;
+  workDir?: unknown;
+};
+
+const readJournalEvents = (path: string): JournalEvent[] => {
+  try {
+    const text = fs.readFileSync(path, "utf8");
+    const out: JournalEvent[] = [];
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        out.push(JSON.parse(trimmed) as JournalEvent);
+      } catch {
+        // Corrupt lines stay out of the index instead of failing search.
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+};
 
 export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => {
   const sessions = new Map<string, SessionState>();
@@ -221,6 +252,39 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
           }
         }
         return yield* Effect.fail(new Error(`unknown approval ${p.requestId}`));
+      }),
+    "chat.search": (p: {
+      query: string;
+      types?: string[];
+      since?: string;
+      until?: string;
+      limit?: number;
+      session?: string;
+    }) =>
+      Effect.sync(() => {
+        const events: JournalEvent[] = [];
+        const journalPath = process.env["CARET_JOURNAL"];
+        if (journalPath) events.push(...readJournalEvents(journalPath));
+        const st = p.session ? (sessions.get(p.session) ?? null) : current ? (sessions.get(current) ?? null) : null;
+        if (st) {
+          for (const [i, entry] of st.seen.entries()) {
+            events.push({
+              t: `live-${i}`,
+              type: entry.type,
+              payload: entry.payload,
+              goal: st.lastGoal,
+            });
+          }
+        }
+        return {
+          hits: searchChats(events, {
+            query: p.query ?? "",
+            types: p.types,
+            since: p.since,
+            until: p.until,
+            limit: p.limit,
+          }),
+        };
       }),
   };
 };

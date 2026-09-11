@@ -215,10 +215,19 @@ export const reviewCaretRun = (run: CaretRun, n: number) =>
     });
   });
 
-/** Reject the run: reverse ONLY its delta; user/other content survives. */
+/** Reject the run: reverse ONLY its delta; user/other content survives.
+ *  Captures a post checkpoint if Review was never pressed — otherwise
+ *  reverse has an empty toRef and looks like a no-op. */
 export const rejectCaretRun = (run: CaretRun) =>
   Effect.gen(function* () {
     const store = yield* CheckpointStore;
+    if (!run.postRef) {
+      run.postRef = `refs/caret-slice/${run.threadId}/post-reject`;
+      yield* store.captureCheckpoint({
+        cwd: run.workDir,
+        checkpointRef: CheckpointRef.makeUnsafe(run.postRef),
+      });
+    }
     return yield* store.reverseCheckpointDiff({
       cwd: run.workDir,
       fromCheckpointRef: CheckpointRef.makeUnsafe(run.preRef),

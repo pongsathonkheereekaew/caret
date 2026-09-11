@@ -1,11 +1,9 @@
 // Fixture MCP server (streamable HTTP) for transport conformance. Speaks
 // protocol 2024-11-05 core over POST: initialize (SSE + session id),
 // ping/tools-list/resources/prompts (plain JSON), tools/call (SSE),
-// notifications, session expiry (404), optional bearer auth. Kept as test
-// harness. Elicitation is intentionally absent: server-initiated
-// elicitation/create needs a GET event stream, which this fixture and the
-// request/response client do not open — the ask tool says so as a
-// tool-level error instead of pretending.
+// notifications, session expiry (404), optional bearer auth. GET /mcp
+// holds a per-session event stream so elicitation/create can be pushed
+// server-to-client (stdio already did this; HTTP is the remaining half).
 // Test-only surface: POST /test/drop clears all sessions.
 import * as http from "node:http";
 
@@ -31,7 +29,7 @@ const TOOLS = [
   },
   {
     name: "ask",
-    description: "Elicitation probe: always a tool-level error over HTTP (no event stream).",
+    description: "Elicitation probe: elicitation/create over GET stream, else a tool-level error.",
     inputSchema: { type: "object", properties: {} },
   },
 ];
@@ -70,8 +68,14 @@ const PROMPTS = [
 ];
 
 const sessions = new Set<string>();
+const streams = new Map<string, http.ServerResponse>();
 const cancelled = new Set<string | number>();
+const pendingAsk = new Map<
+  string,
+  { res: http.ServerResponse; askId: string | number; sid: string }
+>();
 let counter = 1;
+let elicitCounter = 1;
 
 const json = (res: http.ServerResponse, status: number, body: unknown, session?: string) => {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -87,20 +91,91 @@ const sse = (res: http.ServerResponse, status: number, body: unknown, session?: 
   res.end(`data: ${JSON.stringify(body)}\n\n`);
 };
 
+const writeSse = (res: http.ServerResponse, body: unknown): void => {
+  res.write(`data: ${JSON.stringify(body)}\n\n`);
+};
+
 const rpcError = (id: unknown, code: number, message: string) => ({ jsonrpc: "2.0", id, error: { code, message } });
+
+const finishAsk = (
+  pending: { res: http.ServerResponse; askId: string | number; sid: string },
+  result: unknown,
+): void => {
+  sse(pending.res, 200, { jsonrpc: "2.0", id: pending.askId, result }, pending.sid);
+};
+
+const dropAll = (): void => {
+  sessions.clear();
+  for (const [, stream] of streams) {
+    try {
+      stream.end();
+    } catch {
+      // Stream already gone.
+    }
+  }
+  streams.clear();
+  for (const [, pending] of pendingAsk) {
+    try {
+      sse(pending.res, 200, {
+        jsonrpc: "2.0",
+        id: pending.askId,
+        result: { content: [{ type: "text", text: "elicitation failed: stream dropped" }], isError: true },
+      }, pending.sid);
+    } catch {
+      // Original POST already finished.
+    }
+  }
+  pendingAsk.clear();
+};
 
 const server = http.createServer((req, res) => {
   if (req.method === "POST" && req.url === "/test/drop") {
-    sessions.clear();
+    dropAll();
     res.writeHead(200);
     res.end("dropped");
     return;
   }
   if (req.method === "DELETE" && req.url === "/mcp") {
     const sid = req.headers["mcp-session-id"];
-    if (typeof sid === "string") sessions.delete(sid);
+    if (typeof sid === "string") {
+      sessions.delete(sid);
+      const stream = streams.get(sid);
+      if (stream) {
+        try {
+          stream.end();
+        } catch {
+          // Already closed.
+        }
+        streams.delete(sid);
+      }
+    }
     res.writeHead(200);
     res.end();
+    return;
+  }
+  if (req.method === "GET" && req.url === "/mcp") {
+    const sid = req.headers["mcp-session-id"];
+    if (typeof sid !== "string" || !sessions.has(sid)) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    if (requireAuth && req.headers["authorization"] !== "Bearer test-token") {
+      res.writeHead(401);
+      res.end();
+      return;
+    }
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Mcp-Session-Id": sid,
+    });
+    res.write(": connected\n\n");
+    streams.set(sid, res);
+    req.on("close", () => {
+      if (streams.get(sid) === res) streams.delete(sid);
+    });
     return;
   }
   if (req.method !== "POST" || req.url !== "/mcp") {
@@ -113,7 +188,14 @@ const server = http.createServer((req, res) => {
     raw += chunk.toString("utf8");
   });
   req.on("end", () => {
-    let msg: { jsonrpc?: string; id?: string | number; method?: string; params?: Record<string, unknown> };
+    let msg: {
+      jsonrpc?: string;
+      id?: string | number;
+      method?: string;
+      params?: Record<string, unknown>;
+      result?: { action?: string; content?: Record<string, unknown> };
+      error?: { message?: string };
+    };
     try {
       msg = JSON.parse(raw) as typeof msg;
     } catch {
@@ -123,6 +205,27 @@ const server = http.createServer((req, res) => {
     }
     if (requireAuth && req.headers["authorization"] !== "Bearer test-token") {
       json(res, 401, rpcError(msg.id, -32001, "missing bearer token"));
+      return;
+    }
+    // Client answer to elicitation/create (JSON-RPC response: id, no method).
+    if (msg.method === undefined && msg.id !== undefined && pendingAsk.has(String(msg.id))) {
+      const pending = pendingAsk.get(String(msg.id));
+      pendingAsk.delete(String(msg.id));
+      res.writeHead(202);
+      res.end();
+      if (!pending) return;
+      const action = msg.result?.action;
+      if (action === "accept") {
+        const content = msg.result?.content as { name?: unknown } | undefined;
+        finishAsk(pending, { content: [{ type: "text", text: `hello ${String(content?.name ?? "stranger")}` }] });
+      } else if (action === "decline" || action === "cancel") {
+        finishAsk(pending, { content: [{ type: "text", text: `elicitation ${action}d` }], isError: true });
+      } else {
+        finishAsk(pending, {
+          content: [{ type: "text", text: `elicitation failed: ${msg.error?.message ?? "unknown"}` }],
+          isError: true,
+        });
+      }
       return;
     }
     // Notifications carry no id and get an empty 202.
@@ -239,14 +342,33 @@ const server = http.createServer((req, res) => {
           return;
         }
         if (params.name === "ask") {
-          sse(res, 200, {
+          const stream = streams.get(sid);
+          if (!stream) {
+            sse(res, 200, {
+              jsonrpc: "2.0",
+              id,
+              result: {
+                content: [{ type: "text", text: "elicitation/create needs a server-initiated stream (unsupported)" }],
+                isError: true,
+              },
+            }, sid);
+            return;
+          }
+          const elicitId = `elicit-${elicitCounter++}`;
+          pendingAsk.set(elicitId, { res, askId: id as string | number, sid });
+          writeSse(stream, {
             jsonrpc: "2.0",
-            id,
-            result: {
-              content: [{ type: "text", text: "elicitation/create needs a server-initiated stream (unsupported)" }],
-              isError: true,
+            id: elicitId,
+            method: "elicitation/create",
+            params: {
+              message: "What is your name?",
+              requestedSchema: {
+                type: "object",
+                properties: { name: { type: "string" } },
+                required: ["name"],
+              },
             },
-          }, sid);
+          });
           return;
         }
         if (params.name === "sleep") {

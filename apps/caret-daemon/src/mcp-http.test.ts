@@ -120,6 +120,52 @@ describe("McpHttpTransport", () => {
     expect(failed.content[0]?.text).toMatch(/stream/);
   });
 
+  it("elicits with an accept handler through the GET stream", { timeout: 15000 }, async () => {
+    const next = new McpHttpClient(`http://127.0.0.1:${PORT}/mcp`, undefined, {
+      onElicitation: async (params) => {
+        expect(params.message).toBe("What is your name?");
+        return { action: "accept", content: { name: "bob" } };
+      },
+    });
+    await next.start(10000);
+    try {
+      const ok = await next.callTool("ask", {});
+      expect(ok.isError).toBeUndefined();
+      expect(ok.content[0]?.text).toBe("hello bob");
+    } finally {
+      await next.close();
+    }
+  });
+
+  it("surfaces decline over the GET stream as a tool-level error", { timeout: 15000 }, async () => {
+    const next = new McpHttpClient(`http://127.0.0.1:${PORT}/mcp`, undefined, {
+      onElicitation: async () => ({ action: "decline" }),
+    });
+    await next.start(10000);
+    try {
+      const failed = await next.callTool("ask", {});
+      expect(failed.isError).toBe(true);
+      expect(failed.content[0]?.text).toBe("elicitation declined");
+    } finally {
+      await next.close();
+    }
+  });
+
+  it("opens the GET stream on the gated peer with a bearer token", { timeout: 15000 }, async () => {
+    const next = new McpHttpClient(
+      `http://127.0.0.1:${AUTH_PORT}/mcp`,
+      { token: () => "test-token" },
+      { onElicitation: async () => ({ action: "accept", content: { name: "ann" } }) },
+    );
+    await next.start(10000);
+    try {
+      const ok = await next.callTool("ask", {});
+      expect(ok.content[0]?.text).toBe("hello ann");
+    } finally {
+      await next.close();
+    }
+  });
+
   it("rejects unknown tools with protocol errors", async () => {
     const c = client ?? (await boot());
     await expect(c.callTool("nope", {})).rejects.toThrow(McpError);

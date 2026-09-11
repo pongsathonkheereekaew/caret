@@ -1,11 +1,10 @@
 // Caret MCP client, streamable-HTTP transport (PX-14 tail + CUS-11):
 // POST JSON-RPC with SSE-or-JSON responses, Mcp-Session-Id continuity,
 // per-request timeout, cancellation, and transparent recovery from
-// dropped sessions. Covers tools, resources, and prompts. Elicitation
-// (server-initiated elicitation/create) is NOT here: it needs a
-// long-lived GET event stream, which this request/response client does
-// not open — same documented boundary as server-initiated notifications.
-// No SDK dependency — same owned-wire posture as the stdio client.
+// dropped sessions. Covers tools, resources, prompts, and server-initiated
+// elicitation/create over a long-lived GET event stream (stdio already
+// had this; HTTP was the documented gap). No SDK dependency — same
+// owned-wire posture as the stdio client.
 // Full OAuth (discovery + PKCE) is NOT here: callers inject a bearer token
 // via `auth`; HTTP 401 surfaces as McpError so the harness stops/waits
 // instead of silently switching to a billed path.
@@ -17,7 +16,10 @@ import {
   McpResource,
   McpResourceContent,
   McpTool,
+  type McpElicitationHandler,
 } from "./mcp.ts";
+import * as http from "node:http";
+import * as https from "node:https";
 
 export interface McpHttpAuth {
   token: () => string | undefined;
@@ -52,10 +54,13 @@ export class McpHttpClient {
   private sessionId: string | null = null;
   private nextId = 1;
   private closed = false;
+  private listenReq: http.ClientRequest | null = null;
+  private listenBuf = "";
 
   constructor(
     private readonly url: string,
     private readonly auth?: McpHttpAuth,
+    private options: { onElicitation?: McpElicitationHandler } = {},
   ) {}
 
   /** Current session id (diagnostics/tests only). */
@@ -63,7 +68,20 @@ export class McpHttpClient {
     return this.sessionId;
   }
 
+  /** Register (or clear) the handler for server-to-client elicitation/create. */
+  setElicitationHandler(handler: McpElicitationHandler | null): void {
+    if (handler) {
+      this.options = { ...this.options, onElicitation: handler };
+    } else {
+      const { onElicitation: _dropped, ...rest } = this.options;
+      this.options = rest;
+    }
+  }
+
   async start(timeoutMs = 10000): Promise<{ protocolVersion: string; server: string }> {
+    this.listenReq?.destroy();
+    this.listenReq = null;
+    this.listenBuf = "";
     this.closed = false;
     this.sessionId = null;
     const hello = (await this.post(
@@ -73,7 +91,7 @@ export class McpHttpClient {
         method: "initialize",
         params: {
           protocolVersion: "2024-11-05",
-          capabilities: {},
+          capabilities: this.options.onElicitation ? { elicitation: {} } : {},
           clientInfo: { name: "caret", version: "0.0.1" },
         },
       },
@@ -81,6 +99,9 @@ export class McpHttpClient {
       false,
     )) as { protocolVersion?: string; serverInfo?: { name?: string } };
     await this.postNotification("notifications/initialized", {});
+    if (this.options.onElicitation) {
+      await this.openListen(timeoutMs);
+    }
     return {
       protocolVersion: String(hello.protocolVersion ?? "unknown"),
       server: String(hello.serverInfo?.name ?? "unknown"),
@@ -189,6 +210,9 @@ export class McpHttpClient {
 
   async close(): Promise<void> {
     this.closed = true;
+    this.listenReq?.destroy();
+    this.listenReq = null;
+    this.listenBuf = "";
     const session = this.sessionId;
     this.sessionId = null;
     if (session) {
@@ -197,6 +221,155 @@ export class McpHttpClient {
       } catch {
         // Termination is advisory; the id is already forgotten locally.
       }
+    }
+  }
+
+  private openListen(timeoutMs: number): Promise<void> {
+    if (!this.sessionId || this.closed) {
+      return Promise.reject(new McpError("mcp: cannot open GET stream without a session"));
+    }
+    const target = new URL(this.url);
+    const headers: Record<string, string> = {
+      Accept: "text/event-stream",
+      "Mcp-Session-Id": this.sessionId,
+    };
+    const token = this.auth?.token();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const transport = target.protocol === "https:" ? https : http;
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const req = transport.request(
+        {
+          hostname: target.hostname,
+          port: target.port,
+          path: target.pathname + target.search,
+          method: "GET",
+          headers,
+        },
+        (res) => {
+          if (res.statusCode === 401) {
+            if (!settled) {
+              settled = true;
+              reject(new McpError("mcp: unauthorized — no usable bearer token (OAuth seam, not silent retry)", 401));
+            }
+            res.resume();
+            return;
+          }
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            if (!settled) {
+              settled = true;
+              reject(new McpError(`mcp: GET event stream HTTP ${res.statusCode ?? 0}`));
+            }
+            res.resume();
+            return;
+          }
+          if (!settled) {
+            settled = true;
+            req.setTimeout(0);
+            resolve();
+          }
+          res.setEncoding("utf8");
+          res.on("data", (chunk: string) => this.ingestListen(chunk));
+          res.on("error", () => {
+            // Dropped stream is not a client call failure.
+          });
+        },
+      );
+      this.listenReq = req;
+      req.setTimeout(timeoutMs, () => {
+        req.destroy();
+        if (!settled) {
+          settled = true;
+          reject(new McpError(`mcp: GET event stream timed out after ${timeoutMs}ms`));
+        }
+      });
+      req.on("error", (error) => {
+        if (!settled) {
+          settled = true;
+          reject(new McpError(`mcp: GET event stream failed: ${error.message}`));
+        }
+      });
+      req.end();
+    });
+  }
+
+  private ingestListen(chunk: string): void {
+    this.listenBuf += chunk;
+    const parts = this.listenBuf.split(/\r?\n\r?\n/);
+    this.listenBuf = parts.pop() ?? "";
+    for (const frame of parts) {
+      const data = frame
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice("data:".length).trim())
+        .join("\n");
+      if (!data || data === "[DONE]") continue;
+      let msg: { id?: string | number; method?: string; params?: unknown };
+      try {
+        msg = JSON.parse(data) as typeof msg;
+      } catch {
+        continue;
+      }
+      if (typeof msg.method === "string" && msg.id !== undefined) {
+        void this.serveIncoming(msg.id, msg.method, msg.params);
+      }
+    }
+  }
+
+  private async serveIncoming(id: string | number, method: string, params: unknown): Promise<void> {
+    if (method === "elicitation/create") {
+      const handler = this.options.onElicitation;
+      if (!handler) {
+        await this.postReply(id, undefined, { code: -32601, message: "elicitation not supported by client" });
+        return;
+      }
+      try {
+        const p = (params ?? {}) as { message?: string; requestedSchema?: unknown };
+        const outcome = await handler({ message: p.message, requestedSchema: p.requestedSchema });
+        if (outcome.action !== "accept" && outcome.action !== "decline" && outcome.action !== "cancel") {
+          throw new Error(`bad elicitation action ${String((outcome as { action?: unknown }).action)}`);
+        }
+        await this.postReply(
+          id,
+          outcome.action === "accept"
+            ? { action: outcome.action, content: outcome.content ?? {} }
+            : { action: outcome.action },
+        );
+      } catch (error) {
+        await this.postReply(id, undefined, {
+          code: -32603,
+          message: error instanceof Error ? error.message : "elicitation handler failed",
+        });
+      }
+      return;
+    }
+    await this.postReply(id, undefined, { code: -32601, message: `unknown method ${method}` });
+  }
+
+  private async postReply(
+    id: string | number,
+    result?: unknown,
+    error?: { code?: number; message?: string },
+  ): Promise<void> {
+    if (this.closed || !this.sessionId) return;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json, text/event-stream",
+      "Mcp-Session-Id": this.sessionId,
+    };
+    const token = this.auth?.token();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const body = error
+      ? { jsonrpc: "2.0", id, error }
+      : { jsonrpc: "2.0", id, result: result ?? {} };
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      await fetch(this.url, { method: "POST", headers, body: JSON.stringify(body), signal: ctrl.signal });
+    } catch {
+      // Reply delivery is best-effort; the original tools/call still times out locally.
+    } finally {
+      clearTimeout(timer);
     }
   }
 

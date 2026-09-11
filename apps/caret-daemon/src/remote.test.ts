@@ -228,6 +228,7 @@ describe("M5RemoteGateway", () => {
     const keys = Object.keys(createSessionApi(() => {})).sort();
     expect(keys).toEqual([
       "approval.answer",
+      "chat.search",
       "run.bringBack",
       "run.export",
       "run.list",
