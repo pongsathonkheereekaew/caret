@@ -20,6 +20,7 @@ import {
   type CaretRun,
 } from "./daemon.ts";
 import { DEFAULT_RUN_RETENTION, listCaretRuns, pruneRunsBeyondCap, removeWorktreeDir } from "./worktree.ts";
+import { collectArtifacts, listChangedPaths } from "./artifacts.ts";
 import { assembleRunBundle, writeRunBundle } from "./export.ts";
 import { engineRowKind } from "./session-state.ts";
 import { searchChats } from "./search.ts";
@@ -379,6 +380,21 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         });
         const path = yield* writeRunBundle(p.dir, bundle, p.overwrite ?? false);
         return { path, files: handoff.filesChanged.length, events: bundle.journal.length };
+      }),
+    "run.artifacts": (p: { session?: string }) =>
+      Effect.sync(() => {
+        const st = need(p.session);
+        const run = live(st);
+        const revision = run.postRef || run.preRef || "uncommitted";
+        const changed = listChangedPaths(run.workDir, run.preRef);
+        const items = collectArtifacts({
+          runId: String(run.threadId),
+          revision,
+          workDir: run.workDir,
+          changed,
+          journal: st.seen,
+        });
+        return { runId: String(run.threadId), revision, items };
       }),
     "run.recapture": (p: { label: string; session?: string }) =>
       Effect.gen(function* () {

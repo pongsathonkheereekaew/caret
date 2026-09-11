@@ -236,6 +236,7 @@ describe("M5RemoteGateway", () => {
       "index.status",
       "plan.get",
       "plan.revise",
+      "run.artifacts",
       "run.bringBack",
       "run.export",
       "run.list",

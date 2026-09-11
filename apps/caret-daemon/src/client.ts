@@ -123,6 +123,9 @@ export class CaretClient {
   exportRun(dir: string, overwrite = false, session?: string): Promise<ExportResult> {
     return this.call("run.export", { dir, overwrite, session });
   }
+  listArtifacts(session?: string): Promise<{ runId: string; revision: string; items: unknown[] }> {
+    return this.call("run.artifacts", { session });
+  }
   stopSession(session?: string): Promise<unknown> {
     return this.call("session.stop", { session });
   }

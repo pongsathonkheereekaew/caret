@@ -38,6 +38,9 @@ describe("SessionScoping", () => {
     await expect(run(api["run.export"]({ dir: "/tmp/x", session: "caret-slice-nope" } as never))).rejects.toThrow(
       /unknown session/,
     );
+    await expect(run(api["run.artifacts"]({ session: "caret-slice-nope" } as never))).rejects.toThrow(
+      /unknown session/,
+    );
     expect(await run(api["session.list"]({} as never))).toEqual([]);
   });
 
