@@ -5,6 +5,7 @@
 // CLI) work unchanged. Approvals park per session; unknown ids fail loud.
 import * as Effect from "effect/Effect";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import {
   startCaretRun,
   sendCaretTurn,
@@ -21,6 +22,7 @@ import {
 } from "./daemon.ts";
 import { DEFAULT_RUN_RETENTION, listCaretRuns, pruneRunsBeyondCap, removeWorktreeDir } from "./worktree.ts";
 import { collectArtifacts, listChangedPaths } from "./artifacts.ts";
+import { DocsCache } from "./docs-source.ts";
 import { assembleRunBundle, writeRunBundle } from "./export.ts";
 import { engineRowKind } from "./session-state.ts";
 import { searchChats } from "./search.ts";
@@ -107,6 +109,7 @@ const readJournalEvents = (path: string): JournalEvent[] => {
 export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => {
   const sessions = new Map<string, SessionState>();
   const indexJobs = new Map<string, IndexJob>();
+  const docs = new DocsCache(process.env["CARET_DOCS_CACHE"] ?? path.join(os.homedir(), ".caret", "docs-cache"));
   let current: string | null = null;
 
   const sel = (session?: string): SessionState | null => {
@@ -566,6 +569,23 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
             snippet: (byDoc.get(hit.id) ?? hit.id).slice(0, 120),
           })),
         };
+      }),
+    "docs.list": () => Effect.sync(() => ({ items: docs.list() })),
+    "docs.get": (p: { url: string }) =>
+      Effect.sync(() => {
+        const rec = docs.get(p.url);
+        if (!rec) throw new Error(`no cached docs for ${p.url}`);
+        return rec;
+      }),
+    "docs.fetch": (p: { url: string; force?: boolean }) =>
+      Effect.tryPromise({
+        try: () => docs.fetch(p.url, p.force ?? false),
+        catch: (e) => new Error(e instanceof Error ? e.message : String(e)),
+      }),
+    "docs.refresh": (p: { url: string }) =>
+      Effect.tryPromise({
+        try: () => docs.refresh(p.url),
+        catch: (e) => new Error(e instanceof Error ? e.message : String(e)),
       }),
   };
 };

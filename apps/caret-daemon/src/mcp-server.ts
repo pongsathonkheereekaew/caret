@@ -5,31 +5,13 @@
 // cloud-metadata ranges refused on fetch.
 import * as readline from "node:readline";
 import * as cp from "node:child_process";
-import * as Net from "node:net";
+import { assertPublicHttpUrl } from "./fetch-policy.ts";
 
 const PROTOCOL = "2024-11-05";
 const FETCH_MAX_BYTES = 64 * 1024;
 const FETCH_TIMEOUT_MS = 15000;
 const EXEC_TIMEOUT_MS = 60000;
 const EXEC_MAX_BUFFER = 1024 * 1024;
-
-const refusedHost = (hostname: string): boolean => {
-  const host = hostname.toLowerCase();
-  if (host === "localhost" || host.endsWith(".localhost")) return true;
-  if (host === "metadata.google.internal") return true;
-  if (Net.isIP(host) === 4) {
-    const parts = host.split(".").map(Number);
-    const [a = 0, b = 0] = parts;
-    if (a === 10 || a === 127) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-  }
-  if (Net.isIP(host) === 6) {
-    if (host === "::1" || host.toLowerCase().startsWith("fc") || host.toLowerCase().startsWith("fd")) return true;
-  }
-  return false;
-};
 
 const TOOLS = [
   {
@@ -61,20 +43,10 @@ const send = (msg: unknown) => process.stdout.write(`${JSON.stringify(msg)}\n`);
 
 const webFetch = async (args: { url?: unknown; maxBytes?: unknown; timeoutMs?: unknown }) => {
   if (typeof args.url !== "string") throw new Error("web_fetch needs url");
-  let parsed: URL;
   try {
-    parsed = new URL(args.url);
-  } catch {
-    throw new Error(`web_fetch: bad url ${args.url}`);
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("web_fetch: http(s) only");
-  }
-  if (parsed.username || parsed.password || args.url.includes("@")) {
-    throw new Error("web_fetch: credentials in URL refused");
-  }
-  if (refusedHost(parsed.hostname)) {
-    throw new Error(`web_fetch: host refused ${parsed.hostname}`);
+    assertPublicHttpUrl(args.url);
+  } catch (error) {
+    throw new Error(`web_fetch: ${error instanceof Error ? error.message : String(error)}`);
   }
   const maxBytes = Math.min(
     typeof args.maxBytes === "number" && args.maxBytes > 0 ? Math.floor(args.maxBytes) : FETCH_MAX_BYTES,

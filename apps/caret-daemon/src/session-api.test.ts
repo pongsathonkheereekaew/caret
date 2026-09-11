@@ -44,6 +44,13 @@ describe("SessionScoping", () => {
     expect(await run(api["session.list"]({} as never))).toEqual([]);
   });
 
+  it("lists docs cache without a session and refuses private URLs", async () => {
+    const api = createSessionApi(() => {});
+    const listed = (await run(api["docs.list"]({} as never))) as { items: unknown[] };
+    expect(Array.isArray(listed.items)).toBe(true);
+    await expect(run(api["docs.fetch"]({ url: "http://localhost/x" } as never))).rejects.toThrow(/refused/);
+  });
+
   it("searches the journal without a live session and stays empty on misses", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "caret-chat-search-"));
     const journal = path.join(dir, "journal.jsonl");
