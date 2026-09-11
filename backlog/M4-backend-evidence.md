@@ -45,11 +45,8 @@ streamable-HTTP. Elicitation over stdio only: the `ask` fixture tool sends
 tool-level error, never a hang). Consent gating lives in the caller — the
 transport only routes and validates the action/content shape.
 
-Deliberately NOT here: server-initiated elicitation over HTTP needs a
-long-lived GET event stream, which the request/response client does not
-open (same documented boundary as server-initiated notifications); the
-HTTP `ask` probe returns a tool-level error saying so instead of
-pretending. Full OAuth still needs a real provider (blocked-external).
+Deliberately NOT here: full OAuth still needs a real provider (blocked-external).
+HTTP elicitation GET-stream closed 2026-09-11 (`backlog/M4-elicitation-http-evidence.md`).
 
 ## Proven
 

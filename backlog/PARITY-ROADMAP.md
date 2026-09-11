@@ -13,8 +13,9 @@ build. Order below is dependency order; anything marked NEEDS-USER waits.
 ## Phase A — IDE sidepane depth: DONE machine-side (2026-09-10)
 
 Queue, typed timeline, chat-search backend, elapsed/compact — all
-committed with keepers; remaining bits need human eyes (click, render,
-virtualized perf). Search UI surface still open.
+committed with keepers. Search UI surface implemented 2026-09-11
+(composer Find + `chat.search`); remaining bits need human eyes (click,
+render, virtualized perf).
 ## Phase B — native Agents shell: SCAFFOLD LANDED (2026-09-10)
 
 VEHICLE (user decision): native workbench contrib, team to follow.

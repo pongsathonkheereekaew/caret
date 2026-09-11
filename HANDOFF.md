@@ -124,3 +124,21 @@ signing/repo-remote, devices/APNs, cloud/OAuth providers, Zen top-up.
 - Platform: MAC ONLY. Windows/Linux support dropped from the matrix
   (was: pending CI). C-04 upstream-chord gate now macOS-scoped.
 - Repo is PRIVATE (stays so until user says otherwise).
+
+## Addendum 2026-09-11 morning (solo push; user in Cursor)
+
+User confirmed Cursor is running on this Mac. Recorded runtime
+3.20.10 / `d6f462c` — **not** a baseline bump (plan stays 3.19);
+see `backlog/G-VIS-runtime-evidence.md`. No atlas, no pixel claims.
+
+Shipped this round, daemon suite **120/120** on `caret-adapter`:
+
+- HTTP MCP elicitation over GET event stream (stdio parity for
+  `elicitation/create`; OAuth still blocked-external).
+- `chat.search` RPC + composer Find box/filter/jump-to (machine tsc 0;
+  click still open).
+- Local embed-client seam (nomic prefixes + 900-char cap) against a
+  fixture vector server.
+
+Still human/external: H05 click-through, visual atlas vs frozen 3.19,
+signing certs, devices/APNs, MCP OAuth provider.

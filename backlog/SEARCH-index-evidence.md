@@ -18,5 +18,6 @@ Embeddings still arrive through the measured local-nomic seam
 
 ## Open
 
-Embed-server wiring, scale + independent-query benchmark (self-authored
-bias noted in `SEARCH-embed-evidence.md`), search UI.
+Embed-server **client** wired (`embed-client.ts`, fixture keepers;
+`backlog/SEARCH-embed-client-evidence.md`). Live nomic + independent-query
+benchmark still open. Search UI implemented in composer (click unverified).

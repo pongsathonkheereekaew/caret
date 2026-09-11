@@ -33,10 +33,26 @@ rendering. No GUI automation harness exists here; manual script below
 1. `~/caret-work/caret-desktop/.build/electron/Caret.app` — open it
    (or `./scripts/code.sh /tmp/caret-click` from `~/caret-work/caret-desktop`).
 2. Open folder `/tmp/caret-click` (create it; Trust the workspace when asked).
+   **Must be a git repo** (`git init` + first commit) — empty folders hang
+   session.start on worktree create.
 3. Activity bar → Caret icon → Agents view appears ("Caret ready").
 4. Type `create hello-ui.txt containing hello ui, nothing else` → Send.
 5. An **approval card** must appear showing the exact shell command BEFORE
    anything runs → Accept. (`hello-ui.txt` appears; Decline must leave nothing.)
-6. **Review** → diff document opens naming the file. **Reject** → file
-   disappears, status confirms. **New** → fresh session.
+6. **Review** → diff document opens naming the file. **Reject** (on the
+   **same** session, before New) → isolated worktree reverses; status
+   confirms. Closing the Untitled diff tab is separate. **New** → fresh
+   session (Reject after New has nothing to reverse).
 7. Report back: anything that didn't match steps 4–6 verbatim.
+
+### Observed 2026-09-11 (partial — network stall)
+
+- Folder was not a git repo at first (silent fail until init).
+- After Send: Codex session live, `request.opened` → user Accept →
+  `hello-ui.txt` written in isolated worktree with content `hello ui`.
+- Then Codex streamed `runtime.warning` / `Reconnecting... waiting for
+  network` for minutes; **`turn.completed` never arrived** → UI looked
+  frozen after the event list. Explorer on the main folder stays empty
+  until Bring Back (isolated-by-default).
+- H05 behavior path mostly proven; clean Review/Reject/New still needs a
+  turn that finishes without the reconnect stall.

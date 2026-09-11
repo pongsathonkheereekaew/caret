@@ -16,6 +16,9 @@ Compact toggle hides `tool-done` rows (Expand restores).
 
 ## Open
 
-- Search UI surface (box, filters, jump-to) — backend ready, needs human
-  eyes; virtualized transcript (budgets only, no headless measure);
+- Search UI surface (box, type filter, jump-to) now **implemented** in
+  the composer webview + `chat.search` RPC (2026-09-11). Machine: tsc 0,
+  session-api keeper (journal hit/miss/filter/corrupt-line). Click/render
+  still needs human eyes (H05 script).
+- Virtualized transcript (budgets only, no headless measure);
   per-tool expand + per-row elapsed (turn-level only now).
