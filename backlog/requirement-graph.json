@@ -1028,8 +1028,21 @@
    ],
    "cluster": "AG — Agent และ session",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "AG-10-C01",
+     "title": "catalog image/video/log/file links bound to run+revision; open by kind",
+     "evidence": "backlog/AG-artifacts-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "AG-10-C02",
+     "title": "human click: image viewer vs text editor for log/file",
+     "evidence": "backlog/AG-artifacts-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "AG-11",
