@@ -64,6 +64,10 @@ describe("SessionState", () => {
     expect(shouldForwardEngineEvent("assistant.messageDelta")).toBe(false);
     expect(shouldForwardEngineEvent("tool.progress.delta")).toBe(false);
     expect(shouldForwardEngineEvent("request.opened")).toBe(false);
+    expect(shouldForwardEngineEvent("event.unmapped")).toBe(false);
+    expect(shouldForwardEngineEvent("account.rateLimitsUpdated")).toBe(false);
+    expect(shouldForwardEngineEvent("session.stateChanged")).toBe(false);
+    expect(shouldForwardEngineEvent("item.started")).toBe(true);
     expect(shouldForwardEngineEvent("")).toBe(false);
     expect(shouldForwardEngineEvent(undefined)).toBe(false);
     expect(engineRowKind("turn.failed")).toBe("failed");

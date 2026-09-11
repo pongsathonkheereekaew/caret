@@ -97,9 +97,12 @@ export const TARGET_EVENTS: ReadonlyArray<string> = [
 /** Engine-stream fan-out filter (Phase A timeline): deltas flood, states
  *  inform. `request.opened` is excluded — `approval.requested` carries it
  *  richer with the parked resolver. */
+const HIDDEN_ENGINE = /unmapped|rateLimits|settingsUpdated|stateChanged/i;
+
 export const shouldForwardEngineEvent = (type: unknown): boolean => {
   if (typeof type !== "string" || type.length === 0) return false;
   if (type === "request.opened") return false;
+  if (HIDDEN_ENGINE.test(type)) return false;
   return !type.toLowerCase().includes("delta");
 };
 

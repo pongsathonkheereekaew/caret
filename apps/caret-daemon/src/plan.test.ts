@@ -60,4 +60,15 @@ describe("PlanStore", () => {
     plan = applyPlanEvent(plan, "todo.updated", { id: plan.tasks[0]?.id, done: true });
     expect(plan.tasks[0]?.done).toBe(true);
   });
+
+  it("upserts Codex item.started/completed by title and skips JSON blobs", () => {
+    let plan = createPlan("p", "work");
+    plan = applyPlanEvent(plan, "item.started", "hello");
+    expect(plan.tasks.map((t) => [t.title, t.done])).toEqual([["hello", false]]);
+    plan = applyPlanEvent(plan, "item.completed", "hello");
+    expect(plan.tasks.map((t) => [t.title, t.done])).toEqual([["hello", true]]);
+    const before = plan;
+    plan = applyPlanEvent(plan, "item.started", '{"threadId":"x"}');
+    expect(plan.tasks).toEqual(before.tasks);
+  });
 });

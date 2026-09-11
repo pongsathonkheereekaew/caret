@@ -126,9 +126,35 @@ const taskFromUnknown = (item: unknown): { title: string; done: boolean } | null
  * Fold an engine event into the plan. Completion is taken only from
  * explicit task fields — never inferred from turn.completed / errors.
  */
+const itemTitle = (payload: unknown): string => {
+  if (typeof payload === "string") return payload.trim();
+  const o = asRecord(payload);
+  const raw = o.title ?? o.text ?? o.content ?? o.item ?? o.name;
+  return typeof raw === "string" ? raw.trim() : "";
+};
+
+const upsertByTitle = (plan: PlanDocument, title: string, done: boolean): PlanDocument => {
+  const existing = plan.tasks.find((t) => t.title === title);
+  if (existing) {
+    if (existing.done === done) return plan;
+    return setTaskDone(plan, existing.id, done);
+  }
+  return revisePlan(plan, {
+    tasks: [...plan.tasks.map((t) => ({ title: t.title, done: t.done })), { title, done }],
+  });
+};
+
 export const applyPlanEvent = (plan: PlanDocument, type: string, payload: unknown): PlanDocument => {
   if (typeof type !== "string" || type.length === 0) return plan;
   if (/turn\.(completed|failed)|request\.(opened|resolved)/i.test(type)) return plan;
+  const item = /^item\.(started|completed|completed|failed)$/i.exec(type);
+  if (item) {
+    const title = itemTitle(payload);
+    if (!title || title.startsWith("{") || title.length > 80) return plan;
+    if (item[1]?.toLowerCase() === "failed") return plan;
+    const done = /complet/i.test(item[1] ?? "");
+    return upsertByTitle(plan, title, done);
+  }
   if (!/todo|plan\.task|plan\.updated|item_todo/i.test(type)) return plan;
   const body = asRecord(payload);
   const list = body.tasks ?? body.items ?? body.todos;
