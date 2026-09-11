@@ -84,3 +84,11 @@ Screenshot of Caret Agents + Review diff on `/tmp/caret-click`:
   Code Mode host missing (`codex-code-mode-host`); todos (AG-09) did not
   appear — Codex used `item.*`, not `todo.updated`.
 - Reject / New / queue Up-Down-Edit not in this frame.
+
+### Follow-up 2026-09-11 (timeline noise + item todos)
+
+- Daemon drops `event.unmapped`, `*.stateChanged`, rate-limit and
+  settings telemetry from the composer fan-out; `item.started` /
+  `item.completed` upsert a read-only todo by title (JSON blobs skipped).
+- Composer wraps the toolbar; quota/`runtime.error` also hits the status
+  line. Recompile + reload Caret to pick this up.

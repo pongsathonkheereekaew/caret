@@ -22,3 +22,6 @@ diff confirmed (`hello-ui.txt`). Queue/todo live mapping still open.
 - `turn.completed` does **not** mark tasks done (keeper).
 - `plan.get` / `plan.revise` + `plan` notifications → read-only todo list
   in the composer (no click-to-complete).
+- Codex `item.started` / `item.completed` with a short title now upsert
+  that list (2026-09-11 follow-up). Live mapping still wants a turn that
+  is not quota-killed.
