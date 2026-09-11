@@ -162,3 +162,8 @@ Human 2026-09-11 11:27: Agents + session row + Review diff on
 `hello-ui.txt` confirmed. Codex ChatGPT quota exhausted (retry ~Sep 16).
 Follow-up: hide unmapped/telemetry rows; `item.started`/`item.completed`
 upsert todos; toolbar wraps; quota errors hit the status line.
+
+SEARCH-03 implemented (not verified): background per-root index job,
+cached vectors, bounded file/chunk progress, rebuild/pause/resume, and
+terminal failure states. Per-file/multi-root failure aggregation remains
+open. Evidence: `backlog/SEARCH-index-evidence.md`.

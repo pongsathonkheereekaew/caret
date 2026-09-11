@@ -1422,8 +1422,21 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "SEARCH-03-C01",
+     "title": "bounded index phases/counters + rebuild/pause/resume RPC and UI",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "SEARCH-03-C02",
+     "title": "per-root and per-file failure aggregation",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "SEARCH-04",

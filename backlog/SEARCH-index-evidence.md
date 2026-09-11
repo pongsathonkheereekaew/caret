@@ -22,3 +22,18 @@ Embeddings still arrive through the measured local-nomic seam
 (2026-09-11). Live nomic + independent-query benchmark still need
 `CARET_EMBED_URL` / `llama-server --embedding`. Search UI implemented in
 composer (click unverified).
+
+## SEARCH-03 lifecycle slice (2026-09-11)
+
+- `index-job.ts`: one in-flight build per root; terminal phases
+  `ready | paused | failed`; generation invalidation and cached vectors.
+- Progress reports file/chunk totals. RPCs: `index.status`,
+  `index.rebuild`, `index.pause`, `index.resume`; push event:
+  `index.progress`.
+- `code.search` starts an idle background index and fails with an
+  actionable retry message instead of waiting indefinitely.
+- Composer renders the phase and bounded counters with Rebuild, Pause,
+  and Resume controls.
+- Fixture keepers cover ready/search, in-flight dedupe, failure, pause,
+  and resume. Per-file failure details and multi-root aggregation remain
+  open.
