@@ -90,7 +90,13 @@ class DaemonClient {
 		});
 	}
 
+	/** Soft stop: ask the process to exit; rejects every in-flight RPC. */
 	stop(): void {
+		const waiters = [...this.pending.values()];
+		this.pending.clear();
+		for (const waiter of waiters) {
+			waiter.reject(new Error('daemon stopped'));
+		}
 		this.proc?.kill();
 		this.proc = null;
 	}
@@ -297,9 +303,22 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		if (!folder) {
 			throw new Error('open a folder first — the slice runs against the open workspace');
 		}
+		const repoDir = folder.uri.fsPath;
+		// Isolated runs need a real git checkout (worktree add). Fail loud
+		// here so Send never looks like a no-op on an empty /tmp folder.
+		try {
+			cp.execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
+				cwd: repoDir,
+				encoding: 'utf8',
+				timeout: 3000,
+			});
+		} catch {
+			throw new Error(`folder is not a git repo — run: git -C ${repoDir} init && git -C ${repoDir} commit --allow-empty -m init`);
+		}
+		this.post({ type: 'status', text: 'starting session… (Codex may take a few seconds)' });
 		const daemon = await this.ensureDaemon();
 		const started = await daemon.request('session.start', {
-			repoDir: folder.uri.fsPath,
+			repoDir,
 			runId: `ui-${Date.now()}`,
 		}) as { threadId?: string };
 		this.sessionOn = true;
@@ -327,6 +346,25 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 
 	private postQueue(): void {
 		this.post({ type: 'queue', items: this.queue.list() });
+	}
+
+	/**
+	 * Kill the local stdio daemon hard. Needed when `turn.send` is blocked
+	 * (e.g. Codex "Reconnecting…"): the daemon serves RPCs serially, so
+	 * session.stop never runs until the hung turn finishes. New/Stop must
+	 * not wait.
+	 */
+	private killLocalDaemon(): void {
+		this.sending = false;
+		this.sessionOn = false;
+		this.queue.clear();
+		this.postQueue();
+		if (this.daemon) {
+			this.daemon.stop();
+			this.daemon = null;
+		}
+		this.tcp?.close();
+		this.tcp = null;
 	}
 
 	/** Run one turn, then drain FIFO queue. A failed turn keeps the
@@ -394,12 +432,19 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 			case 'stop': {
 				const n = this.queue.clear();
 				this.postQueue();
+				// Soft stop first; if the daemon is wedged on a hung turn,
+				// killLocalDaemon unblocks New/Stop immediately.
 				try {
-					await daemon.request('session.stop', {});
+					await Promise.race([
+						daemon.request('session.stop', {}),
+						new Promise((_, reject) => setTimeout(() => reject(new Error('stop timeout')), 1500)),
+					]);
 				} catch {
-					// No live session — clearing the queue is still the point.
+					this.killLocalDaemon();
 				}
 				this.sessionOn = false;
+				this.sending = false;
+				this.post({ type: 'reset' });
 				this.post({ type: 'status', text: n > 0 ? `stopped, dropped ${n} queued` : 'stopped' });
 				break;
 			}
@@ -421,8 +466,19 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				break;
 			}
 			case 'reject': {
-				const rejected = await daemon.request('run.reject', {}) as { reversed?: boolean };
-				this.post({ type: 'status', text: rejected.reversed ? 'run changes reversed' : 'nothing to reverse' });
+				try {
+					const rejected = await daemon.request('run.reject', {}) as { reversed?: boolean };
+					if (rejected.reversed) {
+						this.post({ type: 'status', text: 'run changes reversed in the isolated worktree' });
+					} else {
+						this.post({
+							type: 'status',
+							text: 'nothing to reverse on this session — Reject before New; main-folder files stay until Bring Back/delete',
+						});
+					}
+				} catch (error) {
+					this.post({ type: 'status', text: `reject failed: ${error instanceof Error ? error.message : String(error)}` });
+				}
 				break;
 			}
 			case 'bringBack': {
@@ -431,13 +487,28 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				break;
 			}
 			case 'new': {
+				this.post({ type: 'status', text: 'starting new session…' });
+				this.post({ type: 'reset' });
+				// Soft stop with a short deadline — a hung turn.send queues
+				// session.stop forever on the serial daemon loop.
 				try {
-					await daemon.request('session.stop', {});
+					await Promise.race([
+						daemon.request('session.stop', {}),
+						new Promise((_, reject) => setTimeout(() => reject(new Error('stop timeout')), 1500)),
+					]);
 				} catch {
-					// no live session — start fresh below
+					this.killLocalDaemon();
 				}
 				this.sessionOn = false;
-				await this.ensureSession();
+				this.sending = false;
+				this.queue.clear();
+				this.postQueue();
+				try {
+					await this.ensureSession();
+					this.post({ type: 'status', text: 'new session ready — type a goal and Send' });
+				} catch (error) {
+					this.post({ type: 'status', text: error instanceof Error ? error.message : String(error) });
+				}
 				break;
 			}
 			case 'runs': {
@@ -461,6 +532,17 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				await this.ensureSession();
 				const done = await daemon.request('run.export', { dir: picked[0].fsPath }) as { path?: string; files?: number; events?: number };
 				this.post({ type: 'status', text: `exported ${String(done.files ?? 0)} files, ${String(done.events ?? 0)} events → ${String(done.path ?? '')}` });
+				break;
+			}
+			case 'find': {
+				const query = String(message.text ?? '').trim();
+				const type = String(message.filter ?? '').trim();
+				const found = await daemon.request('chat.search', {
+					query,
+					limit: 20,
+					...(type ? { types: [type] } : {}),
+				}) as { hits?: Array<{ t?: string; type?: string; snippet?: string; score?: number }> };
+				this.post({ type: 'searchHits', query, hits: found.hits ?? [] });
 				break;
 			}
 		}
@@ -557,10 +639,25 @@ button { background: var(--vscode-button-background); color: var(--vscode-button
 button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 #prompt { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: var(--agent-radius-composer); padding: 6px; font-family: inherit; font-size: var(--agent-font-ui); min-height: var(--agent-composer-min-height); }
 #status { color: var(--agent-text-secondary); font-size: var(--agent-font-meta); min-height: 16px; }
+#find { flex: 1; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: var(--agent-radius-control); padding: 4px 8px; font-family: inherit; font-size: var(--agent-font-meta); }
+#findHits { margin: 4px 0 8px; font-size: var(--agent-font-meta); }
+.find-hit { border: 1px solid var(--agent-border-subtle); border-radius: var(--agent-radius-control); padding: 4px 8px; margin: 4px 0; cursor: pointer; color: var(--agent-text-secondary); }
+.find-hit:hover { background: var(--agent-surface-hover); }
+.msg.jump-target { border-color: var(--agent-border-strong); }
 </style>
 </head>
 <body>
 <div id="status">Caret ready — open a folder, type a goal, Send.</div>
+<div class="row">
+<input id="find" type="search" placeholder="Search this chat" />
+<select id="findType">
+<option value="">all types</option>
+<option value="turn.completed">turns</option>
+<option value="request.resolved">approvals</option>
+</select>
+<button id="findGo" class="secondary">Find</button>
+</div>
+<div id="findHits"></div>
 <div class="row">
 <textarea id="prompt" rows="3" placeholder="Goal for the agent, e.g. create hello.txt with hello"></textarea>
 </div>
@@ -583,6 +680,7 @@ const vscode = acquireVsCodeApi();
 const transcript = document.getElementById('transcript');
 const status = document.getElementById('status');
 const prompt = document.getElementById('prompt');
+const findHits = document.getElementById('findHits');
 function add(cls, text) {
 	const div = document.createElement('div');
 	div.className = 'msg ' + cls;
@@ -632,6 +730,47 @@ document.getElementById('runs').onclick = () => vscode.postMessage({ command: 'r
 document.getElementById('steer').onclick = () => vscode.postMessage({ command: 'steer' });
 document.getElementById('export').onclick = () => vscode.postMessage({ command: 'export' });
 document.getElementById('stop').onclick = () => vscode.postMessage({ command: 'stop' });
+function runFind() {
+	const box = document.getElementById('find');
+	const type = document.getElementById('findType');
+	vscode.postMessage({ command: 'find', text: box.value, filter: type.value });
+}
+document.getElementById('findGo').onclick = () => runFind();
+document.getElementById('find').addEventListener('keydown', (event) => {
+	if (event.key === 'Enter') { event.preventDefault(); runFind(); }
+});
+function renderHits(query, hits) {
+	findHits.textContent = '';
+	if (!query) return;
+	if (!hits || hits.length === 0) {
+		const empty = document.createElement('div');
+		empty.className = 'find-hit';
+		empty.textContent = 'No matches for "' + query + '"';
+		findHits.appendChild(empty);
+		return;
+	}
+	hits.forEach((hit) => {
+		const div = document.createElement('div');
+		div.className = 'find-hit';
+		div.textContent = (hit.type || 'event') + ' — ' + (hit.snippet || '');
+		div.onclick = () => {
+			const needle = (hit.snippet || '').replace(/^…/, '').replace(/…$/, '');
+			const rows = transcript.querySelectorAll('.msg');
+			let found = null;
+			rows.forEach((row) => { row.classList.remove('jump-target'); });
+			rows.forEach((row) => {
+				if (!found && needle && row.textContent && row.textContent.indexOf(needle.slice(0, 40)) >= 0) found = row;
+			});
+			if (found) {
+				found.classList.add('jump-target');
+				found.scrollIntoView({ block: 'center' });
+			} else {
+				status.textContent = 'hit is in the journal, not this view';
+			}
+		};
+		findHits.appendChild(div);
+	});
+}
 document.getElementById('compact').onclick = (event) => {
 	const box = document.getElementById('transcript');
 	const on = box.classList.toggle('compact-done');
@@ -658,9 +797,18 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'user') add('user', 'You: ' + m.text);
 	else if (m.type === 'turn') add('', 'Turn: ' + m.state + (typeof m.ms === 'number' ? ' (' + Math.round(m.ms / 1000) + 's)' : ''));
 	else if (m.type === 'approval') card(m.requestId, m.requestType, m.detail);
-else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
-else if (m.type === 'queue') renderQueue(m.items || []);
-else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
+	else if (m.type === 'prefill') { prompt.value = m.text; prompt.focus(); }
+	else if (m.type === 'queue') renderQueue(m.items || []);
+	else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
+	else if (m.type === 'searchHits') renderHits(m.query || '', m.hits || []);
+	else if (m.type === 'reset') {
+		transcript.textContent = '';
+		findHits.textContent = '';
+		renderQueue([]);
+		const compact = document.getElementById('compact');
+		if (compact) compact.textContent = 'Compact';
+		transcript.classList.remove('compact-done');
+	}
 });
 </script>
 </body>
