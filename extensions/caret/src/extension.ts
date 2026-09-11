@@ -393,6 +393,9 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				tasks: Array.isArray(msg.tasks) ? msg.tasks : [],
 			});
 		}
+		if (msg.event === 'index.progress') {
+			this.post({ type: 'indexStatus', status: msg.status ?? {} });
+		}
 	}
 
 	private postQueue(): void {
@@ -698,6 +701,26 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 				this.post({ type: 'searchHits', query, hits: found.hits ?? [] });
 				break;
 			}
+			case 'indexStatus': {
+				const status = await daemon.request('index.status', {});
+				this.post({ type: 'indexStatus', status });
+				break;
+			}
+			case 'indexRebuild': {
+				const started = await daemon.request('index.rebuild', {});
+				this.post({ type: 'indexStatus', status: (started as { status?: unknown }).status ?? {} });
+				break;
+			}
+			case 'indexPause': {
+				const status = await daemon.request('index.pause', {});
+				this.post({ type: 'indexStatus', status });
+				break;
+			}
+			case 'indexResume': {
+				const started = await daemon.request('index.resume', {});
+				this.post({ type: 'indexStatus', status: (started as { status?: unknown }).status ?? {} });
+				break;
+			}
 		}
 	}
 
@@ -838,6 +861,12 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 <button id="sessionsGo" class="secondary">Sessions</button>
 </div>
 <div id="sessions"></div>
+<div class="row">
+<span id="indexStatus">Index: idle</span>
+<button id="indexRebuild" class="secondary tiny">Rebuild index</button>
+<button id="indexPause" class="secondary tiny">Pause</button>
+<button id="indexResume" class="secondary tiny">Resume</button>
+</div>
 <div id="todos"></div>
 <div id="transcript"></div>
 <div id="queue"></div>
@@ -915,6 +944,9 @@ document.getElementById('sessionFilter').addEventListener('keydown', (event) => 
 		vscode.postMessage({ command: 'sessions', text: event.target.value });
 	}
 });
+document.getElementById('indexRebuild').onclick = () => vscode.postMessage({ command: 'indexRebuild' });
+document.getElementById('indexPause').onclick = () => vscode.postMessage({ command: 'indexPause' });
+document.getElementById('indexResume').onclick = () => vscode.postMessage({ command: 'indexResume' });
 function renderHits(query, hits) {
 	findHits.textContent = '';
 	if (!query) return;
@@ -1034,6 +1066,20 @@ function renderPlan(title, tasks) {
 		box.appendChild(div);
 	});
 }
+function renderIndexStatus(s) {
+	const node = document.getElementById('indexStatus');
+	const phase = s.phase || 'idle';
+	const files = Number(s.filesTotal || 0);
+	const chunks = Number(s.chunksTotal || 0);
+	const progress = phase === 'scanning'
+		? ' · scanning files'
+		: phase === 'embedding'
+			? ' · ' + Number(s.chunksDone || 0) + '/' + chunks + ' chunks'
+			: phase === 'ready'
+				? ' · ' + files + ' files, ' + chunks + ' chunks'
+				: '';
+	node.textContent = 'Index: ' + phase + progress + (s.error ? ' — ' + s.error : '');
+}
 window.addEventListener('message', (event) => {
 	const m = event.data;
 	if (m.type === 'status') status.textContent = m.text;
@@ -1044,6 +1090,7 @@ window.addEventListener('message', (event) => {
 	else if (m.type === 'queue') renderQueue(m.items || []);
 	else if (m.type === 'sessions') renderSessions(m.items || []);
 	else if (m.type === 'plan') renderPlan(m.title || '', m.tasks || []);
+	else if (m.type === 'indexStatus') renderIndexStatus(m.status || {});
 	else if (m.type === 'tool') trow(m.kind || 'info', m.label || 'event', m.detail || '');
 	else if (m.type === 'searchHits') renderHits(m.query || '', m.hits || []);
 	else if (m.type === 'reset') {
