@@ -357,25 +357,32 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		}
 		if (msg.event === 'engine') {
 			const label = String(msg.type ?? 'event');
-			const detail = String(msg.detail ?? '');
+			if (/unmapped|rateLimits|settingsUpdated|stateChanged/i.test(label)) {
+				return;
+			}
+			let detail = String(msg.detail ?? '');
+			if (detail.startsWith('{') || detail.startsWith('(')) {
+				detail = '';
+			}
 			const kind = String(msg.kind ?? 'info');
 			const warn =
 				kind === 'warn' ||
 				/warning|reconnect/i.test(label) ||
 				/reconnecting|waiting for network/i.test(detail);
+			const fail = kind === 'failed' || /error/i.test(label);
 			this.post({
 				type: 'tool',
 				kind: warn ? 'warn' : kind,
 				label,
 				detail,
 			});
-			if (warn) {
+			if (warn || fail) {
 				const text = detail || label;
 				const now = Date.now();
 				if (text !== this.lastWarnText || now - this.lastWarnAt > 3000) {
 					this.lastWarnAt = now;
 					this.lastWarnText = text;
-					this.post({ type: 'status', text: `engine warning — ${text}` });
+					this.post({ type: 'status', text: fail ? `engine error — ${text}` : `engine warning — ${text}` });
 				}
 			}
 		}
@@ -781,7 +788,7 @@ body { font-family: var(--vscode-font-family); padding: 10px; }
 .user { background: var(--vscode-textBlockQuote-background); }
 .approval { border-color: var(--agent-warning); }
 .approval .detail { color: var(--vscode-descriptionForeground); font-family: var(--vscode-editor-font-family); font-size: 11px; }
-.row { display: flex; gap: 6px; margin-top: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
 button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; padding: 5px 12px; cursor: pointer; }
 button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 #prompt { width: 100%; box-sizing: border-box; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); border-radius: var(--agent-radius-composer); padding: 6px; font-family: inherit; font-size: var(--agent-font-ui); min-height: var(--agent-composer-min-height); }
