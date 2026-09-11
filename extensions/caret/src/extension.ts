@@ -141,6 +141,9 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 	private sessionOn = false;
 	private readonly queue = new PendingQueue();
 	private sending = false;
+	/** Throttle reconnect/warning spam into the status line. */
+	private lastWarnAt = 0;
+	private lastWarnText = '';
 
 	constructor(private readonly context: vscode.ExtensionContext) { }
 	resolveWebviewView(view: vscode.WebviewView): void {
@@ -335,12 +338,28 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 			});
 		}
 		if (msg.event === 'engine') {
+			const label = String(msg.type ?? 'event');
+			const detail = String(msg.detail ?? '');
+			const kind = String(msg.kind ?? 'info');
+			const warn =
+				kind === 'warn' ||
+				/warning|reconnect/i.test(label) ||
+				/reconnecting|waiting for network/i.test(detail);
 			this.post({
 				type: 'tool',
-				kind: String(msg.kind ?? 'info'),
-				label: String(msg.type ?? 'event'),
-				detail: String(msg.detail ?? ''),
+				kind: warn ? 'warn' : kind,
+				label,
+				detail,
 			});
+			if (warn) {
+				const text = detail || label;
+				const now = Date.now();
+				if (text !== this.lastWarnText || now - this.lastWarnAt > 3000) {
+					this.lastWarnAt = now;
+					this.lastWarnText = text;
+					this.post({ type: 'status', text: `engine warning — ${text}` });
+				}
+			}
 		}
 	}
 
@@ -349,10 +368,30 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	/**
-	 * Kill the local stdio daemon hard. Needed when `turn.send` is blocked
-	 * (e.g. Codex "Reconnecting…"): the daemon serves RPCs serially, so
-	 * session.stop never runs until the hung turn finishes. New/Stop must
-	 * not wait.
+	 * Prefer turn.cancel (unblocks hung turn.send) then session.stop.
+	 * Kill the local stdio daemon only if both stall — e.g. Codex reconnect
+	 * with no interrupt response.
+	 */
+	private async softStop(
+		daemon: { request(method: string, params: unknown): Promise<unknown> },
+	): Promise<void> {
+		try {
+			await Promise.race([
+				daemon.request('turn.cancel', {}),
+				new Promise((_, reject) => setTimeout(() => reject(new Error('cancel timeout')), 800)),
+			]).catch(() => undefined);
+			await Promise.race([
+				daemon.request('session.stop', {}),
+				new Promise((_, reject) => setTimeout(() => reject(new Error('stop timeout')), 1500)),
+			]);
+		} catch {
+			this.killLocalDaemon();
+		}
+	}
+
+	/**
+	 * Kill the local stdio daemon hard. Fallback when softStop cannot
+	 * interrupt a wedged engine / dead child.
 	 */
 	private killLocalDaemon(): void {
 		this.sending = false;
@@ -374,6 +413,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		await this.ensureSession();
 		let text: string | null = first;
 		this.sending = true;
+		let aborted = false;
 		try {
 			while (text !== null) {
 				this.post({ type: 'user', text });
@@ -383,7 +423,16 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 					const done = await daemon.request('turn.send', { input: text }) as { state?: string };
 					this.post({ type: 'turn', state: String(done.state ?? 'completed'), ms: Date.now() - t0 });
 				} catch (error) {
-					this.post({ type: 'status', text: `turn failed — queue held: ${error instanceof Error ? error.message : String(error)}` });
+					const message = error instanceof Error ? error.message : String(error);
+					if (/turn cancelled/i.test(message)) {
+						this.queue.clear();
+						this.postQueue();
+						this.post({ type: 'status', text: 'turn cancelled' });
+						aborted = true;
+					} else {
+						this.post({ type: 'status', text: `turn failed — queue held: ${message}` });
+						aborted = true;
+					}
 					break;
 				}
 				text = this.queue.takeNext();
@@ -392,7 +441,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 		} finally {
 			this.sending = false;
 		}
-		if (this.queue.size === 0) {
+		if (!aborted && this.queue.size === 0) {
 			this.post({ type: 'status', text: 'turn done — Review or Reject' });
 		}
 	}
@@ -432,16 +481,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 			case 'stop': {
 				const n = this.queue.clear();
 				this.postQueue();
-				// Soft stop first; if the daemon is wedged on a hung turn,
-				// killLocalDaemon unblocks New/Stop immediately.
-				try {
-					await Promise.race([
-						daemon.request('session.stop', {}),
-						new Promise((_, reject) => setTimeout(() => reject(new Error('stop timeout')), 1500)),
-					]);
-				} catch {
-					this.killLocalDaemon();
-				}
+				await this.softStop(daemon);
 				this.sessionOn = false;
 				this.sending = false;
 				this.post({ type: 'reset' });
@@ -489,16 +529,7 @@ class CaretViewProvider implements vscode.WebviewViewProvider {
 			case 'new': {
 				this.post({ type: 'status', text: 'starting new session…' });
 				this.post({ type: 'reset' });
-				// Soft stop with a short deadline — a hung turn.send queues
-				// session.stop forever on the serial daemon loop.
-				try {
-					await Promise.race([
-						daemon.request('session.stop', {}),
-						new Promise((_, reject) => setTimeout(() => reject(new Error('stop timeout')), 1500)),
-					]);
-				} catch {
-					this.killLocalDaemon();
-				}
+				await this.softStop(daemon);
 				this.sessionOn = false;
 				this.sending = false;
 				this.queue.clear();
@@ -630,6 +661,7 @@ body { font-family: var(--vscode-font-family); padding: 10px; }
 .msg { border: 1px solid var(--agent-border-subtle); border-radius: var(--agent-radius-card); padding: 6px 8px; margin: 6px 0; white-space: pre-wrap; }
 .tool { font-size: var(--agent-font-meta); color: var(--agent-text-secondary); }
 .tool-failed { border-color: var(--agent-error); color: var(--agent-text-primary); }
+.tool-warn { border-color: var(--agent-warning); color: var(--agent-text-primary); }
 .tool-done { color: var(--agent-text-disabled); }
 .user { background: var(--vscode-textBlockQuote-background); }
 .approval { border-color: var(--agent-warning); }
@@ -716,7 +748,7 @@ function card(requestId, requestType, detail) {
 function trow(kind, label, detail) {
 	const div = document.createElement('div');
 	div.className = 'msg tool tool-' + kind;
-	const mark = kind === 'failed' ? '✕ ' : kind === 'done' ? '✓ ' : kind === 'start' ? '▶ ' : '• ';
+	const mark = kind === 'failed' ? '✕ ' : kind === 'warn' ? '! ' : kind === 'done' ? '✓ ' : kind === 'start' ? '▶ ' : '• ';
 	div.textContent = mark + label + (detail ? ' — ' + detail : '');
 	transcript.appendChild(div);
 	div.scrollIntoView(false);
