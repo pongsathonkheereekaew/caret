@@ -14,7 +14,8 @@ Embeddings still arrive through the measured local-nomic seam
   input, shape-mismatch refusal (`updateFileIndex`, 2 keepers).
 - Symbol attribution: coarse scan (TS/JS defs, Python def/class, Markdown
   headings) recorded per chunk, survives persistence (1 keeper).
-- Full daemon suite 107/107.
+- Daemon suite 133 after this slice (git-hook keepers need unsandboxed
+  vitest; file-remote git-local tests use a 20s timeout).
 
 ## Open
 
@@ -35,5 +36,17 @@ composer (click unverified).
 - Composer renders the phase and bounded counters with Rebuild, Pause,
   and Resume controls.
 - Fixture keepers cover ready/search, in-flight dedupe, failure, pause,
-  and resume. Per-file failure details and multi-root aggregation remain
-  open.
+  and resume.
+
+## SEARCH-03-C02 / SEARCH-05 / SEARCH-06 slice (2026-09-11)
+
+- Scan records per-file failures (`unreadable|too-large|binary|cap`) and
+  keeps the index `ready` when some files fail. Composer shows a file-error
+  count. Ignored paths are skips, not failures.
+- Ignore and sandbox are separate (`context-policy.ts`): ignore never
+  authorizes a tool. `.caretignore` / `.cursorignore` / `.gitignore` hide
+  files from the index and from caller-supplied `code.search` attachments.
+- Index jobs key on `realpath` so a symlink alias shares one cache.
+  Unsupported (documented, not claimed): branch-aware invalidation,
+  multi-folder workspace aggregation beyond per-root jobs, repos above the
+  40-file / 64 KB caps.

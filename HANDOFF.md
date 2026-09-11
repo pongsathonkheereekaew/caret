@@ -9,7 +9,7 @@ Build Caret to the **clone-verified** gate in `docs/IMPLEMENTATION-PLAN.th.md`
 (v5, authoritative): 198 parent requirements, 75 UI families, behavior +
 visual + quality + ops evidence. No scope cuts, no silent descopes.
 
-## Status: backend proven (31/31 tasks), surfaces open
+## Status: graph 17 verified / 33 implemented / 138 planned / 10 blocked-external
 
 Done with evidence in `backlog/`: M0 pins/graph/command-map · F01 Code-OSS
 macOS pass · F02 approval control-path PASS · F03 Codex+OpenCode ready ·
@@ -64,11 +64,11 @@ daemon proofs `bun run --cwd apps/caret-daemon src/{slice,isolatedslice,resumest
 suites `bun x vitest run apps/caret-daemon/...`; fork `./scripts/code.sh`;
 manual UI script in `backlog/H05-ui-evidence.md`.
 
-## Awaiting the user (9 decisions explained in chat 2026-09-10)
+## Awaiting the user (do not block the rest)
 
-Reference access · signing ($99+$) · mobile route + real devices · cloud
-provider/budget · Zen top-up + monthly cap · real repo name/remote · relay
-choice · APNs sender · next-surface priority (recommended: M7, Agents, mobile, cloud).
+Cursor 3.19 atlas / pixel freeze · periodic UI click-tests · Codex
+quota (~Sep 16) · iPhone + APNs / MCP OAuth only if those scopes open.
+Apple signing is last. Cloud / Win+Linux / Tailscale stay locked off.
 
 ## Risks
 
@@ -105,7 +105,8 @@ signing/repo-remote, devices/APNs, cloud/OAuth providers, Zen top-up.
 ## User decisions 2026-09-10 (from chat, no Mac needed)
 
 - Apple Developer: EXISTS, personal-use only for now (no TestFlight /
-  external distribution). Signing certs install on the Mac later.
+  external distribution). **Signing deferred to the end of the project**
+  (user 2026-09-11 12:07). Do not block local work on certs.
 - Engine budget: OpenCode Go subscription (NOT Zen). OpenCode driver is
   the entitled path; Zen $0 balance is irrelevant.
 - Cloud: NONE — local-only, machine stays on always. M8 CLOUD parents
@@ -164,6 +165,17 @@ Follow-up: hide unmapped/telemetry rows; `item.started`/`item.completed`
 upsert todos; toolbar wraps; quota errors hit the status line.
 
 SEARCH-03 implemented (not verified): background per-root index job,
-cached vectors, bounded file/chunk progress, rebuild/pause/resume, and
-terminal failure states. Per-file/multi-root failure aggregation remains
-open. Evidence: `backlog/SEARCH-index-evidence.md`.
+cached vectors, bounded file/chunk progress, rebuild/pause/resume,
+per-file failures, and terminal states.
+SEARCH-05 implemented (not verified): ignore ≠ sandbox; ignored files
+stay off index/prompt attach.
+SEARCH-06 implemented (not verified): realpath job identity. Branch
+invalidation + large-repo combinations remain open.
+Evidence: `backlog/SEARCH-index-evidence.md`.
+
+## Addendum 2026-09-11 12:07 (user)
+
+- Cursor screenshots recorded (chat + empty workbench + Agents Window on
+  the right). IA observation only — not a 3.19 pixel freeze. See
+  `backlog/G-VIS-runtime-evidence.md`.
+- Apple signing stays last. Continue all other local work.

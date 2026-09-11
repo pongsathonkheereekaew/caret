@@ -1434,7 +1434,7 @@
      "id": "SEARCH-03-C02",
      "title": "per-root and per-file failure aggregation",
      "evidence": "backlog/SEARCH-index-evidence.md",
-     "result": "open"
+     "result": "pass"
     }
    ]
   },
@@ -1486,8 +1486,15 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "SEARCH-05-C01",
+     "title": "ignore vs sandbox: excluded files stay off the index/prompt; tools stay sandbox-only",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "pass"
+    }
+   ]
   },
   {
    "id": "SEARCH-06",
@@ -1505,8 +1512,21 @@
    ],
    "cluster": "SEARCH — Codebase context",
    "source_doc": "docs/PARITY-MATRIX.th.md",
-   "status": "planned",
-   "children": []
+   "status": "implemented",
+   "children": [
+    {
+     "id": "SEARCH-06-C01",
+     "title": "realpath root identity so symlink aliases share one index job",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "pass"
+    },
+    {
+     "id": "SEARCH-06-C02",
+     "title": "branch-aware cache invalidation + large-repo / multi-folder combinations",
+     "evidence": "backlog/SEARCH-index-evidence.md",
+     "result": "open"
+    }
+   ]
   },
   {
    "id": "SEARCH-07",

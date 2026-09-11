@@ -49,6 +49,7 @@ preserved fields; React-panel vehicle dropped by user decision.
 1. Cursor 3.19 download + account on the Mac (reference freeze).
 2. Theme choice (dark recommended) + fixture repo decision.
 3. 5-min click sessions per surface (atlas capture).
-4. Apple certs into keychain (signing; Dev account exists).
+4. Apple certs into keychain — **last**, after local product work
+   (user 2026-09-11; Dev account exists).
 5. iPhone + APNs key (mobile); cloud/relay reversal if ever.
 6. Legal review before any trade-dress-close public release.
