@@ -56,3 +56,15 @@ rendering. No GUI automation harness exists here; manual script below
   until Bring Back (isolated-by-default).
 - H05 behavior path mostly proven; clean Review/Reject/New still needs a
   turn that finishes without the reconnect stall.
+
+### Follow-up 2026-09-11 (Stop/New + warning surface)
+
+- Daemon: `turn.cancel` + cancel token on `turn.send`; `session.stop`
+  flips the token and declines parked approvals; RPCs already forked so
+  cancel runs while send waits.
+- Extension: Stop/New call `turn.cancel` then `session.stop` (kill daemon
+  only on timeout); `runtime.warning` / reconnect → warn tool row +
+  throttled status line (3s).
+- Re-test: during a reconnect stall, Stop should show `turn cancelled`
+  / `stopped` without waiting for network; warnings should appear in
+  status, not only as a flood of tool rows.
