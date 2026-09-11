@@ -239,6 +239,7 @@ describe("M5RemoteGateway", () => {
       "session.list",
       "session.start",
       "session.stop",
+      "turn.cancel",
       "turn.send",
       "turn.steer",
     ]);

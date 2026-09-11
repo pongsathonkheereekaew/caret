@@ -22,6 +22,7 @@ describe("SessionScoping", () => {
       /unknown approval/,
     );
     expect(await run(api["session.stop"]({} as never))).toEqual({});
+    await expect(run(api["turn.cancel"]({} as never))).rejects.toThrow(/no session/);
   });
 
   it("names unknown sessions instead of touching the current", async () => {

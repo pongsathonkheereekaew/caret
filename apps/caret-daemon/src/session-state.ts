@@ -103,10 +103,11 @@ export const shouldForwardEngineEvent = (type: unknown): boolean => {
   return !type.toLowerCase().includes("delta");
 };
 
-export type EngineRowKind = "start" | "done" | "failed" | "info";
+export type EngineRowKind = "start" | "done" | "failed" | "warn" | "info";
 
 export const engineRowKind = (type: string): EngineRowKind => {
   if (/fail|error/i.test(type)) return "failed";
+  if (/warn|reconnect/i.test(type)) return "warn";
   if (/complet|done|resolved|restored/i.test(type)) return "done";
   if (/start|opened|created|running|progress/i.test(type)) return "start";
   return "info";

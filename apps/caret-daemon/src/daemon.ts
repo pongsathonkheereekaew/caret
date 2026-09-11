@@ -181,12 +181,22 @@ export const steerCaretTurn = (run: CaretRun, input: string) =>
     return yield* adapter.steerTurn({ threadId: run.threadId, input, attachments: [] });
   });
 
-/** Send one goal turn; resolves when turn.completed lands (or throws on timeout). */
+/** Best-effort interrupt of the in-flight engine turn (Stop / New / turn.cancel). */
+export const interruptCaretTurn = (run: CaretRun) =>
+  Effect.gen(function* () {
+    const adapter = yield* CodexAdapter;
+    yield* adapter.interruptTurn(run.threadId).pipe(Effect.catch(() => Effect.void));
+  });
+
+/** Send one goal turn; resolves when turn.completed lands (or throws on
+ *  timeout / cancel). `cancel` is a mutable token the session API flips
+ *  from turn.cancel / session.stop so hung Codex reconnects unblock. */
 export const sendCaretTurn = (
   run: CaretRun,
   seen: Array<{ type: unknown }>,
   input: string,
   timeoutMs = 200_000,
+  cancel?: { cancelled: boolean },
 ) =>
   Effect.gen(function* () {
     const adapter = yield* CodexAdapter;
@@ -194,9 +204,13 @@ export const sendCaretTurn = (
     yield* adapter.sendTurn({ threadId: run.threadId, input, attachments: [] });
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
+      if (cancel?.cancelled) {
+        yield* adapter.interruptTurn(run.threadId).pipe(Effect.catch(() => Effect.void));
+        return yield* Effect.fail(new Error("turn cancelled"));
+      }
       const done = seen.slice(before).find((e) => e.type === "turn.completed");
       if (done) return done;
-      yield* Effect.sleep("3 seconds");
+      yield* Effect.sleep("500 millis");
     }
     return yield* Effect.fail(new Error(`turn.completed not observed within ${timeoutMs}ms`));
   });

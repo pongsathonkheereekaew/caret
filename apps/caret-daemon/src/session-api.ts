@@ -11,6 +11,7 @@ import {
   reviewCaretRun,
   rejectCaretRun,
   steerCaretTurn,
+  interruptCaretTurn,
   bringBackCaretRun,
   recaptureCaretRun,
   stopCaretRun,
@@ -26,6 +27,23 @@ import * as Fiber from "effect/Fiber";
 
 export type SessionApi = Record<string, (params: never) => Effect.Effect<unknown, Error>>;
 
+const engineDetail = (payload: unknown): string | undefined => {
+  if (typeof payload === "string") return payload.slice(0, 500);
+  if (payload && typeof payload === "object") {
+    const o = payload as Record<string, unknown>;
+    for (const key of ["message", "detail", "text", "warning", "reason"] as const) {
+      const v = o[key];
+      if (typeof v === "string" && v.length > 0) return v.slice(0, 500);
+    }
+    try {
+      return JSON.stringify(payload).slice(0, 500);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+};
+
 interface SessionState {
   run: CaretRun | null;
   seen: Array<{ type: unknown; payload?: unknown }>;
@@ -36,6 +54,8 @@ interface SessionState {
   runId: string;
   createdAt: number;
   fiber: Fiber.RuntimeFiber<unknown, unknown> | null;
+  /** Mutable token for the in-flight turn.send wait loop. */
+  turnCancel: { cancelled: boolean } | null;
 }
 
 type JournalEvent = {
@@ -107,6 +127,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
           runId: p.runId,
           createdAt: Date.now(),
           fiber: null,
+          turnCancel: null,
         };
         const started = yield* startCaretRun(
           {
@@ -123,7 +144,7 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
                 event: "engine",
                 type,
                 kind: engineRowKind(type),
-                detail: typeof payload === "string" ? payload.slice(0, 500) : undefined,
+                detail: engineDetail(payload),
               }),
           },
           p.repoDir,
@@ -152,8 +173,29 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         const st = need(p.session);
         const run = live(st);
         st.lastGoal = p.input;
-        const done = (yield* sendCaretTurn(run, st.seen, p.input)) as { payload?: { state?: string } };
-        return { state: (done.payload as { state?: string } | undefined)?.state ?? "completed" };
+        const cancel = { cancelled: false };
+        st.turnCancel = cancel;
+        try {
+          const done = (yield* sendCaretTurn(run, st.seen, p.input, 200_000, cancel)) as {
+            payload?: { state?: string };
+          };
+          return { state: (done.payload as { state?: string } | undefined)?.state ?? "completed" };
+        } finally {
+          if (st.turnCancel === cancel) st.turnCancel = null;
+        }
+      }),
+    "turn.cancel": (p: { session?: string }) =>
+      Effect.gen(function* () {
+        const st = need(p.session);
+        const hadTurn = st.turnCancel !== null;
+        if (st.turnCancel) st.turnCancel.cancelled = true;
+        // Unblock a turn parked on an approval card.
+        for (const [, resolve] of st.parked) {
+          resolve("decline");
+        }
+        st.parked.clear();
+        if (st.run) yield* interruptCaretTurn(st.run);
+        return { cancelled: true, hadTurn };
       }),
     "turn.steer": (p: { input: string; session?: string }) =>
       Effect.gen(function* () {
@@ -223,6 +265,11 @@ export const createSessionApi = (notify: (msg: unknown) => void): SessionApi => 
         const id = p.session ?? current;
         if (!id) return {};
         const st = sessions.get(id);
+        if (st?.turnCancel) st.turnCancel.cancelled = true;
+        if (st?.parked.size) {
+          for (const [, resolve] of st.parked) resolve("decline");
+          st.parked.clear();
+        }
         if (st?.fiber) yield* Fiber.interrupt(st.fiber).pipe(Effect.catch(() => Effect.succeed(false)));
         if (st?.run) yield* stopCaretRun(st.run);
         // Retention cap (M4 tail): bound retained run worktrees on the way

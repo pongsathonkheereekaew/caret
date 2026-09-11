@@ -67,6 +67,7 @@ describe("SessionState", () => {
     expect(shouldForwardEngineEvent("")).toBe(false);
     expect(shouldForwardEngineEvent(undefined)).toBe(false);
     expect(engineRowKind("turn.failed")).toBe("failed");
+    expect(engineRowKind("runtime.warning")).toBe("warn");
     expect(engineRowKind("session/threadOpenResolved")).toBe("done");
     expect(engineRowKind("thread.started")).toBe("start");
     expect(engineRowKind("something.unknown")).toBe("info");
