@@ -1,6 +1,13 @@
 # Caret
 
-The AI-native code editor you own. Agents, predictive editing, and code review in one fast, local-first IDE. Your code never leaves your machine.
+The AI-native code editor you own. OMP runs on your Mac; Caret provides the
+workspace and a planned iPhone client. External model providers and optional
+remote transport handle data according to the configuration you choose.
+
+Current work: **G1 OMP UI and host side channels**, on `caret/g0-omp-foundation`. Read the
+[implementation direction](docs/maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md)
+and [G1 status](docs/maintenance/CARET-G1-IMPLEMENTATION-2026-09-12.th.md).
+The feature list below describes the product target, not a release certification.
 
 > This repository is private. Caret is in active personal development for macOS and is not publicly distributed yet.
 
@@ -17,8 +24,8 @@ The AI-native code editor you own. Agents, predictive editing, and code review i
 Development builds run on macOS. There is no public download yet.
 
 1. Clone this repository.
-2. Read [HANDOFF.md](HANDOFF.md) for the latest status.
-3. Read [docs/TEAM-ONBOARDING.md](docs/TEAM-ONBOARDING.md) before making changes.
+2. Read [docs/README.md](docs/README.md) for the living specification map.
+3. Read [HANDOFF.md](HANDOFF.md) for the current status pointer.
 
 ## Built on VS Code
 
@@ -26,13 +33,37 @@ Caret is built on VS Code, so the editor, keybindings, and extensions you alread
 
 ## Repository layout
 
-- [HANDOFF.md](HANDOFF.md) - current status and roadmap.
-- [agent.md](agent.md) - build goal and working agreements.
-- [docs/](docs) - plans and contributor onboarding.
-- [backlog/](backlog) - per-item evidence.
-- [scripts/](scripts) - repo checks.
+One git repo. Folders are module boundaries, not separate remotes.
+
+- `apps/host` - Mac host service
+- `apps/macos` - Code-OSS task extension
+- `apps/ios` - iPhone client
+- `packages/protocol`, `packages/omp-adapter`, `packages/relay` - shared libraries
+- `desktop/` and `upstream/` - ignored pinned checkouts, not source of truth
+- [docs/README.md](docs/README.md) - living specification map
+- [HANDOFF.md](HANDOFF.md) - pointer to current status
+- [backlog/](backlog) - per-item evidence
+- [scripts/](scripts) - repo checks
 
 ## Development
+
+The new adapter uses Node-compatible TypeScript and Bun for development tests:
+
+```bash
+bun install --frozen-lockfile
+bun run typecheck
+bun test packages/omp-adapter apps/host packages/relay apps/macos/test
+bun run smoke:omp
+bun run smoke:omp:ui
+bun run smoke:omp:g1
+```
+
+The first two smoke commands use isolated temporary configurations and local
+extension commands without model turns. The G1 host smoke exercises actual OMP
+tool turns with deterministic completions from a temporary loopback server;
+it performs no external model inference. All require OMP 18.1.18.
+The Mac build uses the separately pinned
+Code-OSS checkout; see the G0 evidence for its exact status.
 
 Run the repo gate before pushing:
 
@@ -40,13 +71,13 @@ Run the repo gate before pushing:
 node scripts/ci-validate.mjs
 ```
 
-See [HANDOFF.md](HANDOFF.md) for the full workflow.
+See [docs/README.md](docs/README.md) for the living specification map.
 
 ## Documentation
 
-- Status and roadmap: [HANDOFF.md](HANDOFF.md)
-- Contributor onboarding: [docs/TEAM-ONBOARDING.md](docs/TEAM-ONBOARDING.md)
-- Master plan: [docs/IMPLEMENTATION-PLAN.th.md](docs/IMPLEMENTATION-PLAN.th.md)
+- Specification map: [docs/README.md](docs/README.md)
+- Current status: [HANDOFF.md](HANDOFF.md)
+- Dated snapshots: [docs/archive/](docs/archive/README.md)
 
 ## Security
 

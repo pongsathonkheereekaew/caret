@@ -1,0 +1,317 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import { spawn } from "node:child_process";
+import { DatabaseSync } from "node:sqlite";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
+import {
+	DurableStore,
+	DurableStoreCommandConflictError,
+	DurableStoreCommandTransitionError,
+	DurableStoreOwnershipError,
+	DurableStoreSchemaError,
+	canonicalizeJson,
+	commandPayloadHash,
+} from "../src/store.ts";
+import type { Json } from "../../../packages/protocol/src/index.ts";
+
+const stores: DurableStore[] = [];
+const temporaryDirectories: string[] = [];
+
+function temporaryStore(recover = true): { dir: string; store: DurableStore } {
+	const dir = mkdtempSync(join(tmpdir(), "caret-host-store-"));
+	temporaryDirectories.push(dir);
+	const store = DurableStore.open({ stateDir: dir, recover });
+	stores.push(store);
+	return { dir, store };
+}
+
+function projectDirectory(root: string, name: string): string {
+	const path = join(root, name);
+	// The test process owns this temporary tree; creating project roots models a
+	// non-Git project without making Git itself part of the store contract.
+	mkdirSync(path, { recursive: true });
+	return path;
+}
+
+function waitForOutput(process: ReturnType<typeof spawn>, expected: RegExp, timeoutMs = 2_000): Promise<string> {
+	return new Promise((resolve, reject) => {
+		let output = "";
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const done = (error?: Error) => {
+			if (timer) clearTimeout(timer);
+			process.stdout?.off("data", onData);
+			process.stderr?.off("data", onData);
+			if (error) reject(error); else resolve(output);
+		};
+		const onData = (chunk: Buffer | string) => {
+			output += String(chunk);
+			if (expected.test(output)) done();
+		};
+		process.stdout?.on("data", onData);
+		process.stderr?.on("data", onData);
+		process.once("error", error => done(error));
+		timer = setTimeout(() => done(new Error(`Timed out waiting for ${expected}: ${output}`)), timeoutMs);
+	});
+}
+
+function waitForExit(process: ReturnType<typeof spawn>, timeoutMs = 2_000): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error("child process did not exit")), timeoutMs);
+		process.once("exit", () => { clearTimeout(timer); resolve(); });
+		process.once("error", error => { clearTimeout(timer); reject(error); });
+	});
+}
+
+afterEach(() => {
+	for (const store of stores.splice(0)) store.close();
+	for (const directory of temporaryDirectories.splice(0)) rmSync(directory, { recursive: true, force: true });
+});
+
+describe("DurableStore", () => {
+	it("creates a private state directory and durable WAL/full-sync databases", () => {
+		const { dir, store } = temporaryStore(false);
+		const stateMode = statSync(dir).mode & 0o777;
+		const journalMode = statSync(store.paths.journalPath).mode & 0o777;
+		const lockMode = statSync(store.paths.ownerLockPath).mode & 0o777;
+		expect(stateMode).toBe(0o700);
+		expect(journalMode).toBe(0o600);
+		expect(lockMode).toBe(0o600);
+	});
+
+	it("uses realpath uniqueness for Git and non-Git project roots and supports pin/archive CRUD", () => {
+		const { dir, store } = temporaryStore(false);
+		const root = projectDirectory(dir, "plain-project");
+		const project = store.createProject({ path: root, name: "Plain", pinned: true });
+		expect(project.path).toBe(realpathSync(root));
+		expect(store.getProject(project.id)).toEqual(project);
+		expect(store.listProjects()).toEqual([project]);
+		expect(store.updateProject(project.id, { pinned: false, archived: true, name: "Archived" })).toMatchObject({
+		id: project.id,
+		name: "Archived",
+		pinned: false,
+		archived: true,
+	});
+		expect(store.listProjects()).toEqual([]);
+		expect(store.listProjects({ includeArchived: true })).toHaveLength(1);
+		expect(() => store.createProject({ path: root })).toThrow(/already exists/);
+	});
+
+	it("keeps projects and sessions isolated, with UUID sessions and default durable files", () => {
+		const { dir, store } = temporaryStore(false);
+		const first = store.createProject({ path: projectDirectory(dir, "first") });
+		const second = store.createProject({ path: projectDirectory(dir, "second") });
+		const firstSession = store.createSession({ projectId: first.id, title: "One" });
+		const secondSession = store.createSession({ projectId: second.id, title: "Two" });
+		expect(firstSession.id).toMatch(/^[0-9a-f-]{36}$/);
+		expect(firstSession.projectId).toBe(first.id);
+		expect(firstSession.sessionFile).toContain(join(dir, "sessions"));
+		expect(store.listSessions(first.id)).toEqual([firstSession]);
+		expect(store.listSessions(second.id)).toEqual([secondSession]);
+		expect(store.updateSession(firstSession.id, { status: "running", archived: true }).status).toBe("running");
+		expect(store.listSessions(first.id)).toEqual([]);
+		expect(store.listSessions(first.id, { includeArchived: true })).toHaveLength(1);
+	});
+
+	it("claims atomically, canonicalizes payload ordering, and rejects identity conflicts or unsafe JSON", () => {
+		const { dir, store } = temporaryStore(false);
+		const project = store.createProject({ path: projectDirectory(dir, "project") });
+		const session = store.createSession({ projectId: project.id, incarnation: "inc-1" });
+		const first = store.claimCommand({ sessionId: session.id, commandId: "same", deviceId: "phone", incarnation: "inc-1", kind: "prompt", payload: { z: 1, a: [true, null] } });
+		const duplicate = store.claimCommand({ sessionId: session.id, commandId: "same", deviceId: "phone", incarnation: "inc-1", kind: "prompt", payload: { a: [true, null], z: 1 } });
+		expect(first.created).toBe(true);
+		expect(duplicate.created).toBe(false);
+		expect(duplicate.command.payloadHash).toBe(first.command.payloadHash);
+		expect(() => store.claimCommand({ sessionId: session.id, commandId: "same", deviceId: "tablet", incarnation: "inc-1", kind: "prompt", payload: { z: 1, a: [true, null] } })).toThrow(DurableStoreCommandConflictError);
+		const cycle: Record<string, unknown> = {};
+		cycle.self = cycle;
+		expect(() => canonicalizeJson(cycle)).toThrow(/cycle/);
+		expect(() => canonicalizeJson({ value: Number.NaN })).toThrow(/finite/);
+		expect(canonicalizeJson(JSON.parse('{"__proto__": {"polluted": true}}'))).toBe('{"__proto__":{"polluted":true}}');
+		expect(commandPayloadHash({ deviceId: "phone", incarnation: "inc-1", kind: "prompt", payload: { a: 1 } })).toBe(commandPayloadHash({ deviceId: "phone", incarnation: "inc-1", kind: "prompt", payload: { a: 1 } }));
+	});
+
+	it("persists claim before dispatch, keeps ACK separate from completion, and freezes terminal state", () => {
+		const { dir, store } = temporaryStore(false);
+		const project = store.createProject({ path: projectDirectory(dir, "project") });
+		const session = store.createSession({ projectId: project.id, incarnation: "inc-1" });
+		const claimed = store.claimCommand({ sessionId: session.id, commandId: "command", deviceId: "mac", incarnation: "inc-1", kind: "prompt", payload: {} }).command;
+		expect(claimed.status).toBe("claimed");
+		const acknowledged = store.transitionCommand(session.id, claimed.commandId, "acknowledged", { ack: { accepted: true } });
+		expect(acknowledged.status).toBe("acknowledged");
+		expect(acknowledged.ack).toEqual({ accepted: true });
+		expect(acknowledged.result).toBeUndefined();
+		const completed = store.transitionCommand(session.id, claimed.commandId, "completed", { result: { done: true } });
+		expect(completed.status).toBe("completed");
+		expect(() => store.transitionCommand(session.id, claimed.commandId, "failed", { error: "too late" })).toThrow(DurableStoreCommandTransitionError);
+		expect(store.listCommands(session.id, 10)[0]).toEqual(completed);
+		const notDispatched = store.claimCommand({ sessionId: session.id, commandId: "queued", deviceId: "mac", incarnation: "inc-1", kind: "prompt", payload: {} }).command;
+		expect(store.transitionCommand(session.id, notDispatched.commandId, "not_dispatched", { error: "busy" }).status).toBe("not_dispatched");
+	});
+
+	it("recovers unfinished commands and running sessions after reopen, without retrying them", () => {
+		const { dir, store } = temporaryStore(false);
+		const project = store.createProject({ path: projectDirectory(dir, "project") });
+		const session = store.createSession({ projectId: project.id, incarnation: "inc-1", status: "running" });
+		const command = store.claimCommand({ sessionId: session.id, commandId: "pending", deviceId: "mac", incarnation: "inc-1", kind: "prompt", payload: {} }).command;
+		expect(store.listPendingCommands(session.id).map(item => item.commandId)).toEqual([command.commandId]);
+		store.transitionCommand(session.id, command.commandId, "acknowledged", { ack: { id: "ack" } });
+		store.close();
+		stores.splice(stores.indexOf(store), 1);
+		const reopened = DurableStore.open({ stateDir: dir });
+		stores.push(reopened);
+		expect(reopened.getCommand(session.id, command.commandId)?.status).toBe("outcome_unknown");
+		expect(reopened.getSession(session.id)?.status).toBe("recovery_required");
+		expect(() => reopened.transitionCommand(session.id, command.commandId, "completed", { result: { replay: true } })).toThrow(DurableStoreCommandTransitionError);
+		const repaired = reopened.updateSession(session.id, { status: "stopped" });
+		reopened.recoverPending();
+		expect(reopened.getSession(session.id)).toEqual(repaired);
+	});
+
+	it("appends ordered per-session events and provides bounded cursor pagination", () => {
+		const { dir, store } = temporaryStore(false);
+		const project = store.createProject({ path: projectDirectory(dir, "project") });
+		const one = store.createSession({ projectId: project.id, incarnation: "inc-1" });
+		const two = store.createSession({ projectId: project.id, incarnation: "inc-2" });
+		for (let i = 0; i < 5; i += 1) store.appendEvent(one.id, "inc-1", { index: i });
+		store.appendEvent(two.id, "inc-2", { index: 99 });
+		const first = store.readEvents(one.id, 0, 2);
+		expect(first.events.map(event => event.sequence)).toEqual([1, 2]);
+		expect(first.cursor).toBe(2);
+		expect(first.hasMore).toBe(true);
+		const second = store.readEvents(one.id, first.cursor, 2);
+		expect(second.events.map(event => event.sequence)).toEqual([3, 4]);
+		const third = store.readEvents(one.id, second.cursor, 2);
+		expect(third.events.map(event => event.sequence)).toEqual([5]);
+		expect(third.hasMore).toBe(false);
+		expect(store.readEvents(two.id)).toMatchObject({ events: [{ sequence: 1, frame: { index: 99 } }] });
+	});
+
+	it("keeps a raw frame's own prototype-named keys intact in the journal", () => {
+		const { store } = temporaryStore(false);
+		const project = store.createProject({ path: projectDirectory(store.paths.stateDir, "prototype-project") });
+		const session = store.createSession({ projectId: project.id, incarnation: "prototype-incarnation" });
+		const frame = JSON.parse('{"type":"future_event","__proto__":{"injected":true},"nested":{"__proto__":{"value":1}}}') as Json;
+
+		const appended = store.appendEvent(session.id, session.incarnation, frame);
+		expect(Object.hasOwn(appended.frame as Record<string, unknown>, "__proto__")).toBe(true);
+		expect((appended.frame as Record<string, unknown>)["__proto__"]).toEqual({ injected: true });
+		expect(Object.getPrototypeOf(appended.frame)).toBe(Object.prototype);
+
+		const replayed = store.readEvents(session.id).events[0]!.frame as Record<string, unknown>;
+		expect(Object.hasOwn(replayed, "__proto__")).toBe(true);
+		expect(replayed["__proto__"]).toEqual({ injected: true });
+		expect((replayed.nested as Record<string, unknown>)["__proto__"]).toEqual({ value: 1 });
+	});
+
+	it("refuses a newer schema version before serving state", () => {
+		const { dir, store } = temporaryStore(false);
+		store.close();
+		stores.splice(stores.indexOf(store), 1);
+		const databasePath = join(dir, "journal.sqlite");
+		const database = new DatabaseSync(databasePath);
+		database.exec("UPDATE metadata SET value = '999' WHERE key = 'schema_version'");
+		database.close();
+		expect(() => DurableStore.open({ stateDir: dir, recover: false })).toThrow(DurableStoreSchemaError);
+	});
+
+	it("migrates a schema-1 journal by adding the pinned session field without losing rows", () => {
+		const dir = mkdtempSync(join(tmpdir(), "caret-host-store-migrate-"));
+		temporaryDirectories.push(dir);
+		const projectPath = projectDirectory(dir, "legacy-project");
+		const database = new DatabaseSync(join(dir, "journal.sqlite"));
+		database.exec(`
+			PRAGMA journal_mode=WAL;
+			CREATE TABLE metadata (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);
+			CREATE TABLE projects (
+				id TEXT PRIMARY KEY NOT NULL,
+				path TEXT NOT NULL UNIQUE,
+				name TEXT NOT NULL,
+				pinned INTEGER NOT NULL CHECK (pinned IN (0, 1)),
+				archived INTEGER NOT NULL CHECK (archived IN (0, 1)),
+				created_at TEXT NOT NULL
+			);
+			CREATE TABLE sessions (
+				id TEXT PRIMARY KEY NOT NULL,
+				project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+				title TEXT NOT NULL,
+				cwd TEXT NOT NULL,
+				session_file TEXT NOT NULL,
+				incarnation TEXT NOT NULL,
+				status TEXT NOT NULL CHECK (status IN ('idle', 'running', 'stopped', 'recovery_required')),
+				archived INTEGER NOT NULL CHECK (archived IN (0, 1)),
+				created_at TEXT NOT NULL,
+				updated_at TEXT NOT NULL
+			);
+			CREATE TABLE commands (
+				session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+				command_id TEXT NOT NULL,
+				device_id TEXT NOT NULL,
+				incarnation TEXT NOT NULL,
+				kind TEXT NOT NULL,
+				payload_json TEXT NOT NULL,
+				payload_hash TEXT NOT NULL,
+				status TEXT NOT NULL CHECK (status IN ('claimed', 'acknowledged', 'completed', 'failed', 'outcome_unknown', 'not_dispatched')),
+				ack_json TEXT,
+				result_json TEXT,
+				error TEXT,
+				created_at TEXT NOT NULL,
+				updated_at TEXT NOT NULL,
+				PRIMARY KEY (session_id, command_id)
+			);
+			CREATE TABLE events (
+				session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+				incarnation TEXT NOT NULL,
+				sequence INTEGER NOT NULL CHECK (sequence > 0),
+				timestamp TEXT NOT NULL,
+				frame_json TEXT NOT NULL,
+				PRIMARY KEY (session_id, sequence)
+			);
+		`);
+		const projectId = "legacy-project-id";
+		const sessionId = "legacy-session-id";
+		const timestamp = "2026-09-12T00:00:00.000Z";
+		database.prepare("INSERT INTO metadata (key, value) VALUES ('schema_version', '1')").run();
+		database.prepare("INSERT INTO projects (id, path, name, pinned, archived, created_at) VALUES (?, ?, ?, 1, 0, ?)").run(projectId, projectPath, "Legacy", timestamp);
+		database.prepare("INSERT INTO sessions (id, project_id, title, cwd, session_file, incarnation, status, archived, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'legacy-incarnation', 'idle', 0, ?, ?)").run(sessionId, projectId, "Legacy task", projectPath, join(dir, "legacy.jsonl"), timestamp, timestamp);
+		database.close();
+
+		const store = DurableStore.open({ stateDir: dir, recover: false });
+		stores.push(store);
+		const migrated = store.getSession(sessionId);
+		expect(migrated).toMatchObject({ id: sessionId, projectId, pinned: false, title: "Legacy task" });
+		expect(store.updateSession(sessionId, { pinned: true }).pinned).toBe(true);
+		store.close();
+		stores.splice(stores.indexOf(store), 1);
+
+		const reopenedDatabase = new DatabaseSync(join(dir, "journal.sqlite"));
+		const columns = reopenedDatabase.prepare("PRAGMA table_info(sessions)").all() as Array<{ name: string }>;
+		const schema = reopenedDatabase.prepare("SELECT value FROM metadata WHERE key = 'schema_version'").get() as { value: string };
+		reopenedDatabase.close();
+		expect(columns.map(column => column.name)).toContain("pinned");
+		expect(schema.value).toBe("2");
+	});
+
+	it("enforces one host owner across processes and releases after a crash", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "caret-host-store-owner-"));
+		temporaryDirectories.push(dir);
+		const moduleUrl = pathToFileURL(join(import.meta.dir, "../src/store.ts")).href;
+		const childScript = [
+			`const { DurableStore } = await import(${JSON.stringify(moduleUrl)});`,
+			`const stateDir = process.argv[1];`,
+			`try { const store = DurableStore.open({ stateDir, recover: false }); console.log('READY'); setInterval(() => {}, 1000); }`,
+			`catch (error) { console.log('ERROR:' + (error.code ?? error.message)); process.exitCode = 2; }`,
+		].join(" ");
+		const node = "/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node";
+		const child = spawn(node, ["--input-type=module", "-e", childScript, dir], { stdio: ["ignore", "pipe", "pipe"] });
+		await waitForOutput(child, /READY/);
+		expect(() => DurableStore.open({ stateDir: dir, recover: false })).toThrow(DurableStoreOwnershipError);
+		child.kill("SIGKILL");
+		await waitForExit(child);
+		const afterCrash = DurableStore.open({ stateDir: dir, recover: false });
+		stores.push(afterCrash);
+		expect(afterCrash.paths.stateDir).toBe(dir);
+	});
+});

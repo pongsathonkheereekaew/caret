@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-09-12T20:16:18.621Z",
+  "syntheticOnly": true,
+  "realNativeEditor": false,
+  "paidModelCalls": 0,
+  "modelRequests": 3,
+  "runtimeKind": "standalone-binary",
+  "sourceVerified": true,
+  "sourceRevision": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "sourceTree": "8b5cd5168d73b430cd82f38903fb891d3b115ead",
+  "executableSha256": "b10b9f1477f531649d0d91185e1344cda6caf6a177c3335e9cd6b0f7fda8ebef",
+  "patchManifestSha256": "9fddd2c2ce41bed0c58d85fd6e4ae1fc2634ae4741faa4dcddf77e10528372d0",
+  "bunSha256": "35d20dd0263e5c950194434b925454fdfa9ba6e4467da960410fa05b08a7a5b5",
+  "nativeSha256": "202ca523958050c214aa9de8c25391b313f1699aacc075f26b9dde8a965041bb",
+  "checks": [
+    "native-read-unsaved-text",
+    "native-edit-overlay-staging",
+    "single-guarded-editor-apply",
+    "permission-before-effect",
+    "disk-unchanged",
+    "correlated-turn-completion"
+  ]
+}

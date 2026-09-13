@@ -1,5 +1,10 @@
 # Caret — Upstream Lock Manifest (M0)
 
+> Historical September 9 baseline. New G0 source selection is pinned in
+> [`../upstream-lock.json`](../upstream-lock.json), with retained notices under
+> `docs/upstream-notices/`. The current direction supersedes the driver/backend
+> roles below; keep this table as historical evidence for the original graph.
+
 Pinned 2026-09-09. Every `HEAD` below is a full SHA observed on that date via
 `git ls-remote`; re-pin explicitly before release, never float. Snapshots from
 planning research are NOT production locks — this file is the lock (R02).

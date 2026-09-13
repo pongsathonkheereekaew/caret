@@ -1,0 +1,150 @@
+{
+  "name": "@caret/mac-extension",
+  "displayName": "Caret Mac task extension",
+  "description": "Caret's authenticated Mac task surface for the Caret host.",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./out/extension.js",
+  "scripts": {
+    "test": "bun test test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "caret.openComposer",
+        "title": "Focus Composer",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.openTask",
+        "title": "Open Task Window",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.newTask",
+        "title": "New Task",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.refresh",
+        "title": "Reconnect Host",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.openFiles",
+        "title": "Open Files",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.showDiff",
+        "title": "Review Changes",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.openTerminal",
+        "title": "Open Terminal",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.openSettings",
+        "title": "Open Settings",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.searchTasks",
+        "title": "Search Tasks",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.pairDevice",
+        "title": "Pair iPhone",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.manageDevices",
+        "title": "Manage Devices",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.ompControls",
+        "title": "OMP Controls",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.taskActions",
+        "title": "Task Actions",
+        "category": "Caret"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "caretAgents",
+          "title": "Caret",
+          "icon": "media/caret.svg"
+        }
+      ]
+    },
+    "views": {
+      "caretAgents": [
+        {
+          "id": "caretComposer",
+          "name": "Tasks",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Caret",
+      "properties": {
+        "caret.hostNodePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the Node runtime used to start the Caret host helper."
+        },
+        "caret.hostScriptPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the Caret host helper script. OMP is started by that host, never by the extension."
+        },
+        "caret.hostStateDir": {
+          "type": "string",
+          "default": "",
+          "description": "Private Caret host state directory. Defaults to ~/Library/Application Support/Caret/host so all Mac windows share one host."
+        },
+        "caret.hostRequestTimeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 1000,
+          "description": "Timeout for authenticated requests to the local Caret host."
+        },
+        "caret.openTasksOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the Caret task workspace when the app starts."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "chat.disableAIFeatures": true,
+      "workbench.startupEditor": "none"
+    }
+  },
+  "activationEvents": [
+    "onView:caretComposer",
+    "onCommand:caret.openComposer",
+    "onCommand:caret.openTask",
+    "onStartupFinished"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "The Caret shell is available; task execution, host access and editor automation require workspace trust."
+    }
+  }
+}

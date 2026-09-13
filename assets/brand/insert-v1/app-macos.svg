@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <title>Caret Insert — macOS</title>
+  <rect x="100" y="104" width="824" height="824" rx="184" fill="#000" opacity=".12"/>
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="#F5F2EB"/>
+  <g transform="translate(100 100) scale(3.21875)" stroke="#292A2C" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M72 76 124 128 72 180"/>
+    <path d="M184 76v104"/>
+  </g>
+</svg>

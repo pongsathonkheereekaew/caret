@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Caret",
+    "icon": "../../assets/brand/insert-v1/app-light.png",
+    "slug": "caret",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "caret",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "icon": {
+        "light": "../../assets/brand/insert-v1/app-light.png",
+        "dark": "../../assets/brand/insert-v1/app-dark.png"
+      },
+      "supportsTablet": true,
+      "bundleIdentifier": "com.caret.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Caret uses the camera to scan a private Mac pairing QR code."
+      }
+    },
+    "android": {
+      "package": "com.caret.app",
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "plugins": ["expo-camera"],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}

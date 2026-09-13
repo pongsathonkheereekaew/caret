@@ -1,0 +1,5 @@
+1.4.2
+d34195c275ba8d3da07ee08f50bd10636b921a0e9321405165f7f31af540682a  /var/folders/r7/96w_6l296fnck1z_4vnydbp80000gn/T//caret-remote-evidence.u3uhyV/apps/caret-daemon/src/remote.ts
+duplicate_same_id: invocations=2 responses=2 assertion=PASS
+unauthenticated_socket_broadcast: event={"event":"probe.broadcast","marker":"sent"} assertion=PASS
+revoked_existing_socket_broadcast: stale_token_rotated=true event={"event":"probe.broadcast","marker":"sent"} stale_request=unauthorized assertion=PASS

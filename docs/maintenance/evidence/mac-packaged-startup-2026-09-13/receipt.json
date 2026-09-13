@@ -1,0 +1,30 @@
+{
+  "capturedAt": "2026-09-12T19:45:30.706188+00:00",
+  "checks": {
+    "caretExtensionActivated": true,
+    "upstreamAgentHostNotStarted": true,
+    "noMissingWasm": true,
+    "restrictedHostNotStarted": true
+  },
+  "visualAcceptance": false,
+  "visualBlocker": "Computer Use getApp timed out after app restart; no screenshot/AX proof for updated first-launch UI.",
+  "desktopPatch": {
+    "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+    "patch": "0001-caret-startup-defaults.patch",
+    "sha256": "d579c3e588326e6fd2347fc67b4fcb901e8b35028289ac18d9ff3a1ad4be64c2"
+  },
+  "logs": [
+    {
+      "path": "/tmp/caret-first-launch-fixed-20260913/profile/logs/20260913T023937/main.log",
+      "sha256": "23d24ca6715f2ae7e9730b01cbd0f82a28db21719e04a3cb4b1e7b41798dd7ba"
+    },
+    {
+      "path": "/tmp/caret-first-launch-fixed-20260913/profile/logs/20260913T023937/window1/renderer.log",
+      "sha256": "6fb080ea7458a09eea6f16ca14bf0aea1dfa3ab8668034582f335b5bcc7764fd"
+    },
+    {
+      "path": "/tmp/caret-first-launch-fixed-20260913/profile/logs/20260913T023937/window1/exthost/exthost.log",
+      "sha256": "da4983001ef1ae856e3a5cbe472e65b05d615031adc26ba3df8f2845512666cb"
+    }
+  ]
+}

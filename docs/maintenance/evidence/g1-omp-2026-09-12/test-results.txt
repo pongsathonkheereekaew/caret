@@ -1,0 +1,67 @@
+Caret G1 verification evidence — 2026-09-12
+
+Scope: OMP adapter UI/host side-channel foundation on branch
+`caret/g0-omp-foundation`. These checks use no external model inference and use the pinned
+OMP `18.1.18` binary (`035a35dcb249edb939fa02b74fc7c0df9b2eb659079349fbffb188e1b558957a`).
+
+Commands and results
+
+1. `bun test packages/omp-adapter`
+   - Bun `1.4.2`; **45 pass, 0 fail, 163 expect() calls**; 4 files; `1.73s`.
+   - Includes the seven host lifecycle race tests.
+2. `CARET_FIXTURE_NODE=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun test packages/omp-adapter`
+   - Bun `1.4.2` harness with Node `24.18.0` fixture child; **45 pass, 0 fail,
+     163 expect() calls**; `2.05s`.
+3. `bun test packages/omp-adapter/test/host-races.test.ts`
+   - **7 pass, 0 fail, 25 expect() calls**; `716ms`.
+4. `CARET_FIXTURE_NODE=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun test packages/omp-adapter/test/host-races.test.ts`
+   - **7 pass, 0 fail, 25 expect() calls**; `705ms`.
+   - This is a repeated Bun run: host-races has no fixture child, so this
+     environment variable does not run host-races on Node. Node runtime
+     coverage comes from the real UI/host smoke receipts, not this command.
+   - Covers total invocation deadline with a stuck writer, cancellation while
+     output is queued, disposal during authorization, monotonic expiry after an
+     event-loop block, malformed duplicate handling, frozen authorization
+     snapshots including `__proto__`, and an overdue terminal send.
+5. `bun run typecheck`
+   - **PASS** (`tsc --noEmit`).
+6. `node scripts/ci-validate.mjs`
+   - **PASS**: `CI-OK parents=198 ui=75 children=129 lock-shas=10`.
+7. `CARET_OMP_BINARY=/Users/pond/.local/bin/omp CARET_SMOKE_RECEIPT=docs/maintenance/evidence/g1-omp-2026-09-12/host-bun.json bun scripts/omp-g1-smoke.ts`
+   - **PASS**, Bun `1.4.2`, 10 checks; `modelRequests=13`, `hostEffects=1`,
+     `uriWrites=1`, cooperative cancellation observed, zero external inference.
+8. `CARET_OMP_BINARY=/Users/pond/.local/bin/omp CARET_SMOKE_RECEIPT=docs/maintenance/evidence/g1-omp-2026-09-12/host-node.json /Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node scripts/omp-g1-smoke.ts`
+   - **PASS**, Node `24.18.0`, same 10 checks and counters as Bun.
+9. `CARET_OMP_BINARY=/Users/pond/.local/bin/omp CARET_SMOKE_RECEIPT=docs/maintenance/evidence/g1-omp-2026-09-12/g0-bun.json bun scripts/omp-smoke.ts`
+   - **PASS**, Bun `1.4.2`, 8 checks; protocol-v2, command discovery, UI
+     confirmation deny/allow, zero model turns, and bounded close.
+10. Hash verification of the existing UI receipts and fresh host/G0 receipts
+    against their recorded implementation source files
+    - **PASS** for `ui-bun.json`, `ui-node.json`, `host-bun.json`,
+      `host-node.json`, and `g0-bun.json`.
+
+Receipts
+
+- [`host-bun.json`](host-bun.json) and [`host-node.json`](host-node.json):
+  real OMP host-tool/URI bridge smoke on Bun and Node 24.
+- [`g0-bun.json`](g0-bun.json): current G0 protocol/UI smoke used as a
+  regression check; historical G0 receipts remain unchanged.
+- [`ui-bun.json`](ui-bun.json) and [`ui-node.json`](ui-node.json): prior UI
+  smoke receipts; hashes were rechecked in this pass and still match.
+
+Coverage gaps and limits
+
+- The scripted SSE provider is loopback-only and deterministic; no provider
+  credentials, external inference, or model billing is exercised.
+- The dirty-buffer check is a trusted OMP `tool_call` fixture path. It does not
+  yet integrate a Code-OSS buffer registry or editor version/hash conflict
+  check before a real write.
+- Native `bash`/`eval`/LSP/browser policy, PTY/custom TUI methods, dynamic
+  registry/MCP/config lifecycle, all 42 command payload schemas, durable host
+  state, and full OMP conformance remain open.
+- UI receipts exercise the protocol broker, not rendered Mac/iPhone visuals;
+  `open_url` is covered by a unit fixture only. Durable host, device identity,
+  relay, and iPhone continuity are not exercised.
+- Lifecycle tests verify the directly owned OMP child and bounded pipe writes;
+  descendant-process-tree ownership and a held-pipe descendant scenario remain
+  outside this slice.

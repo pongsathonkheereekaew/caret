@@ -1,0 +1,54 @@
+{
+  "date": "2026-09-12T14:05:11.883Z",
+  "hostRuntime": {
+    "name": "bun",
+    "version": "1.4.2"
+  },
+  "version": "omp/18.1.18",
+  "binarySha256": "035a35dcb249edb939fa02b74fc7c0df9b2eb659079349fbffb188e1b558957a",
+  "implementationSourceHashes": {
+    "packages/omp-adapter/src/client.ts": "ca7f07273648b079b03bec70b1e15603a20fbe97d849d9ee03f06b403fe17739",
+    "packages/omp-adapter/src/framing.ts": "3b590cc941147483a2586746338053882ebcb0795ee5b32135e8214bdd2f2daa",
+    "packages/omp-adapter/src/types.ts": "84e6f594fa598935863d933c4b30db3963954bffafdd05c871fd752c12338451",
+    "packages/omp-adapter/src/index.ts": "f4a587a2dbe318ec85c26ef007c74136c43da6b7ed91ff7f2c9969c6e69fab1d",
+    "scripts/omp-smoke.ts": "035d6e4746556120c51b9e610eee46933f45c366572fb3c73abd5086a5d7af4b"
+  },
+  "sourceReference": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "mode": "rpc-ui",
+  "checks": [
+    "ready-and-v2",
+    "rpc-ui-effective-tools",
+    "trusted-command-discovery",
+    "history-and-config-readback",
+    "extension-ui-confirm-deny",
+    "extension-ui-confirm-allow",
+    "zero-model-turns",
+    "bounded-close"
+  ],
+  "eventCounts": {
+    "ready": 1,
+    "extension_ui_request": 6,
+    "available_commands_update": 1,
+    "response": 9,
+    "prompt_result": 2
+  },
+  "toolNames": [
+    "read",
+    "bash",
+    "edit",
+    "ask",
+    "eval",
+    "glob",
+    "grep",
+    "task",
+    "hub",
+    "todo",
+    "web_search",
+    "write"
+  ],
+  "fixtureUiResponses": [
+    false,
+    true
+  ],
+  "limitations": "Local extension UI confirmation only; not tool-policy approval enforcement, provider streaming, durable host, Mac UI or full OMP conformance."
+}

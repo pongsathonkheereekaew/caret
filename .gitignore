@@ -3,3 +3,8 @@
 desktop/
 upstream/
 node_modules/
+dist/
+.expo/
+
+# Code-OSS packaged app outputs
+VSCode-*/

@@ -1,0 +1,45 @@
+{
+  "name": "caret",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/host",
+    "apps/macos",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test",
+    "typecheck": "tsc --noEmit",
+    "check:repo": "node scripts/ci-validate.mjs",
+    "smoke:omp": "bun scripts/omp-smoke.ts",
+    "smoke:omp:g1": "bun scripts/omp-g1-smoke.ts",
+    "smoke:omp:ui": "bun scripts/omp-ui-smoke.ts",
+    "test:mobile": "cd apps/ios && bun run test",
+    "build": "bun scripts/build-caret.ts",
+    "build:mac": "bun scripts/build-caret.ts --runtime --desktop",
+    "host": "node apps/host/src/cli.ts",
+    "smoke:relay": "bun scripts/relay-smoke.ts",
+    "prepare:omp": "bun scripts/prepare-omp-runtime.ts",
+    "smoke:omp:virtual": "bun scripts/omp-virtual-ui-smoke.ts",
+    "smoke:omp:permissions": "bun scripts/omp-native-permission-smoke.ts",
+    "smoke:omp:editor": "bun scripts/omp-native-editor-smoke.ts",
+    "smoke:portable": "bun scripts/portable-runtime-smoke.ts",
+    "build:portable": "bun scripts/build-caret.ts --portable",
+    "package:mac": "bun scripts/build-caret.ts --package",
+    "smoke:omp:ast": "bun scripts/omp-native-ast-smoke.ts",
+    "smoke:omp:codeoss": "bun scripts/omp-codeoss-editor-smoke.ts",
+    "prepare:desktop": "bun scripts/prepare-desktop.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.10",
+    "@types/qrcode": "1.5.6",
+    "@types/ws": "8.18.1",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "base64-js": "1.5.1",
+    "qrcode": "1.5.4",
+    "tweetnacl": "1.0.3",
+    "ws": "8.20.0"
+  }
+}

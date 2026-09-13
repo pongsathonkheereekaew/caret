@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ "${1:-}" = "--version" ]; then
+  printf '%s\n' 'omp/18.1.18'
+  exit 0
+fi
+exec "${CARET_NODE:-node}" "$SCRIPT_DIR/fake-host.mjs" "$@"

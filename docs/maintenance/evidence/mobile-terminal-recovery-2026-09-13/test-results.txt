@@ -1,0 +1,66 @@
+$ bun test src/__tests__
+bun test v1.4.2 (744846f84)
+
+src/__tests__/image-parser-bounds.test.ts:
+(pass) malformed ICNS and JXL containers terminate within a bounded subprocess [507.42ms]
+(pass) the backport remains idempotent and reads the production app PNG [198.84ms]
+
+src/__tests__/commands.test.ts:
+(pass) mobile command idempotency > same explicit id and payload joins the original record [4.35ms]
+(pass) mobile command idempotency > rejects same id with a changed command [1.16ms]
+(pass) mobile command idempotency > unknown commands require an explicit retry and preserve the id [0.21ms]
+(pass) mobile command idempotency > host command receipts can be absorbed without replay [0.32ms]
+
+src/__tests__/artifacts.test.ts:
+(pass) mobile artifact integrity > binds receipts to a task and classifies safe preview types [7.96ms]
+(pass) mobile artifact integrity > reconstructs bounded chunks and verifies the immutable hash [8.66ms]
+(pass) mobile artifact integrity > rejects tampered, truncated, and out-of-scope chunks [2.45ms]
+(pass) mobile artifact integrity > refuses to materialize a receipt above the explicit mobile cap [1.09ms]
+(pass) mobile artifact integrity > rejects a receipt that changes size during transfer [0.21ms]
+
+src/__tests__/state.test.ts:
+(pass) mobile transcript projection > uses one stable row for OMP full accumulating message updates [2.40ms]
+(pass) mobile transcript projection > appends assistant deltas when a message update has no content blocks [0.35ms]
+(pass) mobile transcript projection > projects tool execution start, partial result and isError terminal [1.10ms]
+(pass) mobile transcript projection > ignores stale incarnations and duplicate cursors [0.09ms]
+(pass) mobile transcript projection > keeps interactive events until explicitly resolved [0.17ms]
+(pass) mobile transcript projection > syncs live UI broker state without replacing same-token requests [0.78ms]
+(pass) mobile list and cache state > filters project/task search and archived rows [0.09ms]
+(pass) mobile list and cache state > rejects event pages for a different session through the reducer [0.19ms]
+(pass) mobile list and cache state > does not let an untagged empty page from an old request advance the selected task [0.04ms]
+(pass) mobile list and cache state > rejects a delayed page after switching to another session [0.05ms]
+(pass) mobile list and cache state > allows an explicitly identified empty page to advance its own cursor [0.02ms]
+(pass) mobile list and cache state > reports cache freshness from an explicit expiry [0.03ms]
+
+src/__tests__/replay.test.ts:
+(pass) offline snapshot replay > writes and reads a bounded incarnation-scoped snapshot [3.09ms]
+(pass) offline snapshot replay > never restores a snapshot from a different OMP incarnation [0.37ms]
+
+src/__tests__/pairing.test.ts:
+(pass) private pairing > parses the relay v2 JSON offer and rejects legacy/plaintext payloads [7.44ms]
+(pass) private pairing > stores token/key/public key in the secure-store seam only [1.93ms]
+(pass) private pairing > rejects public-key replacement until the old pairing is revoked [0.36ms]
+
+src/__tests__/virtual-terminal.test.ts:
+(pass) OMP virtual terminal projection > keeps ANSI output ordered and idempotent across duplicate replay [0.60ms]
+(pass) OMP virtual terminal projection > rejects output before open and after close, then preserves history on reopen [0.14ms]
+(pass) OMP virtual terminal projection > bounds history while retaining the newest sequence [4.81ms]
+(pass) OMP virtual terminal projection > validates durable input and resize payloads without retry metadata [0.40ms]
+(pass) terminal renderer recovery coordinator > replays once per ready generation and keeps mounted output incremental after trimming [0.46ms]
+(pass) terminal renderer recovery coordinator > requests one redraw for a truncated ready or a missing sequence, then streams new output [0.10ms]
+(pass) terminal renderer recovery coordinator > rejects stale renderer identity and does not recover a closed terminal [0.04ms]
+(pass) bundled terminal document bridge > contains xterm bundle and only accepts the Caret bridge envelope [3.95ms]
+(pass) bundled terminal document bridge > does not turn replayed device-status responses into terminal input [12.97ms]
+(pass) bundled terminal document bridge > keeps parser guard predicates exact without filtering user key bytes [0.10ms]
+
+src/__tests__/api.test.ts:
+(pass) mobile host API > hydrates bounded frame references before exposing an event page [3.59ms]
+(pass) mobile host API > rejects a frame whose reconstructed text fails the pinned hash [0.44ms]
+(pass) mobile host API > hydrates generic command responses behind the relay response reference [0.94ms]
+(pass) mobile host API > lists, captures, and reads artifacts through the same encrypted transport [0.59ms]
+(pass) mobile host API > does not expose an artifact chunk from another task [0.11ms]
+
+ 43 pass
+ 0 fail
+ 139 expect() calls
+Ran 43 tests across 8 files. [1078.00ms]

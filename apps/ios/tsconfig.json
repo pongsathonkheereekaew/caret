@@ -1,0 +1,15 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["react", "react-native", "bun"],
+    "paths": {
+      "@mobile/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../../packages/protocol/src/**/*.ts"]
+}

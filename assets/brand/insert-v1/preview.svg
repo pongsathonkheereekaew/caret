@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <defs>
+    <g id="mark" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M72 76 124 128 72 180"/><path d="M184 76v104"/>
+    </g>
+    <g id="light"><rect width="256" height="256" rx="57" fill="#F5F2EB"/><use href="#mark" color="#292A2C"/></g>
+    <g id="dark"><rect width="256" height="256" rx="57" fill="#25272B"/><use href="#mark" color="#F5F2EB"/></g>
+  </defs>
+  <rect width="1400" height="900" fill="#E8E6E1"/>
+  <rect x="700" width="700" height="900" fill="#16181B"/>
+  <g font-family="Arial, sans-serif">
+    <text x="72" y="80" fill="#292A2C" font-size="23" font-weight="bold" letter-spacing="4">CARET</text>
+    <text x="72" y="113" fill="#5A5B5D" font-size="15">INSERT / 02 — Refined vector study</text>
+    <text x="772" y="80" fill="#F5F2EB" font-size="23" font-weight="bold" letter-spacing="4">CARET</text>
+    <text x="772" y="113" fill="#B3B6BD" font-size="15">DARK / Same silhouette</text>
+    <use href="#light" transform="translate(158 183) scale(1.5)"/>
+    <use href="#dark" transform="translate(858 183) scale(1.5)"/>
+    <text x="72" y="648" fill="#5A5B5D" font-size="13" letter-spacing="2">ACTUAL PIXEL SIZES</text>
+    <text x="772" y="648" fill="#B3B6BD" font-size="13" letter-spacing="2">ACTUAL PIXEL SIZES</text>
+    <use href="#light" transform="translate(80 690) scale(.0625)"/>
+    <use href="#light" transform="translate(174 686) scale(.09375)"/>
+    <use href="#light" transform="translate(276 682) scale(.125)"/>
+    <use href="#light" transform="translate(386 674) scale(.1875)"/>
+    <use href="#light" transform="translate(508 666) scale(.25)"/>
+    <use href="#dark" transform="translate(780 690) scale(.0625)"/>
+    <use href="#dark" transform="translate(874 686) scale(.09375)"/>
+    <use href="#dark" transform="translate(976 682) scale(.125)"/>
+    <use href="#dark" transform="translate(1086 674) scale(.1875)"/>
+    <use href="#dark" transform="translate(1208 666) scale(.25)"/>
+    <g fill="#5A5B5D" font-size="13" text-anchor="middle">
+      <text x="88" y="764">16</text><text x="186" y="764">24</text><text x="292" y="764">32</text><text x="410" y="764">48</text><text x="540" y="764">64</text>
+    </g>
+    <g fill="#B3B6BD" font-size="13" text-anchor="middle">
+      <text x="788" y="764">16</text><text x="886" y="764">24</text><text x="992" y="764">32</text><text x="1110" y="764">48</text><text x="1240" y="764">64</text>
+    </g>
+    <text x="72" y="848" fill="#5A5B5D" font-size="14">Warm ivory · Graphite · Rounded terminals</text>
+    <text x="772" y="848" fill="#B3B6BD" font-size="14">Full-square exports · Platform mask applied separately</text>
+  </g>
+</svg>
