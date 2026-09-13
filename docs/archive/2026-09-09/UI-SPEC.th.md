@@ -1,5 +1,7 @@
 # Caret — สเปกหน้าตาและ interaction
 
+> Archived 9 September 2026. Living rules: [AGENTS.md](../../../AGENTS.md). Codex is the current UI reference.
+
 เป้าหมาย: high-fidelity Cursor workflows บน desktop และ mobile โดยใช้ชื่อ/identity ของ Caret เอกสารนี้เป็น design specification ไม่ใช่ UI implementation หรือ prototype ที่ใช้งานได้
 
 ## หลักฐานภาพที่ดูแล้ว

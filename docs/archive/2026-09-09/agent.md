@@ -9,7 +9,7 @@
 
 ## 1. Authoritative spec (conflict order)
 
-1. `docs/IMPLEMENTATION-PLAN.th.md` — v5, 9 Sep 2026. Wins over everything.
+1. `docs/archive/2026-09-09/IMPLEMENTATION-PLAN.th.md` — v5, 9 Sep 2026. Historical only. Living rules: [AGENTS.md](../../../AGENTS.md).
 2. Section L (Synara adoption) + L8 (single-harness contract) — wins over A–K on UI/backend conflicts.
 3. Section J (handoff v4, H01–H16) + Section K/K2 (scrutinize) — execution contracts.
 4. Supporting snapshots: `PARITY-MATRIX`, `UI-SPEC`, `ARCHITECTURE`,

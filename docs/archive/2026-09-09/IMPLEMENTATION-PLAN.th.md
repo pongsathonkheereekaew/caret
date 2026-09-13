@@ -2,6 +2,8 @@
 
 # Caret — แผนเดียวสำหรับสร้าง Cursor clone
 
+> Archived 9 September 2026. Living rules: [AGENTS.md](../../../AGENTS.md). This file does not win conflicts.
+
 **ฉบับ 5 · 9 กันยายน 2026 · เอกสารสำหรับส่งต่อการดำเนินงาน · ยังไม่เริ่มเขียนโค้ด**
 
 เป้าหมายคือผลิตภัณฑ์ชื่อ Caret ที่ fork Code - OSS ตั้งแต่ต้น มี Editor, Agents Window, mobile companion และบริการประกอบให้เทียบเคียง Cursor ตาม baseline ที่ล็อกไว้ ใช้ส่วนตัว ไม่มี deadline รองรับ desktop macOS/Windows/Linux เริ่มจากคอมพิวเตอร์ส่วนตัวที่เปิดอยู่ก่อนเพิ่ม cloud ใช้ Codex, OpenCode Go และ OpenRouter ที่ผู้ใช้มี

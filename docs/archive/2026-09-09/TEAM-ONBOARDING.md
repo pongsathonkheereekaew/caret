@@ -1,5 +1,8 @@
 # Team onboarding — Caret build/verify map (2026-09-10)
 
+> Archived 10 September 2026. Living rules: [AGENTS.md](../../../AGENTS.md).
+> One git repo now; do not recreate three checkouts from this map.
+
 Three checkouts, three branches, one control repo. Read `HANDOFF.md`
 first (status + decisions), then this file, then `backlog/`.
 

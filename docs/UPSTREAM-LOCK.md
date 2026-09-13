@@ -1,5 +1,8 @@
 # Caret — Upstream Lock Manifest (M0)
 
+> Dated SHA ledger. Living product rules: [AGENTS.md](../AGENTS.md). The Role
+> column below is historical; OMP is the current harness.
+
 Pinned 2026-09-09. Every `HEAD` below is a full SHA observed on that date via
 `git ls-remote`; re-pin explicitly before release, never float. Snapshots from
 planning research are NOT production locks — this file is the lock (R02).

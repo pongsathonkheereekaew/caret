@@ -1,6 +1,7 @@
 # Caret
 
-The AI-native code editor you own. Agents, predictive editing, and code review in one fast, local-first IDE. Your code never leaves your machine.
+The AI-native code editor you own. OMP runs on your Mac; Caret provides the
+workspace and a planned iPhone client.
 
 > This repository is private. Caret is in active personal development for macOS and is not publicly distributed yet.
 
@@ -17,8 +18,8 @@ The AI-native code editor you own. Agents, predictive editing, and code review i
 Development builds run on macOS. There is no public download yet.
 
 1. Clone this repository.
-2. Read [HANDOFF.md](HANDOFF.md) for the latest status.
-3. Read [docs/TEAM-ONBOARDING.md](docs/TEAM-ONBOARDING.md) before making changes.
+2. Read [AGENTS.md](AGENTS.md) for living agent rules.
+3. Read [docs/README.md](docs/README.md) for the document map.
 
 ## Built on VS Code
 
@@ -27,11 +28,10 @@ Caret is built on VS Code, so the editor, keybindings, and extensions you alread
 ## Repository layout
 
 - [AGENTS.md](AGENTS.md) - living agent instructions
-- [HANDOFF.md](HANDOFF.md) - dated control-repo status
-- [agent.md](agent.md) - historical pointer
-- [docs/](docs) - plans and contributor onboarding
-- [backlog/](backlog) - per-item evidence.
-- [scripts/](scripts) - repo checks.
+- [HANDOFF.md](HANDOFF.md) - pointer to current vs archived status
+- [docs/README.md](docs/README.md) - document map
+- [backlog/](backlog) - requirement graph and per-item evidence
+- [scripts/](scripts) - repo checks
 
 ## Development
 
@@ -41,13 +41,11 @@ Run the repo gate before pushing:
 node scripts/ci-validate.mjs
 ```
 
-See [HANDOFF.md](HANDOFF.md) for the full workflow.
-
 ## Documentation
 
-- Status and roadmap: [HANDOFF.md](HANDOFF.md)
-- Contributor onboarding: [docs/TEAM-ONBOARDING.md](docs/TEAM-ONBOARDING.md)
-- Master plan: [docs/IMPLEMENTATION-PLAN.th.md](docs/IMPLEMENTATION-PLAN.th.md)
+- Living rules: [AGENTS.md](AGENTS.md)
+- Document map: [docs/README.md](docs/README.md)
+- Dated snapshots: [docs/archive/](docs/archive/README.md)
 
 ## Security
 
