@@ -1,7 +1,8 @@
 # Caret — Continuation Brief (2026-09-10)
 
-For a new session: read `agent.md`, then this file, then the evidence in
-`backlog/`. Do not replay the conversation; the files below are the state.
+For a new session: read `AGENTS.md`, then this file, then the evidence in
+`backlog/`. `agent.md` is a historical pointer. Do not replay the conversation;
+the files below are the dated control-repo state.
 
 ## Objective
 

@@ -26,9 +26,10 @@ Caret is built on VS Code, so the editor, keybindings, and extensions you alread
 
 ## Repository layout
 
-- [HANDOFF.md](HANDOFF.md) - current status and roadmap.
-- [agent.md](agent.md) - build goal and working agreements.
-- [docs/](docs) - plans and contributor onboarding.
+- [AGENTS.md](AGENTS.md) - living agent instructions
+- [HANDOFF.md](HANDOFF.md) - dated control-repo status
+- [agent.md](agent.md) - historical pointer
+- [docs/](docs) - plans and contributor onboarding
 - [backlog/](backlog) - per-item evidence.
 - [scripts/](scripts) - repo checks.
 
