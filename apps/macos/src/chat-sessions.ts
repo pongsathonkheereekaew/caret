@@ -338,7 +338,20 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 		return inputState;
 	};
 
-	const provider: vscode.ChatSessionContentProvider = {
+	const provider: vscode.ChatSessionContentProvider & {
+		/**
+		 * Workbench picker write-through. The native composer pick stays
+		 * workbench-local, so the patched widget forwards it here as a session
+		 * option change (patch 0014), and this resolves the id against the live
+		 * catalog and writes it to the host with `set_model`. The base calls it
+		 * dynamically (the public d.ts predates the method); failures only log.
+		 */
+		provideHandleOptionsChange?: (
+			resource: vscode.Uri,
+			updates: ReadonlyArray<{ readonly optionId: string; readonly value: string | undefined }>,
+			token: vscode.CancellationToken,
+		) => void;
+	} = {
 		// Provider-level catalog for the scheme-keyed option store. The base
 		// refreshes this at content-provider registration (before any session
 		// opens), so native pickers list OMP models instead of reporting
@@ -347,6 +360,30 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 			const snapshot = await fetchGlobalOmpModelSnapshot(getClient, log, token);
 			const group = modelPickerGroupFromSnapshot(snapshot);
 			return { optionGroups: [group as unknown as vscode.ChatSessionProviderOptionGroup] };
+		},
+		provideHandleOptionsChange: (resource, updates) => {
+			void (async () => {
+				try {
+					const modelId = updates.find(update => update.optionId === CARET_OMP_MODELS_GROUP_ID)?.value;
+					if (!modelId) return;
+					const id = sessionIdFromUri({ scheme: resource.scheme, authority: resource.authority, path: resource.path });
+					if (!id) {
+						log(`Caret cannot change the model: unrecognized session resource ${resource.scheme}://${resource.authority}${resource.path}.`);
+						return;
+					}
+					const client = await getClient();
+					const session = await client.getSession(id);
+					const snapshot = await fetchOmpModelSnapshot(client, session, { log });
+					const provider = resolveOmpModelPickProvider(snapshot, modelId, undefined);
+					if (!provider) {
+						log(`Caret cannot change the model: provider for '${modelId}' is unknown. Refresh the model list first.`);
+						return;
+					}
+					await setOmpModel(client, session, provider, modelId);
+				} catch (error) {
+					log(`Caret could not change the model: ${error instanceof Error ? error.message : String(error)}`);
+				}
+			})();
 		},
 		async provideChatSessionContent(resource, token) {
 			const sessionId = sessionIdFromUri(resource);

@@ -448,6 +448,18 @@ describe("ide-native workbench surface", () => {
 		expect(terminal!.disposed).toBe(false);
 	});
 
+	it("opens an omp terminal for provider sign-in without touching task state", async () => {
+		await activateAndSettle();
+		await stubState.commands.get("caret.ompSignIn")!();
+		const terminal = stubState.terminals.at(-1);
+		expect(terminal).toBeDefined();
+		expect(terminal!.name).toContain("OMP sign-in");
+		expect(terminal!.showCount).toBeGreaterThan(0);
+		// Plain `omp` on purpose: inherited environment means the same
+		// credential store the user's own terminal logins and the host read.
+		expect(terminal!.sentText).toEqual(["omp"]);
+	});
+
 	it("reveals the Explorer and keeps IDE chrome for the Files action", async () => {
 		await activateAndSettle();
 		stubState.executed.length = 0;

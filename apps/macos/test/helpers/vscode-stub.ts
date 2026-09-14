@@ -29,9 +29,11 @@ export interface StubTerminal {
 	readonly options: { name: string; pty: StubPty };
 	showCount: number;
 	disposed: boolean;
+	readonly sentText: string[];
 	show(): void;
 	open(): void;
 	dispose(): void;
+	sendText(text: string): void;
 }
 
 export interface StubStatusItem {
@@ -81,6 +83,8 @@ export interface StubState {
 	readonly chatSessionControllers: any[];
 	/** Input states created via `createChatSessionInputState`, in order. */
 	readonly chatInputStates: any[];
+	/** Content providers registered by scheme. */
+	readonly chatContentProviders: { scheme: string; provider: any }[];
 }
 
 export const stubState: StubState = {
@@ -114,6 +118,7 @@ export const stubState: StubState = {
 	documents: new Map(),
 	chatSessionControllers: [],
 	chatInputStates: [],
+	chatContentProviders: [],
 };
 
 /** Clears per-test recordings and the active editor so state cannot leak. */
@@ -142,6 +147,7 @@ export function resetVscodeStub(): void {
 	stubState.workspaceFileUri = undefined;
 	stubState.chatSessionControllers.length = 0;
 	stubState.chatInputStates.length = 0;
+	stubState.chatContentProviders.length = 0;
 }
 
 /** Switch the stubbed active theme kind and fire the registered listeners, as
@@ -183,8 +189,12 @@ export function createVscodeStub(): unknown {
 			options,
 			showCount: 0,
 			disposed: false,
+			sentText: [],
 			show() {
 				terminal.showCount += 1;
+			},
+			sendText(text: string) {
+				terminal.sentText.push(text);
 			},
 			open() {
 				options.pty.open({ columns: 80, rows: 24 });
@@ -245,7 +255,10 @@ export function createVscodeStub(): unknown {
 				stubState.chatSessionControllers.push(controller);
 				return controller;
 			},
-			registerChatSessionContentProvider: () => ({ dispose() {} }),
+			registerChatSessionContentProvider: (scheme: string, provider: any) => {
+				stubState.chatContentProviders.push({ scheme, provider });
+				return { dispose() {} };
+			},
 		},
 		EventEmitter: class {
 			readonly #listeners = new Set<(value: any) => void>();

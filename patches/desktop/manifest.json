@@ -44,6 +44,10 @@
     {
       "file": "0013-caret-sessions-option-key-bridge.patch",
       "sha256": "3995b8cbd4214a76b42d2ef71f971380b7fa53474c7167c47db5489f920e2309"
+    },
+    {
+      "file": "0014-caret-sessions-pick-writethrough.patch",
+      "sha256": "49120e61e6a47b55ff3a74db55892bdc2c9997404b688458b916582af2da72c9"
     }
   ],
   "removals": [

@@ -72,11 +72,16 @@
         "title": "Open Terminal",
         "category": "Caret"
       },
-      {
-        "command": "caret.openSettings",
-        "title": "Open Settings",
-        "category": "Caret"
-      },
+        {
+          "command": "caret.openSettings",
+          "title": "Open Settings",
+          "category": "Caret"
+        },
+        {
+          "command": "caret.ompSignIn",
+          "title": "OMP Sign In (/login)",
+          "category": "Caret"
+        },
       {
         "command": "caret.searchTasks",
         "title": "Search Tasks",

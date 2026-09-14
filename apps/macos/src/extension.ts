@@ -2391,6 +2391,19 @@ export class CaretTaskViewProvider {
 		this.post({ type: "open_settings", section: "Devices/connections" });
 	}
 
+	/**
+	 * Open a terminal running `omp` so the user can sign providers in with
+	 * `/login <provider>`. Plain inherited environment on purpose: it is the
+	 * same credential store the user's own terminal logins and the host read,
+	 * so nothing is invented and nothing needs syncing. Not tracked as a task
+	 * work resource — signing in is account setup, not task output.
+	 */
+	async ompSignIn(): Promise<void> {
+		const terminal = vscode.window.createTerminal({ name: "OMP sign-in (/login)" });
+		terminal.show();
+		terminal.sendText("omp");
+	}
+
 	private async runMoreAction(id: string): Promise<void> {
 		const session = this.#state.session;
 		if (id === "open_ide_new_window") return this.setWorkbenchMode("ide", { newWindow: true });
@@ -3708,7 +3721,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand("caret.showDiff", () => provider.nativeAction("diff")),
 		vscode.commands.registerCommand("caret.openTerminal", () => provider.nativeAction("terminal")),
 		vscode.commands.registerCommand("caret.openSettings", () => provider.openCaretSettings()),
-		vscode.commands.registerCommand("caret.searchTasks", () => provider.focusSearch()),
+		vscode.commands.registerCommand("caret.ompSignIn", () => provider.ompSignIn()),		vscode.commands.registerCommand("caret.searchTasks", () => provider.focusSearch()),
 		vscode.commands.registerCommand("caret.skipToTask", () => provider.skipToTask()),
 		vscode.commands.registerCommand("caret.pairDevice", () => provider.pairDevice()),
 		vscode.commands.registerCommand("caret.connectIPhone", () => provider.pairDevice()),

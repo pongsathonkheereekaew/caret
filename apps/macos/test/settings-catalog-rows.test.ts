@@ -65,7 +65,15 @@ describe("bindSettingsCatalogRows", () => {
 			section: "Tools/MCP",
 			loginProviders: providers,
 		});
-		expect(agents.map((row) => row.id)).toEqual(["provider:openai", "provider:anthropic", "provider:relay"]);
+		expect(agents.map((row) => row.id)).toEqual(["omp:sign-in", "provider:openai", "provider:anthropic", "provider:relay"]);
+		expect(byId(agents, "omp:sign-in")).toMatchObject({
+			section: "Agents/OMP",
+			label: "OMP sign-in (/login)",
+			value: "1 of 2 need sign-in",
+			scope: "global",
+			writable: false,
+		});
+		expect(byId(agents, "omp:sign-in").reason).toContain("/login");
 		expect(byId(agents, "provider:openai")).toMatchObject({
 			section: "Agents/OMP",
 			label: "OpenAI",
@@ -204,7 +212,7 @@ describe("bindSettingsCatalogRows", () => {
 		expect(bindSettingsCatalogRows({ section: "Cloud" })).toEqual([]);
 		expect(bindSettingsCatalogRows({ section: "not-a-section", models: [{ id: "gpt-5" }] })).toEqual([]);
 		expect(bindSettingsCatalogRows({ section: "Models/providers" })).toEqual([]);
-		expect(bindSettingsCatalogRows({ section: "Agents/OMP", loginProviders: [] })).toEqual([]);
+		expect(bindSettingsCatalogRows({ section: "Agents/OMP", loginProviders: [] }).map((row) => row.id)).toEqual(["omp:sign-in"]);
 		expect(bindSettingsCatalogRows({ section: "Workspace/editor" })).toEqual([]);
 	});
 

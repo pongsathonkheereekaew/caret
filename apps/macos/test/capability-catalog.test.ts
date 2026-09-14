@@ -117,3 +117,36 @@ describe("ompSettingsCatalog", () => {
 		expect(byId(catalog, "browser").reason).toBe("Bridge handshake failed");
 	});
 });
+
+describe("omp-sign-in entry", () => {
+	it("reports available when every advertised provider is signed in", () => {
+		const catalog = ompSettingsCatalog({
+			loginProviders: [
+				{ id: "cursor", name: "Cursor", authenticated: true },
+				{ id: "openrouter", name: "OpenRouter", authenticated: true },
+			],
+		});
+		const entry = byId(catalog, "omp-sign-in");
+		expect(entry.status).toBe("available");
+		expect(entry.reason).toContain("2");
+	});
+
+	it("reports needs_auth naming the pending providers with the /login path", () => {
+		const catalog = ompSettingsCatalog({
+			loginProviders: [
+				{ id: "cursor", name: "Cursor", authenticated: true },
+				{ id: "anthropic", name: "Anthropic", authenticated: false },
+			],
+		});
+		const entry = byId(catalog, "omp-sign-in");
+		expect(entry.status).toBe("needs_auth");
+		expect(entry.reason).toContain("Anthropic");
+		expect(entry.reason).toContain("/login");
+	});
+
+	it("stays honest with no providers advertised", () => {
+		const entry = byId(ompSettingsCatalog({}), "omp-sign-in");
+		expect(entry.status).toBe("needs_auth");
+		expect(entry.reason).toContain("/login");
+	});
+});

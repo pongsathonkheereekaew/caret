@@ -51,6 +51,7 @@ export function bindSettingsCatalogRows(input: {
 
 	if (section === "Agents/OMP") {
 		const rows: SettingsBoundRow[] = [];
+		rows.push(ompSignInRow(section, source, input.loginProviders));
 		for (const provider of input.loginProviders ?? []) {
 			if (!provider.id || provider.id === BILLED_FALLBACK_ID) continue;
 			rows.push(boundRow({
@@ -184,6 +185,35 @@ function modelValue(model: {
 }): string {
 	if (model.available === false) return "unavailable";
 	return model.provider ? `available · ${model.provider}` : "available";
+}
+
+function ompSignInRow(
+	section: string,
+	source: string,
+	providers: readonly { readonly id: string; readonly name?: string; readonly available?: boolean; readonly authenticated?: boolean }[] | undefined,
+): SettingsBoundRow {
+	const meaningful = (providers ?? []).filter(provider => provider.id && provider.available !== false);
+	const pending = meaningful.filter(provider => provider.authenticated === false);
+	if (meaningful.length > 0 && pending.length === 0) {
+		return boundRow({
+			id: "omp:sign-in",
+			section,
+			label: "OMP sign-in (/login)",
+			value: `all ${meaningful.length} signed in`,
+			source,
+			kind: "hosted-action",
+			reason: "Sign in state comes from the same store as omp in a terminal; run Caret: OMP Sign In (/login) to attach another provider.",
+		});
+	}
+	return boundRow({
+		id: "omp:sign-in",
+		section,
+		label: "OMP sign-in (/login)",
+		value: meaningful.length === 0 ? "no providers advertised" : `${pending.length} of ${meaningful.length} need sign-in`,
+		source,
+		kind: "hosted-action",
+		reason: "Run Caret: OMP Sign In (/login), or run omp in a terminal and type /login <provider> — same credential store either way.",
+	});
 }
 
 function providerValue(provider: {

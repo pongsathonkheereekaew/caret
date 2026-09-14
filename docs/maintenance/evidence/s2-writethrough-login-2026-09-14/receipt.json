@@ -1,0 +1,23 @@
+{
+  "scope": "Write-through: native picker pick reaches the host as set_model, picker auth-aware from OMP terminal logins, omp login settings",
+  "capturedAt": "2026-09-14T19:40:00+07:00",
+  "branch": "main",
+  "method": "dev build + --agents + CDP DOM with trusted Input events; host /v1 API reads (local only, no inference attempted)",
+  "loginState": "OMP terminal logins observed via get_login_providers: authenticated openai-codex, openrouter, cursor, google-antigravity; unauthenticated anthropic, zai, kimi-code, github-copilot, devin, gemini-cli, xai and others. Same credential store as the terminal. OMP login is /login inside omp (no login subcommand).",
+  "change": {
+    "desktopPatch": "patches/desktop/0014 (delegate.setModel forwards user picks via setSessionOption in sessions windows only; restores never reach it)",
+    "extension": "provideHandleOptionsChange resolves the id against the live catalog and calls host set_model; failures only log. ompSignIn command opens a terminal running plain omp (inherited env, same store) for /login.",
+    "settings": "ompSettingsCatalog gains omp-sign-in summary entry; Agents/OMP rows gain omp:sign-in row with counts and the exact /login path."
+  },
+  "verified": {
+    "pickReachesHost": "PASS: picked GPT-5.6-Luna in the native picker; host recorded set_model completed model gpt-5.6-luna via openai-codex; label tracks the pick.",
+    "authAware": "PASS: provider resolved from the authenticated catalog; unauthenticated providers keep needs_auth reason (unit) and the settings row names them with the /login path.",
+    "noResetOnOpen": "PASS by construction plus unit coverage: restores use _applyProgrammaticLanguageModel, never delegate.setModel, so opening a chat cannot reset the host model.",
+    "sendReady": "PASS: composer textarea present, model GPT-5.6-Luna host-confirmed, Send enabled. Live turn NOT fired (needs inference on the subscription)."
+  },
+  "stillOpen": [
+    "Live prompt round-trip: fire one short turn on user authorization (uses subscription quota).",
+    "S3 shell removal, S4 remaining rows."
+  ],
+  "checks": "bun test apps/macos 560 pass, 1 pre-existing fail (menus-contract, fails on clean tree); tsc clean; desktop typecheck-client clean; ci-validate CI-OK"
+}

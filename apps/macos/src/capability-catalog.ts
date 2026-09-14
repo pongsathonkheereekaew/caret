@@ -86,7 +86,7 @@ export function ompSettingsCatalog(input: OmpSettingsCatalogInput = {}): Catalog
 		}
 	}
 
-	const entries: CatalogEntry[] = [];
+	const entries: CatalogEntry[] = [ompSignInEntry(input.loginProviders)];
 
 	for (const model of input.models ?? []) {
 		entries.push(modelEntry(model, authByProvider));
@@ -101,6 +101,30 @@ export function ompSettingsCatalog(input: OmpSettingsCatalogInput = {}): Catalog
 	}
 
 	return entries.filter((entry) => entry.id !== BILLED_FALLBACK_ID);
+}
+
+function ompSignInEntry(providers: readonly LoginProvider[] | undefined): CatalogEntry {
+	const meaningful = (providers ?? []).filter(provider => provider.id && provider.available !== false);
+	const pending = meaningful.filter(provider => provider.authenticated === false);
+	if (meaningful.length > 0 && pending.length === 0) {
+		return {
+			id: "omp-sign-in",
+			label: "OMP sign-in (/login)",
+			status: "available",
+			owner: "omp",
+			reason: `All ${meaningful.length} providers signed in`,
+		};
+	}
+	return {
+		id: "omp-sign-in",
+		label: "OMP sign-in (/login)",
+		status: "needs_auth",
+		owner: "omp",
+		reason:
+			meaningful.length === 0
+				? "No providers advertised yet — run Caret: OMP Sign In (/login), or run omp in a terminal and type /login <provider>"
+				: `${pending.length} of ${meaningful.length} providers need sign-in (${pending.map(provider => provider.name ?? provider.id).join(", ")}) — run Caret: OMP Sign In (/login), or run omp in a terminal and type /login <provider>`,
+	};
 }
 
 function modelEntry(model: AdvertisedModel, authByProvider: Map<string, boolean>): CatalogEntry {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { installVscodeStub, stubState } from "./helpers/vscode-stub.ts";
-import {
+import { installVscodeStub, stubState } from "./helpers/vscode-stub.ts";import {
 	abortRequest,
 	CARET_CHAT_PARTICIPANT_ID,
 	CARET_CHAT_SESSION_SCHEME,
@@ -625,5 +624,70 @@ describe("global OMP catalog probe (fixtures only)", () => {
 		const client = probeClient([]);
 		const snapshot = await chatSessions.fetchGlobalOmpModelSnapshot(async () => client, (message: string) => logs.push(message));
 		expect(snapshot).toEqual({ models: [], hasModels: false });
+	});
+});
+
+describe("workbench pick write-through via provideHandleOptionsChange (fixtures only)", () => {
+	function optionsClient(setModelCalls: any[]): any {
+		return {
+			async getSession() {
+				return session();
+			},
+			async sendCommand(_sessionId: string, request: any) {
+				if (request.command === "get_available_models") {
+					return baseCommand({
+						result: { data: { models: [{ id: "probe-model", provider: "probe", label: "Probe" }] } },
+					});
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: {} } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [] } } });
+				}
+				if (request.command === "set_model") {
+					setModelCalls.push(request);
+					return baseCommand({ status: "completed" });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+		};
+	}
+
+	it("writes a workbench pick to the host with set_model", async () => {
+		stubState.chatContentProviders.length = 0;
+		const setModelCalls: any[] = [];
+		const logs: string[] = [];
+		const client = optionsClient(setModelCalls);
+		chatSessions.registerCaretChatSessions({ getClient: async () => client, log: (message: string) => logs.push(message) });
+		const entry = stubState.chatContentProviders.at(-1);
+		if (!entry) throw new Error("content provider was not registered");
+		expect(entry.scheme).toBe("caret");
+		await entry.provider.provideHandleOptionsChange(
+			{ scheme: "caret", authority: "session", path: "/s1" },
+			[{ optionId: "models", value: "probe-model" }],
+			{ isCancellationRequested: false },
+		);
+		await tick(50);
+		expect(setModelCalls.map(call => call.payload)).toEqual([{ provider: "probe", modelId: "probe-model" }]);
+		expect(logs).toEqual([]);
+	});
+
+	it("logs honestly and sends nothing for an unknown model id", async () => {
+		stubState.chatContentProviders.length = 0;
+		const setModelCalls: any[] = [];
+		const logs: string[] = [];
+		const client = optionsClient(setModelCalls);
+		chatSessions.registerCaretChatSessions({ getClient: async () => client, log: (message: string) => logs.push(message) });
+		const entry = stubState.chatContentProviders.at(-1);
+		if (!entry) throw new Error("content provider was not registered");
+		await entry.provider.provideHandleOptionsChange(
+			{ scheme: "caret", authority: "session", path: "/s1" },
+			[{ optionId: "models", value: "ghost-model" }],
+			{ isCancellationRequested: false },
+		);
+		await tick(50);
+		expect(setModelCalls).toEqual([]);
+		expect(logs.some(message => message.includes("ghost-model") && message.includes("unknown"))).toBe(true);
 	});
 });
