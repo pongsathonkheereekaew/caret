@@ -1,4 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { installVscodeStub, stubState } from "./helpers/vscode-stub.ts";
 import {
 	abortRequest,
 	CARET_CHAT_PARTICIPANT_ID,
@@ -308,50 +309,11 @@ describe("OMP model pick resolution (fixtures only, m4)", () => {
 // chat-sessions.ts fixture tests (mocked host + mocked vscode, no providers).
 // ---------------------------------------------------------------------------
 
-const vscodeInputStates: any[] = [];
-let vscodeController: any = null;
-mock.module("vscode", () => ({
-	ChatSessionStatus: { Completed: 0, Failed: 1, InProgress: 2 },
-	CancellationError: class extends Error {
-		override name = "CancellationError";
-	},
-	Disposable: { from: (..._disposables: any[]) => ({ dispose() {} }) },
-	Uri: {
-		parse: (value: string) => {
-			const url = new URL(value);
-			return { scheme: url.protocol.replace(":", ""), authority: url.host, path: url.pathname, toString: () => value };
-		},
-	},
-	ChatRequestTurn2: class {},
-	ChatResponseTurn2: class {},
-	ChatResponseMarkdownPart: class {},
-	chat: {
-		createChatParticipant: () => ({ dispose() {} }),
-		createChatSessionItemController: () => {
-			vscodeController = {
-				items: { replace() {}, add() {} },
-				createChatSessionItem: (uri: any, label: string) => ({ uri, label }),
-				createChatSessionInputState: (groups: any[]) => {
-					const state: any = {
-						groups,
-						_cb: null as ((...args: any[]) => void) | null,
-						onDidChange(cb: (...args: any[]) => void) {
-							state._cb = cb;
-							return { dispose() {} };
-						},
-						fire() {
-							state._cb?.();
-						},
-					};
-					vscodeInputStates.push(state);
-					return state;
-				},
-			};
-			return vscodeController;
-		},
-		registerChatSessionContentProvider: () => ({ dispose() {} }),
-	},
-}));
+installVscodeStub();
+const vscodeInputStates: any[] = stubState.chatInputStates;
+function vscodeController(): any {
+	return stubState.chatSessionControllers.at(-1);
+}
 
 const chatSessions: typeof import("../src/chat-sessions.ts") = await import("../src/chat-sessions.ts");
 
@@ -549,7 +511,7 @@ describe("model picker pick -> set_model (fixtures only, B1 + unknown-provider)"
 		chatSessions.registerCaretChatSessions({ getClient: async () => client, log: (message: string) => logs.push(message) });
 		const token: any = { isCancellationRequested: false };
 		const resource: any = { scheme: "caret", authority: "session", path: "/s1" };
-		await vscodeController.getChatSessionInputState(resource, {}, token);
+		await vscodeController().getChatSessionInputState(resource, {}, token);
 		const inputState = vscodeInputStates.at(-1);
 		expect(inputState.groups.find((group: any) => group.id === "models")?.selected?.id).toBe("probe-model");
 		// The fetch token is normally cancelled by the time the user picks.
@@ -571,12 +533,97 @@ describe("model picker pick -> set_model (fixtures only, B1 + unknown-provider)"
 		const client = pickerClient(setModelCalls);
 		chatSessions.registerCaretChatSessions({ getClient: async () => client, log: (message: string) => logs.push(message) });
 		const resource: any = { scheme: "caret", authority: "session", path: "/s1" };
-		await vscodeController.getChatSessionInputState(resource, {}, { isCancellationRequested: false });
+		await vscodeController().getChatSessionInputState(resource, {}, { isCancellationRequested: false });
 		const inputState = vscodeInputStates.at(-1);
 		inputState.groups.find((group: any) => group.id === "models").selected = { id: "ghost-model", name: "Ghost" };
 		inputState.fire();
 		await tick(50);
 		expect(setModelCalls).toEqual([]);
 		expect(logs.some(message => message.includes("ghost-model") && message.includes("unknown"))).toBe(true);
+	});
+});
+
+describe("draft input state lists the global OMP catalog (fixtures only)", () => {
+	function draftClient(sessions: any[]): any {
+		return {
+			async listSessions() {
+				return sessions;
+			},
+			async sendCommand(_sessionId: string, request: any) {
+				if (request.command === "get_available_models") {
+					return baseCommand({
+						result: { data: { models: [{ id: "probe-model", provider: "probe", label: "Probe" }] } },
+					});
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: {} } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [] } } });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+		};
+	}
+
+	it("lists the catalog through any available session when there is no session yet", async () => {
+		vscodeInputStates.length = 0;
+		const logs: string[] = [];
+		const client = draftClient([session(), session({ id: "s2", archived: true })]);
+		chatSessions.registerCaretChatSessions({ getClient: async () => client, log: (message: string) => logs.push(message) });
+		await vscodeController().getChatSessionInputState(undefined, {}, { isCancellationRequested: false });
+		const inputState = vscodeInputStates.at(-1);
+		expect(inputState.groups.find((group: any) => group.id === "models")?.items.map((item: any) => item.id)).toEqual([
+			"probe-model",
+		]);
+	});
+
+	it("stays honestly empty when no sessions exist at all", async () => {
+		vscodeInputStates.length = 0;
+		const logs: string[] = [];
+		const client = draftClient([]);
+		chatSessions.registerCaretChatSessions({ getClient: async () => client, log: (message: string) => logs.push(message) });
+		await vscodeController().getChatSessionInputState(undefined, {}, { isCancellationRequested: false });
+		const inputState = vscodeInputStates.at(-1);
+		expect(inputState.groups.find((group: any) => group.id === "models")?.items).toEqual([]);
+	});
+});
+
+describe("global OMP catalog probe (fixtures only)", () => {
+	function probeClient(sessions: any[]): any {
+		return {
+			async listSessions() {
+				return sessions;
+			},
+			async sendCommand(_sessionId: string, request: any) {
+				if (request.command === "get_available_models") {
+					return baseCommand({
+						result: { data: { models: [{ id: "probe-model", provider: "probe", label: "Probe" }] } },
+					});
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: {} } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [] } } });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+		};
+	}
+
+	it("lists through the first non-archived session", async () => {
+		const logs: string[] = [];
+		const client = probeClient([session({ id: "archived", archived: true }), session({ id: "live" })]);
+		const snapshot = await chatSessions.fetchGlobalOmpModelSnapshot(async () => client, (message: string) => logs.push(message));
+		expect(snapshot.models.map(model => model.id)).toEqual(["probe-model"]);
+		expect(logs).toEqual([]);
+	});
+
+	it("stays empty when no sessions exist", async () => {
+		const logs: string[] = [];
+		const client = probeClient([]);
+		const snapshot = await chatSessions.fetchGlobalOmpModelSnapshot(async () => client, (message: string) => logs.push(message));
+		expect(snapshot).toEqual({ models: [], hasModels: false });
 	});
 });

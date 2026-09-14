@@ -7,6 +7,14 @@
 import type { CommandRequest, Project, Session } from "../../../packages/protocol/src/index.ts";
 import type { TranscriptEntry } from "./state.ts";
 
+/**
+ * Item URI scheme. It intentionally differs from {@link CARET_CHAT_SESSION_TYPE}
+ * (`caret` vs `caret.omp`, matching upstream's scheme/type split): the scheme
+ * keys item resources and the content provider, while the controller type keys
+ * the option-group store. Patch 0011 bridges the two (dual-index on publish)
+ * so the picker reads the OMP catalog under either key. Window-local only;
+ * the host store is keyed by session id.
+ */
 export const CARET_CHAT_SESSION_SCHEME = "caret";
 /**
  * One id for the whole surface: the chat session type, the contributed

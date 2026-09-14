@@ -1,0 +1,23 @@
+{
+  "scope": "S2 picker binding: list OMP catalog in the native composer, zero Copilot surfaces",
+  "capturedAt": "2026-09-14T18:30:00+07:00",
+  "branch": "main",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "question": "Why does the composer Models button open Sign in to use Copilot, and does Copilot remain?",
+  "rootCause": "Copilot harness/provider/auth are removed (S1); the residue is base UI copy plus a wiring split. Item URIs use scheme caret while the item controller registered type caret.omp, so extHost type-keyed lookups miss: per-session input state never ran, the type option store stayed empty, delegate models were empty, and modelPickerRequiresSetup fired the Copilot setup branch. Fixed at the source (extension publishes the catalog for the controller key and the scheme key) plus a sessions-window guard (patch 0011) so setup-required can never render Copilot copy in the Agents window.",
+  "method": "dev build from desktop/ checkout + --agents + CDP DOM",
+  "harnessNote": "/codex-computer-use unavailable here; used repo harness (dev build + --agents + CDP DOM, trusted Input events for clicks because synthetic MouseEvent is ignored by the base picker). Window left running (profile /tmp/caret-0016-profile, CDP 9339).",
+  "checks": "bun test apps/macos 553 pass, 1 pre-existing fail (menus-contract, fails on clean tree too); tsc clean; desktop typecheck-client clean; ci-validate CI-OK",
+  "verified": {
+    "setupGateDead": "PASS: no Sign in to use Copilot anywhere before, during, or after picker interaction (was reproducible before patch 0011).",
+    "pickerLabel": "PASS: label shows the OMP current/default model (DeepSeek V4.1 Flash), zero Copilot text.",
+    "listsOmpCatalog": "PASS: trusted click on Models opens options Grok 4.6, GPT-5.6-Luna, GPT-6-Astra, DeepSeek V4.1 Flash, Muse Spark 1.3 Contributor; zero Copilot text.",
+    "honestEmpty": "PASS (earlier run): empty catalog shows No models available, zero Copilot text.",
+    "selectionPersistsToHost": "FAIL: after picking Grok 4.6 the label updates but host commands show no set_model (23 commands, all reads)."
+  },
+  "stillOpen": [
+    "Selection write-through: the workbench pick stays workbench-local and never calls sessions provider.setModel. Next: route workbench selection into sessionModelSelection.selectModel or the sessions chat view.",
+    "Prompt round-trip: blocked on write-through plus provider auth; no inference attempted.",
+    "S3: window.caret-shell still present. S4: sidebar/header/welcome copy gaps unchanged."
+  ]
+}

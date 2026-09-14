@@ -75,6 +75,10 @@ export interface StubState {
 	activeTerminal: any;
 	workspaceRoot: string | undefined;
 	readonly documents: Map<string, { text: string; languageId?: string }>;
+	/** Chat session item controllers created via the proposed sessions API. */
+	readonly chatSessionControllers: any[];
+	/** Input states created via `createChatSessionInputState`, in order. */
+	readonly chatInputStates: any[];
 }
 
 export const stubState: StubState = {
@@ -105,6 +109,8 @@ export const stubState: StubState = {
 	activeTerminal: undefined,
 	workspaceRoot: undefined,
 	documents: new Map(),
+	chatSessionControllers: [],
+	chatInputStates: [],
 };
 
 /** Clears per-test recordings and the active editor so state cannot leak. */
@@ -130,6 +136,8 @@ export function resetVscodeStub(): void {
 	stubState.themeKind = 2;
 	stubState.themeChangeListeners.length = 0;
 	stubState.rejectWorkspaceWrites = false;
+	stubState.chatSessionControllers.length = 0;
+	stubState.chatInputStates.length = 0;
 }
 
 /** Switch the stubbed active theme kind and fire the registered listeners, as
@@ -143,7 +151,19 @@ export function stubUri(value: string): any {
 	const scheme = value.includes(":") ? value.slice(0, value.indexOf(":")) : "file";
 	const fsPath = scheme === "file" ? value.replace(/^file:\/\//, "") : "";
 	const path = fsPath || value;
-	return { scheme, path, fsPath, toString: () => (scheme === "file" ? `file://${fsPath}` : value) };
+	// Hierarchical authority for non-file URIs (e.g. `caret.omp://session/s1`
+	// -> authority `session`, path `/s1`). File and opaque URIs keep their
+	// exact previous shape so round-trips are unaffected.
+	let authority: string | undefined;
+	let rest = path;
+	if (scheme !== "file") {
+		const match = /^([a-z][a-z0-9+.-]*):\/\/([^/]*)(.*)$/i.exec(value);
+		if (match) {
+			authority = match[2] || undefined;
+			rest = match[3] || value;
+		}
+	}
+	return { scheme, authority, path: scheme === "file" ? path : rest, fsPath, toString: () => (scheme === "file" ? `file://${fsPath}` : value) };
 }
 
 /** `caret-review:` style URIs keep their raw spelling so a parse/toString round
@@ -185,6 +205,43 @@ export function createVscodeStub(): unknown {
 				return uri;
 			},
 			joinPath: (base: any, ...parts: string[]) => stubUri(`file://${[base?.fsPath, ...parts].join("/")}`),
+		},
+		ChatSessionStatus: { Completed: 0, Failed: 1, InProgress: 2 },
+		CancellationError: class extends Error {
+			override name = "CancellationError";
+		},
+		ChatRequestTurn2: class {},
+		ChatResponseTurn2: class {},
+		ChatResponseMarkdownPart: class {},
+		Disposable: { from: (..._disposables: any[]) => ({ dispose() {} }) },
+		// Proposed chat sessions API. Controllers and input states record into
+		// stubState so tests can drive the exact instance the module registered.
+		chat: {
+			createChatParticipant: () => ({ dispose() {} }),
+			createChatSessionItemController: () => {
+				const controller: any = {
+					items: { replace() {}, add() {} },
+					createChatSessionItem: (uri: any, label: string) => ({ uri, label }),
+					createChatSessionInputState: (groups: any[]) => {
+						const state: any = {
+							groups,
+							_cb: null as ((...args: any[]) => void) | null,
+							onDidChange(cb: (...args: any[]) => void) {
+								state._cb = cb;
+								return { dispose() {} };
+							},
+							fire() {
+								state._cb?.();
+							},
+						};
+						stubState.chatInputStates.push(state);
+						return state;
+					},
+				};
+				stubState.chatSessionControllers.push(controller);
+				return controller;
+			},
+			registerChatSessionContentProvider: () => ({ dispose() {} }),
 		},
 		EventEmitter: class {
 			readonly #listeners = new Set<(value: any) => void>();

@@ -155,6 +155,55 @@ export async function readSessionState(client: CaretHostClient, sessionId: strin
 }
 
 /**
+ * List the global OMP catalog through any available session purely as the
+ * query envelope; the models are not attributed to that session. The catalog
+ * itself is global to OMP. No sessions at all means honestly empty. Never
+ * throws — callers stay honest-disabled on failure.
+ */
+export async function fetchGlobalOmpModelSnapshot(
+	getClient: () => Promise<CaretHostClient>,
+	log: (message: string) => void,
+	token?: { readonly isCancellationRequested: boolean },
+): Promise<OmpModelSnapshot> {
+	try {
+		const client = await getClient();
+		const sessions = await client.listSessions();
+		const probe = sessions.find(candidate => !candidate.archived) ?? sessions[0];
+		if (probe && !(token?.isCancellationRequested ?? false)) {
+			return await fetchOmpModelSnapshot(client, probe, { log });
+		}
+	} catch (error) {
+		log(`Caret could not list OMP models: ${error instanceof Error ? error.message : String(error)}`);
+	}
+	return { models: [], hasModels: false };
+}
+
+/**
+ * Snapshot for an input-state fetch: the session's own catalog when a host
+ * session is resolved, otherwise the global catalog via the probe helper
+ * (draft and registration-time fetches).
+ */
+async function snapshotForInputState(
+	getClient: () => Promise<CaretHostClient>,
+	log: (message: string) => void,
+	hostSession: Session | undefined,
+	token: { readonly isCancellationRequested: boolean },
+): Promise<OmpModelSnapshot> {
+	if (!hostSession) {
+		return fetchGlobalOmpModelSnapshot(getClient, log, token);
+	}
+	if (token.isCancellationRequested) {
+		return { models: [], hasModels: false };
+	}
+	try {
+		return await fetchOmpModelSnapshot(await getClient(), hostSession, { log });
+	} catch (error) {
+		log(`Caret could not read OMP models: ${error instanceof Error ? error.message : String(error)}`);
+		return { models: [], hasModels: false };
+	}
+}
+
+/**
  * Register Caret as this window's chat session provider and return a disposable
  * that unregisters the participant, controller and content provider together.
  */
@@ -240,22 +289,16 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 				log(`Caret could not resolve the session for the model picker: ${error instanceof Error ? error.message : String(error)}`);
 			}
 		}
-		// Draft (untitled) inputs have no OMP session yet, so there is nothing
-		// to list from. Returning an empty group keeps the picker honest instead
-		// of showing models that cannot be applied.
-		let snapshot: OmpModelSnapshot = { models: [], hasModels: false };
-		if (hostSession && !token.isCancellationRequested) {
-			try {
-				snapshot = await fetchOmpModelSnapshot(await getClient(), hostSession, { log });
-			} catch (error) {
-				log(`Caret could not read OMP models: ${error instanceof Error ? error.message : String(error)}`);
-				snapshot = { models: [], hasModels: false };
-			}
-		}
+		const snapshot = await snapshotForInputState(getClient, log, hostSession, token);
 		const group = modelPickerGroupFromSnapshot(snapshot);
 		const inputState = controller.createChatSessionInputState([
 			group as unknown as vscode.ChatSessionProviderOptionGroup,
 		]);
+		// Publish the catalog to the main-side type store (the input-state
+		// result itself only carries selected values downstream). Replacing the
+		// whole groups array is the API's update mechanism, so this pushes the
+		// OMP catalog where native pickers and the bridge snapshot can list it.
+		inputState.groups = [...inputState.groups];
 		if (hostSession) {
 			const watched = hostSession;
 			let selectedId = snapshot.selectedModelId;
@@ -296,6 +339,15 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 	};
 
 	const provider: vscode.ChatSessionContentProvider = {
+		// Provider-level catalog for the scheme-keyed option store. The base
+		// refreshes this at content-provider registration (before any session
+		// opens), so native pickers list OMP models instead of reporting
+		// setup-required. Same probe rules as the draft input state.
+		provideChatSessionProviderOptions: async token => {
+			const snapshot = await fetchGlobalOmpModelSnapshot(getClient, log, token);
+			const group = modelPickerGroupFromSnapshot(snapshot);
+			return { optionGroups: [group as unknown as vscode.ChatSessionProviderOptionGroup] };
+		},
 		async provideChatSessionContent(resource, token) {
 			const sessionId = sessionIdFromUri(resource);
 			if (!sessionId) throw new Error("Caret received a chat session resource it does not own.");
