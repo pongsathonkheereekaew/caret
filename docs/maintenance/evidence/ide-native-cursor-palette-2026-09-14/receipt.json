@@ -1,0 +1,76 @@
+{
+  "scope": "Why the Caret window still read as upstream VS Code rather than as the product's own surface, and the measured change that fixes the IDE chrome and the agent dock together.",
+  "capturedAt": "2026-09-14T07:40:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "headCommit": "aa2942fe44e847e09b5fddf2119660939abe781e",
+  "question": "The user asked why Caret still does not look like the reference product on either the agent page or the IDE page.",
+  "method": {
+    "launch": "packaged VSCode-darwin-arm64/Caret.app relaunched from the same revision via `bun scripts/build-caret.ts --package`, private --user-data-dir=/tmp/caret-showcase, --password-store=basic --use-inmemory-secretstorage, workspace trust disabled for that profile only, no paid model calls",
+    "vision": "the vision model was rate limited for this session (HTTP 429 on every emitted image), so colours were read by decoding the captured JPEG/PNG and counting pixels instead of looking at the picture",
+    "colourRead": "sips converts the CUA window capture to PNG, then a dependency-free PNG decoder samples fixed regions of the window",
+    "reference": "the reference product's own shipped theme file on disk (extensions/theme-cursor/themes/cursor-dark-color-theme.json), not a screenshot"
+  },
+  "rootCause": {
+    "finding": "Caret ships no colour theme and no brand assets of its own. patches/desktop/0001-caret-startup-defaults.patch changes only startup defaults (upstream AI off, no welcome editor, no onboarding), and the packaged product.json carries no configurationDefaults. The app therefore renders with the pinned Code-OSS build's own default theme, '2026 Dark'.",
+    "engineDefault": {
+      "theme": "2026 Dark (extensions/theme-defaults/themes/2026-dark.json)",
+      "editorBackground": "#121314",
+      "chromeBackground": "#191A1B",
+      "accent": "#297AA0",
+      "shape": "chrome LIGHTER than the editor, teal accent"
+    },
+    "referencePalette": {
+      "theme": "the reference product's dark theme file",
+      "editorBackground": "#181818",
+      "chromeBackground": "#141414",
+      "foreground": "#F0F0F0",
+      "accent": "#81A1C1",
+      "badge": "#88C0D0",
+      "shape": "chrome DARKER than the editor, muted nordic blue accent"
+    },
+    "conclusion": "The two palettes differ in both hue family and the editor/chrome relationship, so the unthemed app cannot read as the reference product however closely the agent surface's layout and density follow it. The agent webview reads the same Code-OSS theme variables through its --caret-* token layer, so one missing palette degrades both surfaces at once."
+  },
+  "change": {
+    "added": "apps/macos/src/caret-theme.ts: CARET_DARK_ANCHORS (the measured values) and CARET_WORKBENCH_COLORS (the workbench keys the IDE chrome and the agent webview actually read).",
+    "wired": "apps/macos/src/extension.ts applyWorkbenchAppearance() now writes workbench.colorCustomizations at workspace scope in both modes, and skips the write when the user has set their own global colorCustomizations.",
+    "whyCustomisations": "Applied as colour customisations rather than a contributed theme so the pinned build's syntax colouring is inherited instead of reimplemented. The reference theme file is not shipped.",
+    "tests": "apps/macos/test/caret-theme.test.ts (anchors, the chrome-darker-than-editor invariant, coverage of every webview token, well-formed colours) and two new behavioural cases in apps/macos/test/ide-native-workbench.test.ts (the palette reaches the workbench; an explicit user choice is respected). The stub gained inspect() so the second case is real."
+  },
+  "measured": {
+    "before": {
+      "activityBar": "#191a1c",
+      "sideBar": "#191a1c",
+      "editor": "#121315",
+      "dock": "#121315",
+      "statusBar": "#191a1c"
+    },
+    "after": {
+      "activityBar": "#141414",
+      "sideBar": "#141414",
+      "editor": "#181818",
+      "dock": "#181818",
+      "statusBar": "#141414"
+    },
+    "reference": {
+      "editor": "#181818",
+      "chrome": "#141414"
+    },
+    "note": "Captured JPEG values land within one or two units of the configured hex because of macOS colour management; the sampled regions are listed in the method."
+  },
+  "verification": {
+    "tests": "617 pass / 0 fail / 3222 expect() calls across 86 files (bun run test)",
+    "typecheck": "tsc --noEmit clean",
+    "repoValidator": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "runtime": "The packaged app was rebuilt from this revision and relaunched; the extension wrote workbench.colorCustomizations into the workspace settings, and the window was re-captured and sampled as above."
+  },
+  "notVerified": {
+    "titleBarStrip": "The ~20px strip at the very top of the window still samples #191a1c and did not follow titleBar.activeBackground/titleBar.inactiveBackground overrides. Setting window.titleBarStyle=custom (application scope, via the profile) did not change it either, so this is most likely a native Electron/macOS-drawn bar rather than a theme key Caret can override. Left as an open item; the capture may also be of a window that is not frontmost, which would give an inactive system bar.",
+    "humanPixelReview": "No human or model looked at the two images; the claim is the sampled colours, not an aesthetic judgement.",
+    "syntaxColours": "Token colours are inherited from 2026 Dark unchanged, so code colouring is still the engine's, not the reference product's.",
+    "agentLayout": "This slice changes colour only. The agent surface's information architecture, density and empty-state copy are untouched."
+  },
+  "evidenceFiles": [
+    "window-before-2026-09-14.jpg",
+    "window-after-2026-09-14.jpg"
+  ]
+}

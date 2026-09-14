@@ -137,6 +137,30 @@ export class OmpTerminalViews {
 		}
 	}
 
+	preview(sessionId: string, incarnation: string): readonly {
+		readonly id: string;
+		readonly title: string;
+		readonly ended: boolean;
+		readonly truncated: boolean;
+		readonly text: string;
+	}[] {
+		const rows = [];
+		for (const record of this.#terminals.values()) {
+			if (record.sessionId !== sessionId || record.incarnation !== incarnation) continue;
+			let carry = "";
+			let text = "";
+			if (record.historyTruncated) text += HISTORY_TRUNCATED_MARKER;
+			for (const chunk of record.history) {
+				const next = takeTerminalParserQueries(chunk.data, carry);
+				carry = next.carry;
+				if (next.text) text += next.text;
+			}
+			if (text.length > 8_000) text = text.slice(-8_000);
+			rows.push({ id: record.id, title: record.title, ended: record.ended, truncated: record.historyTruncated, text });
+		}
+		return rows;
+	}
+
 	/** Dispose local terminal views while retaining no state after extension shutdown. */
 	dispose(): void {
 		for (const record of this.#terminals.values()) this.#detach(record, undefined, true);

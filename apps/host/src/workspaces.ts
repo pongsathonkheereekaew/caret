@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, symlinkSync, readlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, symlinkSync, readlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export function within(root: string, path: string): boolean {
@@ -39,9 +39,99 @@ export interface WorkspaceSnapshot {
   baseCommit: string;
   patchHash: string;
   files: { path: string; sha256: string; kind: "file" | "symlink" }[];
+  port?: number;
+  setupScript?: string;
+  runScript?: string;
+}
+
+export interface WorkspaceBootstrap {
+  readonly ignoreAllowlist?: readonly string[];
+  readonly setupScript?: string;
+  readonly runScript?: string;
+  readonly portStart?: number;
+}
+
+export interface CreateWorktreeOptions {
+  readonly allowlist?: readonly string[];
+  readonly setupScript?: string;
+  readonly runScript?: string;
+  readonly portStart?: number;
+  readonly usedPorts?: readonly number[];
+}
+
+const DEFAULT_PORT_START = 41_000;
+const PORT_SPAN = 10;
+
+export function loadWorkspaceBootstrap(projectPath: string): WorkspaceBootstrap {
+  const configPath = join(resolve(projectPath), ".caret", "workspace.json");
+  if (!existsSync(configPath)) return {};
+  const parsed = JSON.parse(readFileSync(configPath, "utf8")) as Record<string, unknown>;
+  const allowlist = Array.isArray(parsed.ignoreAllowlist) ? parsed.ignoreAllowlist.filter((item): item is string => typeof item === "string") : undefined;
+  return {
+    ...(allowlist ? { ignoreAllowlist: allowlist } : {}),
+    ...(typeof parsed.setup === "string" ? { setupScript: parsed.setup } : {}),
+    ...(typeof parsed.run === "string" ? { runScript: parsed.run } : {}),
+    ...(typeof parsed.portStart === "number" && Number.isSafeInteger(parsed.portStart) ? { portStart: parsed.portStart } : {}),
+  };
+}
+
+export function allocateWorkspacePort(used: readonly number[], start = DEFAULT_PORT_START): number {
+  const taken = new Set(used.filter(port => Number.isSafeInteger(port) && port > 0));
+  let port = start;
+  while (taken.has(port)) port += PORT_SPAN;
+  if (port > 65_000) throw new Error("No free workspace port in the allocated range");
+  return port;
+}
+
+export function collectUsedWorkspacePorts(stateDir: string): number[] {
+  const root = join(stateDir, "worktrees");
+  if (!existsSync(root)) return [];
+  const ports: number[] = [];
+  for (const name of readdirSync(root)) {
+    const manifest = join(stateDir, "sessions", name, "workspace.json");
+    if (!existsSync(manifest)) continue;
+    try {
+      const snapshot = JSON.parse(readFileSync(manifest, "utf8")) as { port?: unknown };
+      if (typeof snapshot.port === "number" && Number.isSafeInteger(snapshot.port)) ports.push(snapshot.port);
+    } catch { /* Ignore a corrupt sibling manifest; allocation still fail-closed on collision. */ }
+  }
+  return ports;
+}
+
+function assertAllowlistedPath(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.startsWith("/") || trimmed.includes("\0") || trimmed.split(/[\\/]/).some(part => part === "..")) {
+    throw new Error(`Ignored allowlist path is not a workspace-relative file: ${name}`);
+  }
+  return trimmed;
+}
+
+export function copyAllowlistedIgnored(sourceRoot: string, destinationRoot: string, allowlist: readonly string[]): { path: string; sha256: string }[] {
+  const copied: { path: string; sha256: string }[] = [];
+  for (const raw of allowlist) {
+    const name = assertAllowlistedPath(raw);
+    const source = workspacePath(sourceRoot, name);
+    if (!existsSync(source)) continue;
+    let ignored = false;
+    try {
+      execFileSync("git", ["-C", sourceRoot, "check-ignore", "-q", "--", name], { timeout: 10_000 });
+      ignored = true;
+    } catch (error) {
+      if ((error as { status?: number }).status !== 1) throw error;
+    }
+    if (!ignored) continue;
+    const stat = lstatSync(source);
+    if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error(`Allowlisted ignored file is not a small regular file: ${name}`);
+    const bytes = readFileSync(source);
+    const target = workspacePath(destinationRoot, name);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, bytes, { mode: 0o600 });
+    copied.push({ path: name, sha256: createHash("sha256").update(bytes).digest("hex") });
+  }
+  return copied;
 }
 /** Create an isolated task worktree including the selected source's uncommitted state. */
-export function createWorktree(source: string, destination: string, taskId: string): WorkspaceSnapshot {
+export function createWorktree(source: string, destination: string, taskId: string, options: CreateWorktreeOptions = {}): WorkspaceSnapshot {
   const root = gitRoot(source);
   if (!root) throw new Error("This folder is not a Git repository; use local mode");
   const baseCommit = git(root, ["rev-parse", "HEAD"]).toString().trim();
@@ -76,8 +166,12 @@ export function createWorktree(source: string, destination: string, taskId: stri
       if (actual !== file.hash) throw new Error(`Source changed during snapshot: ${file.name}`);
     }
     if (!git(root, ["diff", "--no-ext-diff", "--binary", "HEAD"]).equals(patch)) throw new Error("Tracked source changed during snapshot; retry from a stable revision");
+    const ignored = copyAllowlistedIgnored(root, destination, options.allowlist ?? []);
+    const port = allocateWorkspacePort(options.usedPorts ?? [], options.portStart ?? DEFAULT_PORT_START);
     const result: WorkspaceSnapshot = { cwd: resolve(destination, relative(root, realpathSync(source))), root: destination,
-      branch, baseCommit, patchHash: createHash("sha256").update(patch).digest("hex"), files: prepared.map(file => ({ path: file.name, sha256: file.hash, kind: file.kind })) };
+      branch, baseCommit, patchHash: createHash("sha256").update(patch).digest("hex"), files: prepared.map(file => ({ path: file.name, sha256: file.hash, kind: file.kind })),
+      port, ...(options.setupScript ? { setupScript: options.setupScript } : {}), ...(options.runScript ? { runScript: options.runScript } : {}) };
+    if (ignored.length) result.files.push(...ignored.map(file => ({ path: file.path, sha256: file.sha256, kind: "file" as const })));
     return result;
   } catch (error) {
     // Only remove the new, unexposed fixture worktree created by this operation.

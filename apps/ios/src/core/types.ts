@@ -115,6 +115,13 @@ export interface PendingUiRequest {
   readonly kind: "interactive";
   readonly token: string;
   readonly request: CaretUiRequest;
+  readonly sessionId?: string;
+  readonly incarnation?: string;
+  readonly cwd?: string;
+  readonly tool?: string;
+  readonly target?: string;
+  readonly status?: "pending" | "stale" | "timeout" | "responded_elsewhere" | "cancelled" | "approved" | "denied";
+  readonly receivedAt?: number;
 }
 
 export interface CachedTaskSnapshot {
@@ -191,7 +198,8 @@ export type MobileAction =
   | { readonly type: "ui_resolved"; readonly token: string }
   | { readonly type: "models"; readonly models: readonly ModelOption[]; readonly selectedModel?: string }
   | { readonly type: "login_providers"; readonly providers: readonly LoginProviderOption[] }
-  | { readonly type: "cached_meta"; readonly savedAt: number; readonly expiresAt: number };
+  | { readonly type: "cached_meta"; readonly savedAt: number; readonly expiresAt: number }
+  | { readonly type: "cache_cleared" };
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

@@ -1,52 +1,11 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import type { SessionEvent } from "../../../packages/protocol/src/index.ts";
+import { installVscodeStub, stubState } from "./helpers/vscode-stub.ts";
 
-type PseudoTerminal = {
-	onDidWrite: (listener: (value: string) => void) => { dispose(): void };
-	onDidClose: (listener: (value: number | void) => void) => { dispose(): void };
-	open(dimensions: { columns: number; rows: number } | undefined): void;
-	close(): void;
-	handleInput?(data: string): void;
-	setDimensions?(dimensions: { columns: number; rows: number }): void;
-};
-
-class FakeEventEmitter<T> {
-	readonly #listeners = new Set<(value: T) => void>();
-	readonly event = (listener: (value: T) => void): { dispose(): void } => {
-		this.#listeners.add(listener);
-		return { dispose: () => this.#listeners.delete(listener) };
-	};
-	fire(value: T): void {
-		for (const listener of [...this.#listeners]) listener(value);
-	}
-	dispose(): void { this.#listeners.clear(); }
-}
-
-class FakeTerminal {
-	readonly options: { name: string; pty: PseudoTerminal };
-	showCount = 0;
-	disposed = false;
-	constructor(options: { name: string; pty: PseudoTerminal }) { this.options = options; }
-	show(): void { this.showCount += 1; }
-	open(): void { this.options.pty.open({ columns: 80, rows: 24 }); }
-	dispose(): void {
-		if (this.disposed) return;
-		this.disposed = true;
-		this.options.pty.close();
-	}
-}
-
-const createdTerminals: FakeTerminal[] = [];
-mock.module("vscode", () => ({
-	EventEmitter: FakeEventEmitter,
-	window: {
-		createTerminal: (options: { name: string; pty: PseudoTerminal }) => {
-			const terminal = new FakeTerminal(options);
-			createdTerminals.push(terminal);
-			return terminal;
-		},
-	},
-}));
+// Shared with the extension-activation suite: `mock.module` is process-wide, so
+// two `vscode` mocks would overwrite each other and bind the wrong one.
+installVscodeStub();
+const createdTerminals = stubState.terminals;
 
 const { CARET_TERMINAL_HISTORY_TRUNCATED_MARKER, OmpTerminalViews } = await import("../src/terminal.ts");
 
@@ -185,6 +144,11 @@ describe("Caret OMP terminal views", () => {
 		expect(output.join("")).toContain("kept");
 		expect(output.join("")).not.toContain("\x1b[6n");
 		expect(output.join("")).not.toContain("\x1b[");
+		const preview = views.preview("session-1", "incarnation-1");
+		expect(preview[0]?.title).toBeDefined();
+		expect(preview[0]?.text).toContain("visible");
+		expect(preview[0]?.text).toContain("more");
+		expect(preview[0]?.ended).toBe(false);
 		views.dispose();
 	});
 });

@@ -1,0 +1,37 @@
+{
+  "scope": "S2 (partial) — Caret registers its own chat sessions provider so the native Agents window can list Caret host sessions and run work through OMP.",
+  "capturedAt": "2026-09-14T15:25:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "question": "Make the Agents window show and run Caret's own sessions instead of nothing.",
+  "implemented": {
+    "extension": [
+      "apps/macos/src/chat-sessions-map.ts — pure projection: session uri identity, host status -> UI state, session item shape, transcript -> turn plans, prompt/abort command requests",
+      "apps/macos/src/chat-sessions.ts — registers the chat participant, createChatSessionItemController(CARET_CHAT_SESSION_TYPE) and registerChatSessionContentProvider(CARET_CHAT_SESSION_SCHEME); history comes from reduce(applyEvent) over the host journal; a prompt is sent as the host `prompt` command and streamed by reading events forward from the captured cursor, aborting on cancellation",
+      "apps/macos/src/extension.ts — chatSessionsConnection() accessor (reuses the one host connection owner) and registration in activate()",
+      "apps/macos/package.json — enabledApiProposals: chatSessionsProvider + chatParticipantPrivate; contributes.chatSessions [{type caret.omp, name omp, inputPlaceholder \"Plan, Build, / for skills, @ for context\"}]; contributes.chatParticipants [{id caret.omp, name omp, fullName Caret}]",
+      "apps/macos/src/vscode-dts.d.ts — references the pinned proposed API declarations so the extension typechecks against the desktop checkout"
+    ],
+    "desktopPatch": "patches/desktop/0003 now also grants caret.caret the chatParticipantPrivate proposal and adds \"sessionsWindowAllowedExtensions\": [\"caret.caret\"] to product.json."
+  },
+  "whyTheAllowlistIsRequired": "extensionEnablementService#_isDisabledBySessionsWindow disables every extension that has code in the sessions window unless it is listed in product.json#sessionsWindowAllowedExtensions; built-ins that contribute views/viewsContainers are disabled too, and Caret contributes views. The settings-based override (extensions.supportAgentsWindow) and an extension configurationDefault were both tried first and did NOT unlock it (APPLICATION-scoped setting), so the allowlist is the working lever.",
+  "verified": {
+    "extensionActivatesInAgentsWindow": "logs/<ts>/window1/exthost/exthost.log: \"ExtensionService#_doActivateExtension caret.caret, startup: false, activationEvent: 'onStartupFinished'\"",
+    "providerReadsTheHost": "logs/<ts>/window1/exthost/caret.caret/Caret.log: \"Caret chat sessions: 1 session(s) in 1 project(s) from the host.\" — matches the host's live /v1/projects and /v1/sessions (1 project caret-ui-acceptance, 1 session \"New task\")",
+    "noProviderErrors": "no error lines for caret.caret after the participant/type/contribution ids were aligned on caret.omp",
+    "tests": "apps/macos/test/chat-sessions-map.test.ts 14 pass / 0 fail; bun run typecheck 0 errors; apps/macos typecheck 0 errors; bun test 0 failures except the pre-existing upstream/omp 'published legal payloads' case"
+  },
+  "stillBlocked": {
+    "sidebar": "The chat session items published by the extension do not render in the Agents window sidebar. The sidebar list is fed by ISessionsService.visibleSessions <- ISessionsManagementService <- ISessionsProvidersService, and today only the agent-host family registers ISessionsProvider (sessions/contrib/providers/**). Nothing bridges contributed chat session items into that model, so the window still shows an empty Sessions tree.",
+    "attemptedButIneffective": [
+      "extension contributes.configurationDefaults extensions.supportAgentsWindow.caret.caret = true (did not unlock the extension)",
+      "base patch flipping the same setting's default (reverted; the extension still did not load)",
+      "editing the built bundle by hand to test the setting default (abandoned: the app then reported 'Your Caret installation appears to be corrupt', so built output is integrity-checked)"
+    ],
+    "newSessionFlow": "Clicking New Session (Command+N) in the Agents window did not create a host session (host session count stayed 1), consistent with the missing provider bridge."
+  },
+  "sideFindings": [
+    "The Agents window also opens the Caret shell custom editor (element labelled .../globalStorage/caret.caret/window.caret-shell), i.e. the webview shell still opens inside the native Agents window — recorded in the retirement ledger for S3.",
+    "The Agents window reserves a 298px right column (x=1137..1435 at 1440x900) containing \"Editor Group 1 (empty)\" and a Close Editor Area action; two other visible controls are the disabled pet button (Show Aquarium) and the title-bar action \"Run Task is not available for this session type\". These are the concrete S4 parity items."
+  ]
+}

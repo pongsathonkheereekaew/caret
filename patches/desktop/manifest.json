@@ -1,0 +1,57 @@
+{
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "patches": [
+    {
+      "file": "0001-caret-startup-defaults.patch",
+      "sha256": "d579c3e588326e6fd2347fc67b4fcb901e8b35028289ac18d9ff3a1ad4be64c2"
+    },
+    {
+      "file": "0003-caret-agents-window-proposals.patch",
+      "sha256": "f63408ce3ee5b455dff9240a8d6783cfe11f833c95e178a59088cf9912ef1728"
+    },
+    {
+      "file": "0005-caret-remove-copilot-sessions.patch",
+      "sha256": "cb2298f5cf8d4af5670325ed2190b8dd6f3767151f3e0ed49dd4f8cb6bcbc451"
+    },
+    {
+      "file": "0006-caret-unwire-agent-harnesses.patch",
+      "sha256": "3ef2e6426fa84f8fc4f8e0a4b304d4d4b7027df9ed0db4e77bcbe45ccecf866c"
+    },
+    {
+      "file": "0007-caret-drop-harness-pickers.patch",
+      "sha256": "764b31c0385702d24a237df97deb6994e85f6f1fda243ccc56fdc0ad82ebf8fc"
+    },
+    {
+      "file": "0008-caret-agents-window-menus.patch",
+      "sha256": "e02bcad825b5c5171997ca1927cef0c2f8a1dab3a00129f2fe4f9efbeec07478"
+    },
+    {
+      "file": "0009-caret-no-default-chat-agent.patch",
+      "sha256": "a3f6eb15751d8dc6a3637470cbadab8ee50093478eac3146b4348803b4cbc28f"
+    },
+    {
+      "file": "0010-caret-sessions-bridge.patch",
+      "sha256": "21427e1bc6526bdb313d5d19d16d932134c6edbfa6524cf74de43e99ad94c9e8"
+    }
+  ],
+  "removals": [
+    "src/vs/platform/agentHost/node/copilot",
+    "src/vs/platform/agentHost/node/claude",
+    "src/vs/platform/agentHost/node/codex",
+    "src/vs/platform/agentHost/test",
+    "src/vs/sessions/contrib/providers/copilotChatSessions",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostAgentPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostClaudePermissionModePicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostCodexApprovalsPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostModePicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostPermissionPickerActionItem.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostPermissionPickerDelegate.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostSessionConfigPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/mobile/mobileAgentHostModePicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/mobile/mobileChatInputConfigPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/mobile/mobileChatPhoneInputPresenter.ts",
+    "src/vs/sessions/contrib/providers/agentHost/test/browser/agentHost/agentHostPermissionPickerDelegate.test.ts",
+    "src/vs/sessions/contrib/providers/agentHost/test/browser/agentHost/agentHostSessionConfigPicker.test.ts",
+    "src/vs/sessions/contrib/providers/agentHost/test/browser/agentHostClaudePermissionModePicker.test.ts"
+  ]
+}

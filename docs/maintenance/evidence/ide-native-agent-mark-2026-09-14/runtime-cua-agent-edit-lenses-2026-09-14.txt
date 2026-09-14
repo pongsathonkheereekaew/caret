@@ -1,0 +1,63 @@
+Caret in-editor decisions (CodeLens) - real packaged app (Computer Use), 2026-09-14
+
+The three decisions on a Caret edit were already reachable from the editor title,
+the context menu, and the Quick Fix list. Cursor additionally puts Accept/Reject
+*on the change itself*. That is what caret.keepAgentEdit / caret.revertAgentEdit
+now do as an editor CodeLens, attached to the first line the apply changed.
+
+1. The engine actually asks for the lenses (bundle without the tight-mark fix):
+
+  Caret.log: 2026-09-14 04:47:02.095 [info] agent edit lenses offered path=src/greet.ts decisions=2 line=0
+
+   The provider is only reachable through vscode.languages.registerCodeLensProvider,
+   so this line is the engine calling our provider on a real document.
+
+2. The lenses render in the editor (accessibility tree while a Caret edit was
+   pending):
+
+  130 container greet.ts
+    131 container
+      132 editor (settable) The editor is not accessible at this time...
+      133 container
+        134 list box Show Code Actions (Command+.)
+          135 text 
+        136 button Keep the Caret Edit
+          137 text  | 
+        138 button Take Back the Caret Edit
+
+   Two labelled buttons inside the editor container, separated by "|" - the
+   CodeLens line the extension returned, not a menu.
+
+3. Clicking the lens runs the real command. Clicking element 138 (the Take Back
+   lens) produced:
+
+  Removed element IDs: 104-115
+  + 242 container Caret: took back the edit to src/greet.ts
+
+   i.e. the pending record was dropped and forgetAgentEdit() reported it.
+
+4. The lenses withdraw with the mark. Ending a later run through the editor-title
+   button removed the lens as well:
+
+  Removed element IDs: 103-114, 134
+
+   Element 134 is the CodeLens container, so keeping or taking back the edit
+   clears both the mark and its decisions.
+
+5. The mark and the lens are now tight. The first run logged line=0 while the
+   model changed line 1: OMP's guarded native apply reports one *whole-file*
+   edit even for a small change, so the original geometry covered the file.
+   apps/macos/src/agent-edit-marks.ts now derives the mark from the text the
+   apply actually produced (changedLineSpan over applyEdits(textBefore, edits)),
+   falling back to the edit geometry when the text is unchanged. Rebuilt and
+   re-run on the packaged app:
+
+  Caret.log: 2026-09-14 04:52:19.350 [info] agent edit lenses offered path=src/greet.ts decisions=2 line=1
+
+   line=1 is the changed line, so both the painted mark and the lens sit on the
+   change rather than the whole file.
+
+All runs used the packaged app, a private profile, a private host and a scripted
+zero-cost model (receipt.json.checks passed each time). Vision was rate-limited
+this session, so these are accessibility-tree and log observations rather than a
+description of the pixels.

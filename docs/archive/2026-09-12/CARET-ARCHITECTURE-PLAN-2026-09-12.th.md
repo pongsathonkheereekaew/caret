@@ -1,7 +1,7 @@
 # Caret Mac/iPhone — ข้อเสนอ architecture และ implementation
 
 > Archived 12 September 2026 evidence. Living map: [docs/README.md](../../README.md).
-> ข้อเสนอ scope/stack/slices ในเอกสารนี้ถูกแทนโดย [ทิศทางหลัง Grill](../../maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md) และ [product acceptance](../../maintenance/CARET-REFERENCE-ACCEPTANCE-2026-09-12.th.md): หลายโปรเจกต์, IDE เต็มรูปแบบ, full OMP core; Mac ใช้ฐาน Code-OSS เดิมและศึกษา Paseo สำหรับ mobile/transport. เก็บ reuse/source findings และ bug probes ด้านล่างเป็นหลักฐาน ไม่ใช้ basic-editor/new-shell choice เดิมเป็นข้อสรุปล่าสุด
+> ข้อเสนอ scope/stack/slices ในเอกสารนี้ถูกแทนโดย [ทิศทางหลัง Grill](../2026-09-14-pre-ssot/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md) และ [product acceptance](../2026-09-14-pre-ssot/CARET-REFERENCE-ACCEPTANCE-2026-09-12.th.md): หลายโปรเจกต์, IDE เต็มรูปแบบ, full OMP core; Mac ใช้ฐาน Code-OSS เดิมและศึกษา Paseo สำหรับ mobile/transport. เก็บ reuse/source findings และ bug probes ด้านล่างเป็นหลักฐาน ไม่ใช้ basic-editor/new-shell choice เดิมเป็นข้อสรุปล่าสุด
 
 วันที่ประเมิน: 2026-09-12 · สถานะ: ข้อเสนอจากการตรวจ source; ยังไม่ใช่ implementation หรือผลทดสอบ end-to-end
 
@@ -221,7 +221,7 @@ S0 เป็นตัวตัดสิน feasibility ก่อนลงทุ�
 
 - อ่าน handoff/control instructions/roadmap และ source ของสอง implementation branches ผ่าน local Git objects โดยไม่ checkout ทับ branch และไม่แก้ production code
 - ตรวจ binary version และ pin OMP upstream source; เป็น source/interface audit ยังไม่ได้รัน model/approval smoke ของ OMP ใหม่
-- รัน [remote gateway probe](evidence/remote-gateway-2026-09-12/run-probe.sh) บน exact `remote.ts` จาก SHA ที่ระบุ ด้วย Bun 1.4.2 และ fixture API บน loopback ไม่มี provider calls; root รันซ้ำและได้ [ผลเดียวกัน](evidence/remote-gateway-2026-09-12/result.txt):
+- รัน [remote gateway probe](../../maintenance/evidence/remote-gateway-2026-09-12/run-probe.sh) บน exact `remote.ts` จาก SHA ที่ระบุ ด้วย Bun 1.4.2 และ fixture API บน loopback ไม่มี provider calls; root รันซ้ำและได้ [ผลเดียวกัน](../../maintenance/evidence/remote-gateway-2026-09-12/result.txt):
   1. ส่ง same-id สองคำสั่งขณะ handler แรกยังค้าง → handler ถูกเรียก **2 ครั้ง** และตอบ **2 ครั้ง**
   2. Socket ที่ไม่เคย authenticate → ได้ broadcast event
   3. หลัง rotate/revoke token socket เก่ายังได้ broadcast แม้ request ด้วย token เก่าถูกปฏิเสธ `unauthorized`

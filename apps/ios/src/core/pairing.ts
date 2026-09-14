@@ -62,6 +62,14 @@ function parseCandidate(value: unknown): PairingOffer {
   }
 }
 
+/** Display-only truncation of the pinned Mac public key. Not a derived hash. */
+export function pairingPublicKeyFingerprint(publicKeyB64: string): string {
+  const compact = publicKeyB64.replace(/\s+/g, "").replace(/=+$/, "");
+  if (!compact) return "";
+  if (compact.length <= 16) return compact;
+  return `${compact.slice(0, 8)}…${compact.slice(-4)}`;
+}
+
 /** Parse private JSON, or a QR URL carrying #offer=<base64url JSON>. */
 export function parsePairingOffer(input: string | unknown): PairingOffer {
   if (typeof input === "object") return parseCandidate(input);

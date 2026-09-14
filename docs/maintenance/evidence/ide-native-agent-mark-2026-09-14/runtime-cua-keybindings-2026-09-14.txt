@@ -1,0 +1,41 @@
+Caret keybindings - real packaged app (Computer Use), 2026-09-14
+
+The menu evidence already showed the engine rendering the declared keybindings on
+the menu entries, but no key press had ever been recorded invoking a Caret
+command. Both presses below are on the packaged app in the fixture workspace.
+
+Declared (apps/macos/package.json contributes.keybindings):
+  caret.reviewInDiff        cmd+alt+r
+  caret.addSelectionToTask  cmd+alt+k
+
+1. cmd+alt+r (Review Active File in Diff) with src/greet.ts open and focused.
+   The accessibility tree diff after the press:
+
+   + 231 tab (selected) Description: src/greet.ts (HEAD <-> Working Tree) (greet.ts), preview, Value: 1
+   + 232 container src/greet.ts (HEAD <-> Working Tree)
+   + 238 button Open File
+   + 240 button (disabled) Previous Change
+   + 242 button (disabled) Next Change
+   + 244 toggle button Show Leading/Trailing Whitespace Differences
+   + 246 toggle button Toggle Collapse Unchanged Regions
+   + 266 editor (settable) ... / + 268 editor (settable) ... / + 269-271 image
+
+   i.e. the key press opened the real Code-OSS diff editor (two editor panes plus
+   the diff decorations) titled HEAD <-> Working Tree for the active file. That
+   is caret.reviewInDiff running from the keyboard, not from the palette.
+
+2. cmd+alt+k (Add Selection to Task) with the editor focused and nothing
+   selected. The extension's own notification appeared:
+
+   224 container Info: Select text in the editor first. Caret did not invent a
+       selection., source: Caret Mac task extension, notification
+
+   so the binding reaches the real handler, and the handler refuses an empty
+   selection rather than citing the whole file.
+
+The diff opened in (1) was closed again before the rest of the run continued, so
+the key presses did not disturb the mark verification that followed (receipt.json
+.checks passed, all six, in the same session).
+
+Vision was rate-limited this session, so these are accessibility-tree
+observations rather than a description of the pixels.

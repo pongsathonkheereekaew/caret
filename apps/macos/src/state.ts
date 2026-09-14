@@ -14,6 +14,8 @@ import type {
 	Session,
 	SessionEvent,
 } from "../../../packages/protocol/src/index.ts";
+import { draftViewKey } from "./workbench-mode.ts";
+import { createWorkPanelState, reduceWorkPanel, type WorkPanelAction, type WorkPanelState } from "./work-panel.ts";
 
 export type RawFrame = Record<string, unknown>;
 
@@ -34,6 +36,11 @@ export interface TranscriptEntry {
 	readonly output?: string;
 	readonly createdAt?: string;
 	readonly rawFrames: readonly RawFrame[];
+}
+
+export interface SlashCommandOption {
+	readonly name: string;
+	readonly description?: string;
 }
 
 export interface LoginProviderOption {
@@ -80,6 +87,8 @@ export interface ConfirmUiRequest {
 	readonly title: string;
 	readonly message: string;
 	readonly timeout?: number;
+	readonly scopes?: readonly string[];
+	readonly dangerous?: boolean;
 }
 
 export interface SelectUiRequest {
@@ -87,8 +96,10 @@ export interface SelectUiRequest {
 	readonly id: string;
 	readonly title: string;
 	readonly options: readonly string[];
-	readonly optionDetails?: readonly { readonly description?: string }[];
+	readonly optionDetails?: readonly { readonly value?: string; readonly label?: string; readonly description?: string }[];
 	readonly timeout?: number;
+	readonly multiple?: boolean;
+	readonly required?: boolean;
 }
 
 export interface InputUiRequest {
@@ -97,6 +108,8 @@ export interface InputUiRequest {
 	readonly title: string;
 	readonly placeholder?: string;
 	readonly timeout?: number;
+	readonly secret?: boolean;
+	readonly required?: boolean;
 }
 
 export interface EditorUiRequest {
@@ -105,14 +118,56 @@ export interface EditorUiRequest {
 	readonly title: string;
 	readonly prefill?: string;
 	readonly promptStyle?: boolean;
+	readonly required?: boolean;
 }
 
-export type CaretUiRequest = ConfirmUiRequest | SelectUiRequest | InputUiRequest | EditorUiRequest;
+export interface PasswordUiRequest {
+	readonly method: "password";
+	readonly id: string;
+	readonly title: string;
+	readonly placeholder?: string;
+	readonly timeout?: number;
+	readonly required?: boolean;
+}
+
+export interface MultiSelectUiRequest {
+	readonly method: "multi_select";
+	readonly id: string;
+	readonly title: string;
+	readonly options: readonly string[];
+	readonly optionDetails?: readonly { readonly value?: string; readonly label?: string; readonly description?: string }[];
+	readonly timeout?: number;
+	readonly required?: boolean;
+}
+
+export interface SchemaFormUiRequest {
+	readonly method: "schemaform";
+	readonly id: string;
+	readonly title: string;
+	readonly message?: string;
+	readonly timeout?: number;
+}
+
+export type CaretUiRequest =
+	| ConfirmUiRequest
+	| SelectUiRequest
+	| InputUiRequest
+	| EditorUiRequest
+	| PasswordUiRequest
+	| MultiSelectUiRequest
+	| SchemaFormUiRequest;
 
 export interface PendingUiRequest {
 	readonly kind: "interactive";
 	readonly token: string;
 	readonly request: CaretUiRequest;
+	readonly sessionId?: string;
+	readonly incarnation?: string;
+	readonly cwd?: string;
+	readonly tool?: string;
+	readonly target?: string;
+	readonly status?: "pending" | "stale" | "timeout" | "responded_elsewhere" | "cancelled" | "approved" | "denied";
+	readonly receivedAt?: number;
 }
 
 export interface TaskState {
@@ -131,7 +186,13 @@ export interface TaskState {
 	readonly selectedModel?: string;
 	readonly loginProviders: readonly LoginProviderOption[];
 	readonly presentations: readonly UiPresentation[];
+	readonly slashCommands: readonly SlashCommandOption[];
 	readonly draft: string;
+	readonly drafts: Readonly<Record<string, string>>;
+	readonly workbenchMode: "agents" | "ide";
+	readonly transcriptScrolls: Readonly<Record<string, { readonly offset: number; readonly eventId?: string }>>;
+	readonly followLatest: boolean;
+	readonly workPanel: WorkPanelState;
 	readonly activeMessageId?: string;
 	/** Latest message identity for each OMP message role in this incarnation.
 	 * OMP message lifecycle events intentionally do not carry a message id; the
@@ -154,6 +215,9 @@ export type TaskAction =
 	| { readonly type: "event"; readonly event: CaretEvent }
 	| { readonly type: "frame"; readonly frame: Json; readonly sequence?: number; readonly sessionId?: string; readonly incarnation?: string }
 	| { readonly type: "draft"; readonly draft: string }
+	| { readonly type: "workbench_mode"; readonly mode: "agents" | "ide" }
+	| { readonly type: "transcript_scroll"; readonly key: string; readonly offset: number; readonly eventId?: string; readonly followLatest: boolean }
+	| { readonly type: "work_panel"; readonly action: WorkPanelAction }
 	| { readonly type: "command_created"; readonly command: Pick<PendingCommand, "commandId" | "incarnation" | "command" | "payload"> }
 	| { readonly type: "command_result"; readonly command: Command }
 	| { readonly type: "command_status"; readonly commandId: string; readonly status: PendingCommand["status"]; readonly error?: string }
@@ -161,7 +225,26 @@ export type TaskAction =
 	| { readonly type: "ui_sync"; readonly requests: readonly PendingUiRequest[] }
 	| { readonly type: "ui_resolved"; readonly token: string }
 	| { readonly type: "models"; readonly models: readonly ModelOption[]; readonly selectedModel?: string }
-	| { readonly type: "login_providers"; readonly providers: readonly LoginProviderOption[] };
+	| { readonly type: "login_providers"; readonly providers: readonly LoginProviderOption[] }
+	| { readonly type: "slash_commands"; readonly commands: readonly SlashCommandOption[] }
+	| { readonly type: "history_page"; readonly entries: readonly TranscriptEntry[] };
+
+export function normalizeSlashCommands(value: unknown): SlashCommandOption[] {
+	if (value && typeof value === "object" && !Array.isArray(value) && "data" in value) {
+		return normalizeSlashCommands((value as Record<string, unknown>).data);
+	}
+	const source = value && typeof value === "object" && !Array.isArray(value) && "commands" in value
+		? (value as { commands: unknown }).commands
+		: value;
+	if (!Array.isArray(source)) return [];
+	return source.flatMap((item): SlashCommandOption[] => {
+		if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+		const record = item as Record<string, unknown>;
+		const name = typeof record.name === "string" ? record.name.trim() : "";
+		if (!name) return [];
+		return [{ name, ...(typeof record.description === "string" ? { description: record.description } : {}) }];
+	});
+}
 
 export function createInitialTaskState(overrides: Partial<TaskState> = {}): TaskState {
 	return {
@@ -178,7 +261,13 @@ export function createInitialTaskState(overrides: Partial<TaskState> = {}): Task
 		models: [],
 		loginProviders: [],
 		presentations: [],
+		slashCommands: [],
 		draft: "",
+		drafts: {},
+		workbenchMode: "agents",
+		transcriptScrolls: {},
+		followLatest: true,
+		workPanel: createWorkPanelState(),
 		messageStreams: {},
 		activeToolIds: [],
 		seenEventKeys: [],
@@ -522,21 +611,77 @@ function addOrUpdateTool(state: TaskState, id: string, frame: RawFrame, mode: "s
 	};
 }
 
+function optionalRequestText(value: unknown): string | undefined {
+	return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function stringList(value: unknown): value is readonly string[] {
+	return Array.isArray(value) && value.length > 0 && value.every(item => typeof item === "string" && item.trim().length > 0);
+}
+
+function uiRequestExtras(value: Record<string, unknown>, request: Record<string, unknown>): Pick<PendingUiRequest, "sessionId" | "incarnation" | "cwd" | "tool" | "target" | "status"> {
+	const status = request.status ?? value.status;
+	const allowed = status === "stale" || status === "timeout" || status === "responded_elsewhere" || status === "cancelled" || status === "approved" || status === "denied" || status === "pending";
+	return {
+		...(optionalRequestText(value.sessionId) ? { sessionId: String(value.sessionId) } : {}),
+		...(optionalRequestText(value.incarnation) ? { incarnation: String(value.incarnation) } : {}),
+		...(optionalRequestText(request.cwd) ? { cwd: String(request.cwd) } : optionalRequestText(value.cwd) ? { cwd: String(value.cwd) } : {}),
+		...(optionalRequestText(request.tool) ? { tool: String(request.tool) } : {}),
+		...(optionalRequestText(request.target) ? { target: String(request.target) } : {}),
+		...(allowed ? { status: status as PendingUiRequest["status"] } : {}),
+	};
+}
+
+function parseOptionDetails(value: unknown, optionCount: number): readonly { readonly value?: string; readonly label?: string; readonly description?: string }[] | undefined {
+	if (value === undefined) return undefined;
+	if (!Array.isArray(value) || value.length !== optionCount) return undefined;
+	const rows: { value?: string; label?: string; description?: string }[] = [];
+	for (const item of value) {
+		if (!isRecord(item)) return undefined;
+		if (item.value !== undefined && typeof item.value !== "string") return undefined;
+		if (item.label !== undefined && typeof item.label !== "string") return undefined;
+		if (item.description !== undefined && typeof item.description !== "string") return undefined;
+		rows.push({
+			...(typeof item.value === "string" ? { value: item.value } : {}),
+			...(typeof item.label === "string" ? { label: item.label } : {}),
+			...(typeof item.description === "string" ? { description: item.description } : {}),
+		});
+	}
+	return rows;
+}
+
+function optionalRequired(request: Record<string, unknown>): { required?: true } {
+	return request.required === true ? { required: true } : {};
+}
+
 function uiRequestFromEnvelope(value: unknown): PendingUiRequest | undefined {
 	if (!isRecord(value) || value.kind !== "interactive" || !nonEmptyString(value.token) || !isRecord(value.request)) return undefined;
 	const request = value.request;
 	if (!nonEmptyString(request.id) || !nonEmptyString(request.title) || !finiteTimeout(request.timeout)) return undefined;
+	const extras = uiRequestExtras(value, request);
 	switch (request.method) {
 		case "confirm":
-			return typeof request.message === "string" ? { kind: "interactive", token: value.token, request: { method: "confirm", id: request.id, title: request.title, message: request.message, ...(request.timeout === undefined ? {} : { timeout: request.timeout }) } } : undefined;
-		case "select":
+			return typeof request.message === "string" ? { kind: "interactive", token: value.token, request: { method: "confirm", id: request.id, title: request.title, message: request.message, ...(request.timeout === undefined ? {} : { timeout: request.timeout }), ...(stringList(request.scopes) ? { scopes: request.scopes } : {}), ...(typeof request.dangerous === "boolean" ? { dangerous: request.dangerous } : {}) }, ...extras } : undefined;
+		case "select": {
 			if (!Array.isArray(request.options) || request.options.length === 0 || !request.options.every(nonEmptyString)) return undefined;
-			if (request.optionDetails !== undefined && (!Array.isArray(request.optionDetails) || request.optionDetails.length !== request.options.length || !request.optionDetails.every(item => isRecord(item) && (item.description === undefined || typeof item.description === "string")))) return undefined;
-			return { kind: "interactive", token: value.token, request: { method: "select", id: request.id, title: request.title, options: [...request.options], ...(request.optionDetails === undefined ? {} : { optionDetails: request.optionDetails.map(item => ({ ...(typeof item.description === "string" ? { description: item.description } : {}) })) }), ...(request.timeout === undefined ? {} : { timeout: request.timeout }) } };
+			const optionDetails = parseOptionDetails(request.optionDetails, request.options.length);
+			if (request.optionDetails !== undefined && optionDetails === undefined) return undefined;
+			return { kind: "interactive", token: value.token, request: { method: "select", id: request.id, title: request.title, options: [...request.options], ...(optionDetails === undefined ? {} : { optionDetails }), ...(request.timeout === undefined ? {} : { timeout: request.timeout }), ...(request.multiple === true ? { multiple: true } : {}), ...optionalRequired(request) }, ...extras };
+		}
+		case "multi_select": {
+			if (!Array.isArray(request.options) || request.options.length === 0 || !request.options.every(nonEmptyString)) return undefined;
+			const optionDetails = parseOptionDetails(request.optionDetails, request.options.length);
+			if (request.optionDetails !== undefined && optionDetails === undefined) return undefined;
+			return { kind: "interactive", token: value.token, request: { method: "multi_select", id: request.id, title: request.title, options: [...request.options], ...(optionDetails === undefined ? {} : { optionDetails }), ...(request.timeout === undefined ? {} : { timeout: request.timeout }), ...optionalRequired(request) }, ...extras };
+		}
 		case "input":
-			return (request.placeholder === undefined || typeof request.placeholder === "string") ? { kind: "interactive", token: value.token, request: { method: "input", id: request.id, title: request.title, ...(typeof request.placeholder === "string" ? { placeholder: request.placeholder } : {}), ...(request.timeout === undefined ? {} : { timeout: request.timeout }) } } : undefined;
+			return (request.placeholder === undefined || typeof request.placeholder === "string") ? { kind: "interactive", token: value.token, request: { method: "input", id: request.id, title: request.title, ...(typeof request.placeholder === "string" ? { placeholder: request.placeholder } : {}), ...(request.timeout === undefined ? {} : { timeout: request.timeout }), ...(request.secret === true ? { secret: true } : {}), ...optionalRequired(request) }, ...extras } : undefined;
+		case "password":
+			return (request.placeholder === undefined || typeof request.placeholder === "string") ? { kind: "interactive", token: value.token, request: { method: "password", id: request.id, title: request.title, ...(typeof request.placeholder === "string" ? { placeholder: request.placeholder } : {}), ...(request.timeout === undefined ? {} : { timeout: request.timeout }), ...optionalRequired(request) }, ...extras } : undefined;
 		case "editor":
-			return (request.prefill === undefined || typeof request.prefill === "string") && (request.promptStyle === undefined || typeof request.promptStyle === "boolean") ? { kind: "interactive", token: value.token, request: { method: "editor", id: request.id, title: request.title, ...(typeof request.prefill === "string" ? { prefill: request.prefill } : {}), ...(typeof request.promptStyle === "boolean" ? { promptStyle: request.promptStyle } : {}) } } : undefined;
+			return (request.prefill === undefined || typeof request.prefill === "string") && (request.promptStyle === undefined || typeof request.promptStyle === "boolean") ? { kind: "interactive", token: value.token, request: { method: "editor", id: request.id, title: request.title, ...(typeof request.prefill === "string" ? { prefill: request.prefill } : {}), ...(typeof request.promptStyle === "boolean" ? { promptStyle: request.promptStyle } : {}), ...optionalRequired(request) }, ...extras } : undefined;
+		case "schemaform":
+			return { kind: "interactive", token: value.token, request: { method: "schemaform", id: request.id, title: request.title, ...(typeof request.message === "string" ? { message: request.message } : {}), ...(request.timeout === undefined ? {} : { timeout: request.timeout }) }, ...extras };
 		default:
 			return undefined;
 	}
@@ -600,6 +745,9 @@ export function applyFrame(state: TaskState, frameValue: Json, sequence?: number
 			if (token) next = { ...next, uiRequests: next.uiRequests.filter(request => request.token !== token) };
 		}
 		return next;
+	}
+	if (type === "available_commands_update") {
+		return { ...next, slashCommands: normalizeSlashCommands(frame) };
 	}
 	if (type === "message_start" || type === "message_update" || type === "message_end") {
 		const mode = type === "message_start" ? "start" : type === "message_update" ? "update" : "end";
@@ -677,19 +825,29 @@ function commandToPending(command: Command, prior?: PendingCommand): PendingComm
 
 export function reduceTaskState(state: TaskState, action: TaskAction): TaskState {
 	switch (action.type) {
-		case "reset":
+		case "reset": {
+			const outgoing = draftViewKey(state.project?.id, state.session?.id);
+			const incoming = draftViewKey(action.project?.id, action.session?.id);
+			const drafts = { ...state.drafts, [outgoing]: state.draft };
 			return createInitialTaskState({
 				session: action.session ?? null,
 				project: action.project ?? null,
 				connection: state.connection === "running" ? "connected" : state.connection,
 				// Navigation resets the transcript projection but keeps the sidebar
-				// cache and command journal so reconnect never forgets command IDs.
+				// cache, drafts, and command journal so reconnect never forgets IDs.
 				projects: state.projects,
 				sessions: state.sessions,
 				pendingCommands: state.pendingCommands,
 				models: state.models,
 				loginProviders: state.loginProviders,
+				workbenchMode: state.workbenchMode,
+				drafts,
+				draft: drafts[incoming] ?? "",
+				transcriptScrolls: state.transcriptScrolls,
+				followLatest: !(incoming in state.transcriptScrolls),
+				workPanel: reduceWorkPanel(state.workPanel, { type: "switch_task", taskKey: incoming }),
 			});
+		}
 		case "connection": {
 			const pending = { ...state.pendingCommands };
 			if (action.markUnknown || action.status === "offline" || action.status === "unknown") {
@@ -705,7 +863,18 @@ export function reduceTaskState(state: TaskState, action: TaskAction): TaskState
 		case "events": return applyEventPage(state, action.page);
 		case "event": return applyEvent(state, action.event);
 		case "frame": return applyFrame(state, action.frame, action.sequence, { sessionId: action.sessionId, incarnation: action.incarnation });
-		case "draft": return { ...state, draft: action.draft };
+		case "draft": {
+			const key = draftViewKey(state.project?.id, state.session?.id);
+			return { ...state, draft: action.draft, drafts: { ...state.drafts, [key]: action.draft } };
+		}
+		case "workbench_mode": return { ...state, workbenchMode: action.mode };
+		case "work_panel": return { ...state, workPanel: reduceWorkPanel(state.workPanel, action.action) };
+		case "transcript_scroll":
+			return {
+				...state,
+				followLatest: action.followLatest,
+				transcriptScrolls: { ...state.transcriptScrolls, [action.key]: { offset: action.offset, ...(action.eventId ? { eventId: action.eventId } : {}) } },
+			};
 		case "command_created": {
 			const now = Date.now();
 			const existing = state.pendingCommands[action.command.commandId];
@@ -724,7 +893,14 @@ export function reduceTaskState(state: TaskState, action: TaskAction): TaskState
 		case "ui_request": {
 			const request = uiRequestFromEnvelope(action.event);
 			if (!request || state.uiRequests.some(item => item.token === request.token)) return state;
-			return { ...state, uiRequests: [...state.uiRequests, request] };
+			return {
+				...state,
+				uiRequests: [...state.uiRequests, {
+					...request,
+					sessionId: state.session?.id,
+					incarnation: state.session?.incarnation,
+				}],
+			};
 		}
 		case "ui_sync": {
 			const requests = action.requests.filter((request, index, all) => all.findIndex(item => item.token === request.token) === index);
@@ -733,6 +909,12 @@ export function reduceTaskState(state: TaskState, action: TaskAction): TaskState
 		case "ui_resolved": return { ...state, uiRequests: state.uiRequests.filter(item => item.token !== action.token) };
 		case "models": return { ...state, models: [...action.models], ...(action.selectedModel === undefined ? {} : { selectedModel: action.selectedModel }) };
 		case "login_providers": return { ...state, loginProviders: [...action.providers] };
+		case "slash_commands": return { ...state, slashCommands: [...action.commands] };
+		case "history_page": {
+			const seen = new Set(state.transcript.map(entry => entry.id));
+			const prepend = action.entries.filter(entry => entry.id && !seen.has(entry.id));
+			return prepend.length ? { ...state, transcript: [...prepend, ...state.transcript] } : state;
+		}
 	}
 	return state;
 }

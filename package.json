@@ -11,6 +11,7 @@
     "test": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test",
     "typecheck": "tsc --noEmit",
     "check:repo": "node scripts/ci-validate.mjs",
+    "check:cursor-parity": "bun scripts/cursor-parity-check.ts",
     "smoke:omp": "bun scripts/omp-smoke.ts",
     "smoke:omp:g1": "bun scripts/omp-g1-smoke.ts",
     "smoke:omp:ui": "bun scripts/omp-ui-smoke.ts",

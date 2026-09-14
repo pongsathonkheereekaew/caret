@@ -41,7 +41,7 @@ const stateDir = join(dir, "host"), editors = new EditorConnections();
 editors.register("fixture", [workspace]);
 const store = DurableStore.open({ stateDir });
 const host = new CaretHost({ store, stateDir, editors, ompExecutable: executable, editorBridge: true,
-  ompEnv: { PATH: "/usr/bin:/bin", PI_CODING_AGENT_DIR: dir, PI_EDIT_VARIANT: "replace", PI_NOTIFICATIONS: "off", TERM: "xterm-256color" },
+  ompEnv: { PATH: "/usr/bin:/bin", HOME: dir, PI_CODING_AGENT_DIR: dir, PI_EDIT_VARIANT: "replace", PI_NOTIFICATIONS: "off", TERM: "xterm-256color" },
   ompArgs: ["--no-skills", "--no-rules", "--no-extensions"] });
 let pollError: unknown;
 const poll = setInterval(() => {

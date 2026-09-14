@@ -1,0 +1,351 @@
+diff --git a/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
+new file mode 100644
+index 00000000000..af762141212
+--- /dev/null
++++ b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
+@@ -0,0 +1,330 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret contributors. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++/*
++ * Caret: bridge contributed chat sessions into the Agents window's sessions model.
++ *
++ * The Agents window sidebar lists `ISessionsProvider.getSessions()`. Today only
++ * the agent-host family registers a provider, so an extension that contributes
++ * chat sessions through the public `chatSessionsProvider` API (Caret's own
++ * extension does) has its items published but never listed. This provider is
++ * the generic bridge: it reads `IChatSessionsService.getChatSessionItems()` and
++ * exposes those items as sessions, so Caret sessions appear in the window that
++ * produced them.
++ *
++ * Ownership stays where it was: the extension owns the items and the transcript,
++ * the host owns OMP execution. This file only adapts shapes, and it fails safe —
++ * if the chat sessions API is unavailable or a read throws, it reports no
++ * sessions instead of breaking the window.
++ */
++
++import { CancellationToken } from '../../../../../base/common/cancellation.js';
++import { Emitter } from '../../../../../base/common/event.js';
++import { Disposable } from '../../../../../base/common/lifecycle.js';
++import { IObservable, observableValue } from '../../../../../base/common/observable.js';
++import { ThemeIcon } from '../../../../../base/common/themables.js';
++import { URI } from '../../../../../base/common/uri.js';
++import { localize } from '../../../../../nls.js';
++import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
++import { ILogService } from '../../../../../platform/log/common/log.js';
++import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
++import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../workbench/common/contributions.js';
++import { IChatSessionItem, IChatSessionsService } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
++import { IChatService } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
++import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
++import { ChatInteractivity, ChatModelSource, IChat, IChatCheckpoints, ISession, ISessionCapabilities, ISessionType, ISessionWorkspace, ISessionWorkspaceBrowseAction, SessionStatus, SessionTypeAuthRequirement } from '../../../../services/sessions/common/session.js';
++import { ISessionChangeEvent, ISessionModelPickerOptions, ISessionModelsSnapshot, ISessionsProvider, ISessionsProviderCreateSessionOptions, ISendRequestOptions } from '../../../../services/sessions/common/sessionsProvider.js';
++
++const EXTENSION_SESSIONS_PROVIDER_ID = 'caret-extension-sessions';
++const UNSUPPORTED = 'Caret sessions are owned by the Caret host; that action is not advertised yet.';
++
++/** Chat-session status -> sessions-core status. */
++function sessionStatus(status: IChatSessionItem['status']): SessionStatus {
++	switch (status) {
++		case 2: return SessionStatus.InProgress;
++		case 3: return SessionStatus.NeedsInput;
++		case 0: return SessionStatus.Error;
++		default: return SessionStatus.Completed;
++	}
++}
++
++class ExtensionSessionChat implements IChat {
++	readonly resource: URI;
++	readonly createdAt: Date;
++	readonly title: IObservable<string>;
++	readonly updatedAt: IObservable<Date>;
++	readonly status: IObservable<SessionStatus>;
++	readonly changes: IObservable<readonly never[]> = observableValue(this, []);
++	readonly modelId: IObservable<string | undefined> = observableValue(this, undefined);
++	readonly modelSource: IObservable<ChatModelSource | undefined> = observableValue(this, undefined);
++	readonly mode: IObservable<{ readonly id: string; readonly kind: string } | undefined> = observableValue(this, undefined);
++	readonly isArchived: IObservable<boolean>;
++	readonly isRead: IObservable<boolean> = observableValue(this, true);
++	readonly interactivity: IObservable<ChatInteractivity> = observableValue(this, ChatInteractivity.Full);
++	readonly description: IObservable<undefined> = observableValue(this, undefined);
++	readonly lastTurnEnd: IObservable<Date | undefined> = observableValue(this, undefined);
++	readonly checkpoints: IObservable<IChatCheckpoints | undefined> = observableValue(this, undefined);
++
++	constructor(item: IChatSessionItem) {
++		this.resource = item.resource;
++		this.createdAt = new Date(item.timing?.created ?? Date.now());
++		this.title = observableValue(this, item.label);
++		this.updatedAt = observableValue(this, new Date(item.timing?.lastRequestEnded ?? item.timing?.created ?? Date.now()));
++		this.status = observableValue(this, sessionStatus(item.status));
++		this.isArchived = observableValue(this, item.archived === true);
++	}
++}
++
++class ExtensionSession implements ISession {
++	readonly sessionId: string;
++	readonly resource: URI;
++	readonly providerId = EXTENSION_SESSIONS_PROVIDER_ID;
++	readonly sessionType: string;
++	readonly icon: ThemeIcon;
++	readonly createdAt: Date;
++	readonly workspace: IObservable<ISessionWorkspace | undefined>;
++	readonly title: IObservable<string>;
++	readonly updatedAt: IObservable<Date>;
++	readonly status: IObservable<SessionStatus>;
++	readonly changes: IObservable<readonly never[]> = observableValue(this, []);
++	readonly changesets: IObservable<undefined> = observableValue(this, undefined);
++	readonly modelId: IObservable<string | undefined> = observableValue(this, undefined);
++	readonly mode: IObservable<{ readonly id: string; readonly kind: string } | undefined> = observableValue(this, undefined);
++	readonly loading: IObservable<boolean> = observableValue(this, false);
++	readonly isArchived: IObservable<boolean>;
++	readonly isRead: IObservable<boolean> = observableValue(this, true);
++	readonly description: IObservable<undefined> = observableValue(this, undefined);
++	readonly lastTurnEnd: IObservable<Date | undefined> = observableValue(this, undefined);
++	readonly chats: IObservable<readonly IChat[]>;
++	readonly mainChat: IObservable<IChat>;
++	readonly capabilities: IObservable<ISessionCapabilities>;
++
++	constructor(readonly item: IChatSessionItem, chatSessionType: string, workspace: ISessionWorkspace | undefined, icon: ThemeIcon) {
++		this.sessionId = item.resource.toString();
++		this.resource = item.resource;
++		this.sessionType = chatSessionType;
++		this.icon = icon;
++		this.createdAt = new Date(item.timing?.created ?? Date.now());
++		this.title = observableValue(this, item.label);
++		this.updatedAt = observableValue(this, new Date(item.timing?.lastRequestEnded ?? item.timing?.created ?? Date.now()));
++		this.status = observableValue(this, sessionStatus(item.status));
++		this.isArchived = observableValue(this, item.archived === true);
++		this.workspace = observableValue(this, workspace);
++		const chat = new ExtensionSessionChat(item);
++		this.chats = observableValue(this, [chat]);
++		this.mainChat = observableValue(this, chat);
++		// Capabilities state what Caret can actually do today: everything else is
++		// offered nowhere instead of offering an action that cannot work.
++		this.capabilities = observableValue(this, {
++			supportsMultipleChats: false,
++			supportsFork: false,
++			supportsSideChat: false,
++			supportsRename: false,
++			supportsDelete: false,
++		});
++	}
++
++	/** True when this session wraps the given chat session resource. */
++	matches(resource: URI): boolean {
++		return this.item.resource.toString() === resource.toString();
++	}
++}
++
++export class ExtensionSessionsProvider extends Disposable implements ISessionsProvider {
++	readonly id = EXTENSION_SESSIONS_PROVIDER_ID;
++	readonly label = localize('extensionSessions.provider', "Caret");
++	readonly icon = ThemeIcon.fromId('comment-discussion');
++	/** After the agent-host family, so Caret's own sessions follow them. */
++	readonly order = 10;
++	readonly browseActions: readonly ISessionWorkspaceBrowseAction[] = [];
++	readonly supportsLocalWorkspaces = false;
++	readonly supportsQuickChats = false;
++
++	private readonly _onDidChangeSessions = this._register(new Emitter<ISessionChangeEvent>());
++	readonly onDidChangeSessions = this._onDidChangeSessions.event;
++	private readonly _onDidChangeSessionTypes = this._register(new Emitter<void>());
++	readonly onDidChangeSessionTypes = this._onDidChangeSessionTypes.event;
++	private readonly _onDidChangeModels = this._register(new Emitter<void>());
++	readonly onDidChangeModels = this._onDidChangeModels.event;
++
++	private readonly _sessionTypes = observableValue<readonly ISessionType[]>(this, []);
++	private sessions: ExtensionSession[] = [];
++	private refreshing = false;
++
++	constructor(
++		@IChatSessionsService private readonly chatSessionsService: IChatSessionsService,
++		@IChatService private readonly chatService: IChatService,
++		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
++		@ILogService private readonly logService: ILogService,
++	) {
++		super();
++		this._register(this.chatSessionsService.onDidChangeSessionItems(() => void this.refresh()));
++		this._register(this.chatSessionsService.onDidChangeItemsProviders(() => {
++			this.updateSessionTypes();
++			void this.refresh();
++		}));
++		this.updateSessionTypes();
++		void this.refresh();
++	}
++
++	get sessionTypes(): readonly ISessionType[] {
++		return this._sessionTypes.get();
++	}
++
++	private updateSessionTypes(): void {
++		const types: ISessionType[] = this.chatSessionsService.getAllChatSessionContributions().map(contribution => ({
++			id: contribution.type,
++			label: contribution.displayName ?? contribution.type,
++			icon: ThemeIcon.fromId('comment-discussion'),
++			chatSessionType: contribution.type,
++			// Caret runs on OMP with the user's own credentials: no GitHub sign-in
++			// is required for a Caret session to be usable.
++			authRequirement: SessionTypeAuthRequirement.None,
++		}));
++		this._sessionTypes.set(types, undefined);
++		this._onDidChangeSessionTypes.fire();
++	}
++
++	private iconFor(chatSessionType: string): ThemeIcon {
++		return this.sessionTypes.find(type => type.id === chatSessionType)?.icon ?? ThemeIcon.fromId('comment-discussion');
++	}
++
++	private workspaceFor(item: IChatSessionItem): ISessionWorkspace | undefined {
++		const workingDirectory = item.metadata?.workingDirectoryPath;
++		if (!workingDirectory) return undefined;
++		const root = URI.file(workingDirectory);
++		const segments = workingDirectory.split('/');
++		const label = item.metadata?.repositoryPath?.split('/').pop() ?? segments[segments.length - 1] ?? workingDirectory;
++		return {
++			uri: root,
++			label,
++			icon: ThemeIcon.fromId('folder'),
++			folders: [{ root, workingDirectory: root, name: label, description: undefined }],
++			requiresWorkspaceTrust: false,
++			isVirtualWorkspace: false,
++		};
++	}
++
++	/** Read every contributed item and publish the difference. Never throws. */
++	async refresh(): Promise<void> {
++		if (this.refreshing) return;
++		this.refreshing = true;
++		try {
++			const next: ExtensionSession[] = [];
++			for await (const batch of this.chatSessionsService.getChatSessionItems(undefined, CancellationToken.None)) {
++				for (const item of batch.items) {
++					const existing = this.sessions.find(session => session.matches(item.resource));
++					next.push(existing ?? new ExtensionSession(item, batch.chatSessionType, this.workspaceFor(item), this.iconFor(batch.chatSessionType)));
++				}
++			}
++			const added = next.filter(session => !this.sessions.some(current => current.sessionId === session.sessionId));
++			const removed = this.sessions.filter(session => !next.some(candidate => candidate.sessionId === session.sessionId));
++			this.sessions = next;
++			if (added.length || removed.length) {
++				this._onDidChangeSessions.fire({ added, removed, changed: [] });
++			}
++		} catch (error) {
++			this.logService.warn(`[extensionSessions] could not read contributed chat sessions: ${error instanceof Error ? error.message : String(error)}`);
++		} finally {
++			this.refreshing = false;
++		}
++	}
++
++	getSessions(): ISession[] {
++		return this.sessions;
++	}
++
++	getSessionTypes(_workspaceUri: URI): ISessionType[] {
++		return [...this.sessionTypes];
++	}
++
++	resolveWorkspace(workspaceUri: URI): ISessionWorkspace | undefined {
++		const folder = this.workspaceContextService.getWorkspace().folders.find(candidate => candidate.uri.toString() === workspaceUri.toString());
++		if (!folder) return undefined;
++		return {
++			uri: folder.uri,
++			label: folder.name,
++			icon: ThemeIcon.fromId('folder'),
++			folders: [{ root: folder.uri, workingDirectory: folder.uri, name: folder.name, description: undefined }],
++			requiresWorkspaceTrust: false,
++			isVirtualWorkspace: false,
++		};
++	}
++
++	/**
++	 * Caret's extension creates the real session when the first request is sent,
++	 * so the draft is the newest contributed session. With none contributed there
++	 * is nothing to draft against, and saying so is better than inventing a row.
++	 */
++	createNewSession(_workspaceUri: URI, _sessionTypeId: string, _options?: ISessionsProviderCreateSessionOptions): ISession {
++		const session = this.sessions[0];
++		if (!session) throw new Error(UNSUPPORTED);
++		return session;
++	}
++
++	createQuickChat(sessionTypeId: string, options?: ISessionsProviderCreateSessionOptions): ISession {
++		return this.createNewSession(URI.parse('untitled:caret'), sessionTypeId, options);
++	}
++
++	deleteNewSession(_sessionId: string): void {
++		// Draft sessions live in the extension; there is nothing local to discard.
++	}
++
++	async sendRequest(sessionId: string, chatResource: URI, options: ISendRequestOptions): Promise<ISession> {
++		const session = this.sessions.find(candidate => candidate.sessionId === sessionId) ?? this.sessions.find(candidate => candidate.matches(chatResource));
++		if (!session) throw new Error(UNSUPPORTED);
++		await this.chatService.sendRequest(chatResource, options.query);
++		return session;
++	}
++
++	getModelsSnapshot(_sessionId: string, _desiredModelId?: string): ISessionModelsSnapshot {
++		return { models: [], desiredModelResolution: { kind: 'notRequested' }, modelTarget: undefined };
++	}
++
++	getModelPickerOptions(_sessionId: string): ISessionModelPickerOptions {
++		// OMP advertises models through the host; until the picker is wired to that
++		// list the window must not offer a Caret-side model choice.
++		return { useGroupedModelPicker: false, showFeatured: false, showUnavailableFeatured: false, showManageModelsAction: false, showAutoModel: false };
++	}
++
++	setModel(_sessionId: string, _chatResource: URI, _modelId: string, _source: ChatModelSource): void {
++		// Model choice belongs to OMP, not to this window.
++	}
++
++	async renameChat(_sessionId: string, _chatUri: URI, _title: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async renameSession(_sessionId: string, _title: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async archiveSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async unarchiveSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async setSessionReadState(_sessionId: string, _isRead: boolean): Promise<void> { /* read state is host-owned */ }
++	async deleteSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async deleteSessions(_sessionIds: readonly string[]): Promise<void> { throw new Error(UNSUPPORTED); }
++	async deleteChat(_sessionId: string, _chatUri: URI): Promise<boolean> { return false; }
++	async createNewChat(_sessionId: string, _prompt?: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
++	async forkChat(_sessionId: string, _sourceChat: URI, _turnId: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
++	async createSideChat(_sessionId: string, _sourceChat: URI, _turnId: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
++}
++
++class ExtensionSessionsContribution extends Disposable implements IWorkbenchContribution {
++
++	static readonly ID = 'sessions.contrib.extensionSessions';
++
++	constructor(
++		@IInstantiationService instantiationService: IInstantiationService,
++		@ISessionsProvidersService sessionsProvidersService: ISessionsProvidersService,
++		@ILogService logService: ILogService,
++	) {
++		super();
++		try {
++			const provider = this._register(instantiationService.createInstance(ExtensionSessionsProvider));
++			this._register(sessionsProvidersService.registerProvider(provider));
++		} catch (error) {
++			// Fail safe: without the bridge the window shows what it showed before
++			// rather than failing to open.
++			logService.warn(`[extensionSessions] provider not registered: ${error instanceof Error ? error.message : String(error)}`);
++		}
++	}
++}
++
++registerWorkbenchContribution2(ExtensionSessionsContribution.ID, ExtensionSessionsContribution, WorkbenchPhase.AfterRestored);
+diff --git a/src/vs/sessions/sessions.desktop.main.ts b/src/vs/sessions/sessions.desktop.main.ts
+index 15b89578396..daba4087e03 100644
+--- a/src/vs/sessions/sessions.desktop.main.ts
++++ b/src/vs/sessions/sessions.desktop.main.ts
+@@ -250,6 +250,10 @@ import './contrib/chat/electron-browser/chat.contribution.js';
+ 
+ // Local Agent Host
+ import './contrib/providers/agentHost/browser/localAgentHost.contribution.js';
++// Caret: list chat sessions contributed by Caret's own extension (the public
++// chatSessionsProvider API) in the Agents window, which otherwise only lists
++// sessions from the agent-host providers.
++import './contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.js';
+ import './contrib/providers/agentHost/electron-browser/localAgentHostLifecycle.contribution.js';
+ import './contrib/providers/agentHost/browser/agentSessionSettings.contribution.js';
+ import './contrib/providers/agentHost/browser/agentHostSettings.contribution.js';

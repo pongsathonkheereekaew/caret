@@ -26,7 +26,7 @@ function fixture() {
 it("uses unsaved snapshots and applies one guarded UTF-16 transaction without changing disk", async () => {
   const f = fixture(); f.editors.register("window", [f.root]);
   const snapshot = f.bridge.handle({ kind: "snapshot", path: f.path }, f.signal); f.respondRead();
-  expect(await snapshot).toEqual({ document: f.document });
+  expect(await snapshot).toEqual({ document: f.document, editorWorkspace: true });
   const applied = f.bridge.handle({ kind: "apply", path: f.path, handle: f.document.handle, expectedVersion: 3, expectedHash: f.document.sha256, content: "replacement" }, f.signal);
   f.respondRead(); await Promise.resolve(); await Promise.resolve();
   const request = f.editors.poll("window")[0]!;
@@ -45,7 +45,7 @@ it("rejects stale snapshot edits before dispatching any apply", async () => {
 });
 it("allows untouched headless files but never falls back after an editor owner disconnects", async () => {
   const f = fixture();
-  expect(await f.bridge.handle({ kind: "snapshot", path: f.path }, f.signal)).toEqual({ document: null });
+  expect(await f.bridge.handle({ kind: "snapshot", path: f.path }, f.signal)).toEqual({ document: null, editorWorkspace: false });
   f.editors.register("window", [f.root]);
   const pending = f.bridge.handle({ kind: "snapshot", path: f.path }, f.signal); f.respondRead(); await pending;
   f.editors.close();
@@ -85,13 +85,30 @@ it("snapshots untitled paths without realpath", async () => {
   const request = f.editors.poll("window")[0]!;
   expect(request).toMatchObject({ kind: "read", path: "untitled:Untitled-1" });
   f.editors.respond("window", { kind: "read", requestId: request.requestId, document: untitled });
-  expect(await pending).toEqual({ document: untitled });
+  expect(await pending).toEqual({ document: untitled, editorWorkspace: true });
   const other = { ...untitled, path: "untitled:Untitled-2", uri: "untitled:Untitled-2", handle: { id: "untitled-2", uri: "untitled:Untitled-2" } };
   const wrong = f.bridge.handle({ kind: "snapshot", path: "untitled:Untitled-2" }, f.signal);
   const wrongRequest = f.editors.poll("window")[0]!;
   f.editors.respond("window", { kind: "read", requestId: wrongRequest.requestId, document: untitled });
   await expect(wrong).rejects.toThrow(/Invalid native editor snapshot/);
   expect(other.path).toBe("untitled:Untitled-2");
+});
+
+it("rejects moving an untitled document before any editor request", async () => {
+  const f = fixture(); f.editors.register("window", [f.root]);
+  const untitled = { ...f.document, path: "untitled:Untitled-1", uri: "untitled:Untitled-1", isUntitled: true, handle: { id: "untitled-1", uri: "untitled:Untitled-1" } };
+  const pending = f.bridge.handle({ kind: "snapshot", path: "untitled:Untitled-1" }, f.signal); f.respondRead(untitled); await pending;
+  const moved = f.bridge.handle({
+    kind: "move",
+    path: "untitled:Untitled-1",
+    destination: join(f.root, "saved.ts"),
+    handle: untitled.handle,
+    expectedVersion: 3,
+    expectedHash: untitled.sha256,
+  }, f.signal);
+  f.respondRead(untitled);
+  await expect(moved).rejects.toThrow(/Untitled documents must be created at a workspace path before move/);
+  expect(f.editors.poll("window")).toEqual([]);
 });
 
 it("rejects a snapshot whose content does not match its hash", async () => {
@@ -105,7 +122,7 @@ it("shares editor ownership across internal symlink aliases and rejects retarget
   const f = fixture(); const alias = join(f.root, "alias.txt"); symlinkSync(f.path, alias);
   f.editors.register("window", [f.root]);
   const pending = f.bridge.handle({ kind: "snapshot", path: alias }, f.signal); f.respondRead();
-  expect(await pending).toEqual({ document: f.document });
+  expect(await pending).toEqual({ document: f.document, editorWorkspace: true });
   f.editors.close();
   await expect(f.bridge.handle({ kind: "snapshot", path: f.path }, f.signal)).rejects.toThrow(/disconnected/);
   await expect(f.bridge.handle({ kind: "snapshot", path: alias }, f.signal)).rejects.toThrow(/disconnected/);

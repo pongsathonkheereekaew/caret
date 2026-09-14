@@ -1,0 +1,157 @@
+{
+  "capturedAt": "2026-09-13T22:12:36.715Z",
+  "realPackagedAppEditor": true,
+  "scriptedModelOnly": true,
+  "paidModelCalls": 0,
+  "modelRequests": 4,
+  "approvals": 1,
+  "decision": "kept",
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/MacOS/Caret",
+  "workspace": "/private/tmp/caret-agent-mark/workspace",
+  "runtimeKind": "standalone-binary",
+  "sourceVerified": true,
+  "sourceRevision": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "sourceTree": "14dd6fff87d27d8eaadba9727fdf5f85041fece2",
+  "executableSha256": "fe76b727c6281ef8355be202ba57ed580cb0985ddacbc6cfcb5918b0d9de0d4b",
+  "patchManifestSha256": "ced7c838c007f9217ba1a4cc82f08424e8d10e6968ec6cdc357531ad406c4bf1",
+  "bunSha256": "35d20dd0263e5c950194434b925454fdfa9ba6e4467da960410fa05b08a7a5b5",
+  "nativeSha256": "08f5c471347c4ee1c2fabaee2c0369e77ea0b9fe1fccbc3cc2320ca4638a02dc",
+  "checks": [
+    "agent-edit-applied-through-the-packaged-apps-editor-bridge",
+    "edit-visible-in-the-editor-buffer-not-on-disk",
+    "single-guarded-apply-approval",
+    "disk-untouched-by-apply",
+    "keep-saves-the-edit-to-disk"
+  ],
+  "runtimeObservation": {
+    "method": "Computer Use against the accessibility tree of the running packaged window; the operator clicked the real editor-title buttons, not a stub",
+    "duringMark": [
+      "editor-title actions: Review Active File in Diff, Review the Caret Edit, Keep the Caret Edit, Take Back the Caret Edit, Split Editor Right",
+      "Explorer: '1 unsaved file' - the apply dirtied the buffer, not the disk"
+    ],
+    "afterTakeBack": [
+      "the Caret buttons were removed from the editor-title actions",
+      "status bar reported 'Caret: took back the edit to src/greet.ts'"
+    ],
+    "whyItCounts": "caret.agentEditPending is set only by refreshAgentEditMarks() after a real apply through the editor bridge, so the buttons appearing is a direct consequence of a real OMP edit; forgetAgentEdit() emits the take-back message.",
+    "evidenceFiles": [
+      "runtime-cua-agent-mark-2026-09-14.txt",
+      "runtime-window-agent-mark-2026-09-14.png"
+    ]
+  },
+  "keepRuntimeObservation": {
+    "method": "Computer Use against the accessibility tree of the running packaged window; the operator clicked the real editor-title button",
+    "beforeClick": [
+      "editor-title actions: Review Active File in Diff, Review the Caret Edit, Keep the Caret Edit, Take Back the Caret Edit",
+      "Explorer tab: 'Explorer (Shift+Command+E) - 1 unsaved file'"
+    ],
+    "afterClick": [
+      "the '- 1 unsaved file' suffix was gone (the buffer was saved)",
+      "all three Caret actions withdrew (the pending record was dropped)",
+      "status bar reported 'Caret: kept the edit to src/greet.ts'"
+    ],
+    "onDisk": "src/greet.ts then held `return `Hello, ${name}! Welcome back.`;` and git diff --stat reported 1 insertion / 1 deletion",
+    "evidenceFiles": [
+      "runtime-cua-agent-keep-2026-09-14.txt",
+      "runtime-window-agent-keep-2026-09-14.png"
+    ]
+  },
+  "reviewDiff": {
+    "command": "caret.reviewAgentEdit",
+    "surface": "editor/title and editor/context, gated on caret.agentEditPending, alongside Keep and Take Back",
+    "openedInRealApp": "a real Code-OSS diff editor titled 'src/greet.ts (before Caret <-> after Caret)', left side the read-only caret-agent-edit virtual document holding the recorded pre-edit text, right side the live buffer",
+    "afterTakeBack": "the diff's Previous/Next Change went disabled (the two sides became identical) and the status line read 'Caret: took back the edit to src/greet.ts'",
+    "unitAndBehavioral": "native-diff.test.ts pins the id round-trip and title; agent-edit-marks.test.ts pins the review decision; ide-native-workbench.test.ts asserts the real vscode.diff command with the pre-edit left side, the stale-buffer refusal, and the no-edit refusal",
+    "evidenceFiles": [
+      "runtime-cua-agent-review-diff-2026-09-14.txt",
+      "runtime-window-agent-review-2026-09-14.png"
+    ]
+  },
+  "codeLens": {
+    "command": "the same two commands (caret.keepAgentEdit / caret.revertAgentEdit) offered on the change itself as an editor CodeLens",
+    "invokedByTheEngine": "Caret.log: 'agent edit lenses offered path=src/greet.ts decisions=2 line=1' - the provider is only reachable through registerCodeLensProvider, so this is the engine calling it on a real document",
+    "renderedInTheRealApp": "accessibility tree showed two labelled buttons inside the editor container, 'Keep the Caret Edit | Take Back the Caret Edit', next to the code-actions list",
+    "clickedForReal": "clicking the Take Back lens dropped the pending record and reported 'Caret: took back the edit to src/greet.ts'",
+    "withdrawsWithTheMark": "ending a run through the editor-title button removed the lens container too (removed element 134)",
+    "unitAndBehavioral": "agent-edit-marks.test.ts pins the lens specs; ide-native-workbench.test.ts asserts the provider is registered for the file scheme, returns the two real commands on the changed line, logs the first offer once, matches the manifest titles, and returns nothing once the edit is kept",
+    "evidenceFiles": [
+      "runtime-cua-agent-edit-lenses-2026-09-14.txt"
+    ]
+  },
+  "markRegion": {
+    "problem": "OMP's guarded native apply reports one whole-file edit even for a small change, so the mark and the lens originally spanned the file (logged line=0 while the model changed line 1)",
+    "fix": "the mark is derived from the text the apply actually produced: changedLineSpan(applyEdits(textBefore, edits), textBefore) in apps/macos/src/agent-edit-marks.ts, falling back to the edit geometry when the produced text is unchanged",
+    "verifiedInTheRealApp": "rebuilt and re-ran on the packaged app; Caret.log then read 'agent edit lenses offered path=src/greet.ts decisions=2 line=1', the changed line",
+    "unit": "agent-edit-marks.test.ts covers applyEdits (single/multiple edits), a whole-file edit narrowing to the changed line, an inserted line, equal texts, and the fallback"
+  },
+  "keybindings": {
+    "declared": {
+      "caret.reviewInDiff": "cmd+alt+r",
+      "caret.addSelectionToTask": "cmd+alt+k"
+    },
+    "reviewInDiffPressed": "cmd+alt+r opened the real Code-OSS diff editor titled 'src/greet.ts (HEAD <-> Working Tree)' with two editor panes and the diff toolbar, i.e. the command ran from the keyboard",
+    "addSelectionPressed": "cmd+alt+k with an empty selection produced the extension's own notification 'Info: Select text in the editor first. Caret did not invent a selection., source: Caret Mac task extension'",
+    "evidenceFiles": [
+      "runtime-cua-keybindings-2026-09-14.txt"
+    ]
+  },
+  "codeLensStaleness": {
+    "found": "on the packaged app, after clicking Keep: the editor-title buttons withdrew and the file was saved, but the in-editor CodeLens still offered both decisions while provideCodeLenses would have returned [] - the engine was showing a cached result",
+    "mechanism": "a CodeLensProvider is re-queried on document change or on onDidChangeCodeLenses; the lenses depend on extension state, and the provider never fired that event",
+    "severity": "same honesty class as the earlier dead caretDock.focus id: a control that looks live but is not, and would refuse on invoke",
+    "fix": "#agentEditLensesChanged (vscode.EventEmitter) is fired from refreshAgentEditMarks(), which already runs on every pending-state change (record, keep, take back, save, close, visible-editor change); the provider returns onDidChangeCodeLenses: that event, and the emitter is disposed with the provider",
+    "verifiedInTheRealApp": "after a rebuild, clicking Keep reported 'kept the edit', the title buttons withdrew, and the lens was gone (LENS still present: false, which was true before the fix)",
+    "unitAndBehavioral": "the workbench suite asserts the provider exposes the event, fires once on record and again on keep, and returns no lenses afterwards",
+    "evidenceFiles": ["runtime-cua-agent-edit-lens-staleness-2026-09-14.txt"]
+  },
+  "markPixels": {
+    "verified": "the decoration is painted on the changed line with the theme's own highlight colour",
+    "method": "two screenshot pairs of the packaged app, read with a stdlib-only PNG pixel probe (scripts/png-pixel-probe.py); no vision model and no imaging library",
+    "pairA": "clearing the mark with Keep also saves, so the diff mixes in save-induced chrome on the same rows; the largest editor-column band starts at the git gutter. Not isolable on its own.",
+    "pairB": "clearing the mark with Reload Window keeps the unsaved buffer (still unsaved: true) while the extension state is fresh (mark after reload: false), so the text is identical and only Caret's rendering is gone. It also showed the CodeLens occupies editor layout: rows 380..423 are identical, but the last bright row is y=491 with the mark and y=459 without, about one CodeLens row.",
+    "decisiveColourCheck": "the decoration paints ThemeColor editor.wordHighlightStrongBackground (#27678280 over editor.background #121314 = about rgb(29, 61, 75)). In the editor text column (x 1032..2531, y 430..500) the mark-on capture holds rgb(38, 61, 74) with 18217 px (18289 within +/-2) while the mark-off capture holds 0. No other Caret surface paints that colour, and selection/find colours composite to rgb(36,92,115) / rgb(30,66,82), different in green and blue.",
+    "conclusion": "counted 18217 pixels of the decoration's own composited theme colour only while the mark was pending and none when it was not, so the mark renders on the changed line in the packaged app.",
+    "evidenceFiles": ["runtime-cua-agent-mark-pixels-2026-09-14.txt", "runtime-window-agent-mark-on-2026-09-14.png", "runtime-window-agent-mark-off-2026-09-14.png"]
+  },
+  "staleTakeBackRefusal": {
+    "rule": "take-back restores the exact pre-edit text, which is only honest while the buffer still holds the version Caret produced",
+    "inTheRealApp": "after the agent edit landed, the operator typed one character into the editor and then clicked Take Back the Caret Edit: 'stale refusal shown: true' and 'took back: false', so the refusal fired and no take-back message or buffer rewrite appeared",
+    "disk": "src/greet.ts still held the pre-edit text afterwards, so the refused action wrote nothing",
+    "closes": "the last agent-edit refusal path that had only been covered by unit and behavioral tests",
+    "evidenceFiles": ["runtime-cua-agent-edit-stale-refusal-2026-09-14.txt"]
+  },
+  "decisions": {
+    "note": "The machine fields above (decision, checks, capturedAt) describe the most recent run; every graded outcome is listed here.",
+    "kept": {
+      "capturedAt": "2026-09-13T21:38:58.112Z",
+      "modelRequests": 4,
+      "checks": [
+        "agent-edit-applied-through-the-packaged-apps-editor-bridge",
+        "edit-visible-in-the-editor-buffer-not-on-disk",
+        "single-guarded-apply-approval",
+        "disk-untouched-by-apply",
+        "keep-saves-the-edit-to-disk"
+      ]
+    },
+    "reverted": {
+      "capturedAt": "2026-09-13T21:53:30.019Z",
+      "modelRequests": 6,
+      "checks": [
+        "agent-edit-applied-through-the-packaged-apps-editor-bridge",
+        "edit-visible-in-the-editor-buffer-not-on-disk",
+        "single-guarded-apply-approval",
+        "disk-untouched-by-apply",
+        "take-back-restores-exact-pre-edit-buffer",
+        "take-back-never-saves"
+      ],
+      "earlierRevertedRuns": [
+        "2026-09-13T21:33:24.886Z via the editor-title button",
+        "2026-09-13T21:50:15.342Z via the in-editor lens"
+      ]
+    }
+  },
+  "notVerified": [
+    "The terminal/context and terminal/title/context menu entries were not opened by a real click (the terminal canvas is not exposed as an accessibility element; Control+` focused the panel but Command+A still selected editor text, and Shift+F10 opened nothing). The command behind them runs, and the contribution points plus the terminalTextSelected/terminalFocus context keys are validated against the pinned checkout. See runtime-cua-menus-2026-09-14.txt, which also re-confirms the editor context menu by a real right-click.",
+    "Mobile/iPhone, relay deployment, and signing/notarization remain external gates; nothing in this receipt covers them."
+  ]
+}

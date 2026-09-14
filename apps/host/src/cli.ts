@@ -42,7 +42,7 @@ async function main(): Promise<void> {
   const useBundled = !process.env.CARET_OMP_PATH && existsSync(bundledOmp);
   server = await startHostServer({ stateDir, ompExecutable: process.env.CARET_OMP_PATH ?? (useBundled ? bundledOmp : undefined),
     virtualUi: process.env.CARET_RPC_VIRTUAL_UI === "1" || (useBundled && process.env.CARET_RPC_VIRTUAL_UI !== "0"),
-    editorBridge: process.env.CARET_RPC_EDITOR_BRIDGE === "1",
+    editorBridge: process.env.CARET_RPC_EDITOR_BRIDGE === "1" || (useBundled && process.env.CARET_RPC_EDITOR_BRIDGE !== "0"),
     nativeBridge: process.env.CARET_RPC_NATIVE_BRIDGE === "1" || (useBundled && process.env.CARET_RPC_NATIVE_BRIDGE !== "0"),
     onDiagnostic: message => process.stderr.write(`${message}\n`),
     onFatal: () => { fatalDuringStartup = true; if (server) void stop(1); } });

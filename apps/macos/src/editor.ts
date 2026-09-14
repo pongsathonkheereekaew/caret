@@ -64,10 +64,32 @@ export type EditorGuardInput = Pick<EditorApplyRequest, "path" | "handle" | "exp
 export interface EditorServiceOptions {
 	/** Revalidate a host delivery after waiting for the per-document queue. */
 	readonly beforeApply?: (requestId: string | undefined) => Promise<boolean>;
+	/** Observe a successful guarded apply so the embedding UI can mark the
+	 * change in the editor. Reports the geometry and the pre-edit text; it does
+	 * not participate in the decision to apply. */
+	readonly afterApply?: (summary: EditorAppliedSummary) => void;
 	/** Injected only for tests/embedding; the default dynamically loads vscode. */
 	readonly api?: VscodeApi;
 	/** Absolute workspace roots. If omitted, roots come from vscode.workspace. */
 	readonly workspaceRoots?: readonly string[];
+}
+
+/** What the UI needs to mark one applied edit: where the new text landed, and
+ * the text to restore if the user takes the edit back. */
+export interface EditorAppliedSummary {
+	readonly path: string;
+	readonly uri: string;
+	readonly requestId: string;
+	/** Document version the edit produced. */
+	readonly version: number;
+	readonly textBefore: string;
+	readonly edits: readonly {
+		readonly range: {
+			readonly start: { readonly line: number; readonly character: number };
+			readonly end: { readonly line: number; readonly character: number };
+		};
+		readonly text: string;
+	}[];
 }
 
 export interface EditorGuardState {
@@ -751,6 +773,7 @@ export class CaretEditorService {
 			if (afterVersion !== request.expectedVersion + 1 || afterText !== expectedText) {
 				throw new EditorBridgeError("apply_race", "editor edit postcondition did not match the guarded request", { current: this.descriptor(binding), mayHaveApplied: true });
 			}
+			this.observeAppliedChange(binding, request, originalText, edits, afterVersion);
 			return {
 				kind: "apply",
 				requestId: request.requestId ?? newId("caret-edit"),
@@ -764,6 +787,37 @@ export class CaretEditorService {
 	/** Apply a guarded WorkspaceEdit without saving the document. */
 	async apply(input: EditorApplyInput): Promise<EditorApplyResult> {
 		return this.applyDocument(await this.api(), input);
+	}
+
+	/** Hand a successful apply to the embedding UI. The document already holds
+	 * the edit, so a failure here must not turn a real success into an error
+	 * response: the authoritative record of the change is the buffer itself,
+	 * and the mark is only how the UI shows it. */
+	private observeAppliedChange(
+		binding: DocumentBinding,
+		request: { readonly requestId?: string },
+		textBefore: string,
+		edits: readonly { readonly start: { readonly line: number; readonly character: number }; readonly end: { readonly line: number; readonly character: number }; readonly text: string }[],
+		version: number,
+	): void {
+		const observe = this.#options.afterApply;
+		if (!observe) return;
+		try {
+			observe({
+				path: binding.path,
+				uri: binding.uri,
+				requestId: request.requestId ?? "",
+				version,
+				textBefore,
+				edits: edits.map(item => ({
+					range: {
+						start: { line: item.start.line, character: item.start.character },
+						end: { line: item.end.line, character: item.end.character },
+					},
+					text: item.text,
+				})),
+			});
+		} catch { /* the edit is already applied; a missing mark must not fake a failure */ }
 	}
 
 	private async createDocument(api: VscodeApi, path: string, content: string | undefined, requestId: string): Promise<EditorCreateResult> {

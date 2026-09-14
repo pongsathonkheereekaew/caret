@@ -1,0 +1,200 @@
+diff --git a/src/vs/platform/extensionManagement/common/abstractExtensionManagementService.ts b/src/vs/platform/extensionManagement/common/abstractExtensionManagementService.ts
+index e506b83187c..f0febd4f7d1 100644
+--- a/src/vs/platform/extensionManagement/common/abstractExtensionManagementService.ts
++++ b/src/vs/platform/extensionManagement/common/abstractExtensionManagementService.ts
+@@ -984,7 +984,9 @@ export abstract class AbstractExtensionManagementService extends CommontExtensio
+ 		if (checked.indexOf(extension) !== -1) {
+ 			return [];
+ 		}
+-		if (areSameExtensions(extension.identifier, { id: this.productService.defaultChatAgent.extensionId })) {
++		// Caret: no default chat agent means no protected extension pack.
++		const defaultChatAgentExtensionId = this.productService.defaultChatAgent?.extensionId;
++		if (defaultChatAgentExtensionId && areSameExtensions(extension.identifier, { id: defaultChatAgentExtensionId })) {
+ 			return [];
+ 		}
+ 		checked.push(extension);
+diff --git a/src/vs/platform/extensionManagement/common/extensionGalleryService.ts b/src/vs/platform/extensionManagement/common/extensionGalleryService.ts
+index b00f8d12879..59f7287b61f 100644
+--- a/src/vs/platform/extensionManagement/common/extensionGalleryService.ts
++++ b/src/vs/platform/extensionManagement/common/extensionGalleryService.ts
+@@ -1158,10 +1158,11 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
+ 
+ 			const result: IGalleryExtension[] = [];
+ 			let defaultChatAgentExtension: IGalleryExtension | undefined;
++			const defaultChatAgentExtensionId = this.productService.defaultChatAgent?.extensionId;
+ 			for (let index = 0; index < extensions.length; index++) {
+ 				const extension = extensions[index];
+ 				setTelemetry(extension, ((query.pageNumber - 1) * query.pageSize) + index, options.source);
+-				if (areSameExtensions(extension.identifier, { id: this.productService.defaultChatAgent.extensionId, })) {
++				if (defaultChatAgentExtensionId && areSameExtensions(extension.identifier, { id: defaultChatAgentExtensionId })) {
+ 					defaultChatAgentExtension = extension;
+ 				} else {
+ 					result.push(extension);
+@@ -1977,15 +1978,20 @@ export abstract class AbstractExtensionGalleryService implements IExtensionGalle
+ 			}
+ 		}
+ 
+-		deprecated[this.productService.defaultChatAgent.extensionId.toLowerCase()] = {
+-			disallowInstall: true,
+-			extension: {
+-				id: this.productService.defaultChatAgent.chatExtensionId,
+-				displayName: 'GitHub Copilot Chat',
+-				autoMigrate: { storage: false, donotDisable: true },
+-				preRelease: this.productService.quality !== 'stable'
+-			}
+-		};
++		// Caret: with no default chat agent there is no extension to deprecate or
++		// auto-migrate; skip the entry instead of reading through the missing config.
++		const defaultChatAgent = this.productService.defaultChatAgent;
++		if (defaultChatAgent) {
++			deprecated[defaultChatAgent.extensionId.toLowerCase()] = {
++				disallowInstall: true,
++				extension: {
++					id: defaultChatAgent.chatExtensionId,
++					displayName: 'GitHub Copilot Chat',
++					autoMigrate: { storage: false, donotDisable: true },
++					preRelease: this.productService.quality !== 'stable'
++				}
++			};
++		}
+ 
+ 		return { malicious, deprecated, search, autoUpdate };
+ 	}
+diff --git a/src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts b/src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts
+index e47d00f917f..d1c147d1dc2 100644
+--- a/src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts
++++ b/src/vs/workbench/contrib/chat/browser/widget/chatWidget.ts
+@@ -46,6 +46,7 @@ import { ServiceCollection } from '../../../../../platform/instantiation/common/
+ import { ILogService } from '../../../../../platform/log/common/log.js';
+ import { bindContextKey } from '../../../../../platform/observable/common/platformObservableUtils.js';
+ import product from '../../../../../platform/product/common/product.js';
++import { IDefaultChatAgent } from '../../../../../base/common/product.js';
+ import { Progress } from '../../../../../platform/progress/common/progress.js';
+ import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
+ import { IThemeService } from '../../../../../platform/theme/common/themeService.js';
+@@ -1555,9 +1556,10 @@ export class ChatWidget extends Disposable implements IChatWidget {
+ 			if (!numItems) {
+ 				const defaultAgent = this.chatAgentService.getDefaultAgent(this.location, this.input.currentModeKind);
+ 				let additionalMessage: string | IMarkdownString | undefined;
+-				if (this.chatEntitlementService.anonymous && !this.chatEntitlementService.sentiment.completed) {
+-					const providers = product.defaultChatAgent.provider;
+-					additionalMessage = new MarkdownString(localize({ key: 'settings', comment: ['{Locked="]({2})"}', '{Locked="]({3})"}'] }, "By continuing with {0} Copilot, you agree to {1}'s [Terms]({2}) and [Privacy Statement]({3}).", providers.default.name, providers.default.name, product.defaultChatAgent.termsStatementUrl, product.defaultChatAgent.privacyStatementUrl), { isTrusted: true });
++				const defaultChatAgent = product.defaultChatAgent as IDefaultChatAgent | undefined;
++				if (this.chatEntitlementService.anonymous && !this.chatEntitlementService.sentiment.completed && defaultChatAgent) {
++					const providers = defaultChatAgent.provider;
++					additionalMessage = new MarkdownString(localize({ key: 'settings', comment: ['{Locked="]({2})"}', '{Locked="]({3})"}'] }, "By continuing with {0} Copilot, you agree to {1}'s [Terms]({2}) and [Privacy Statement]({3}).", providers.default.name, providers.default.name, defaultChatAgent.termsStatementUrl, defaultChatAgent.privacyStatementUrl), { isTrusted: true });
+ 				} else {
+ 					additionalMessage = defaultAgent?.metadata.additionalWelcomeMessage;
+ 				}
+diff --git a/src/vs/workbench/contrib/extensions/browser/extensionsWorkbenchService.ts b/src/vs/workbench/contrib/extensions/browser/extensionsWorkbenchService.ts
+index b60ffca7db1..e6f6158469f 100644
+--- a/src/vs/workbench/contrib/extensions/browser/extensionsWorkbenchService.ts
++++ b/src/vs/workbench/contrib/extensions/browser/extensionsWorkbenchService.ts
+@@ -2864,7 +2864,9 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
+ 		}
+ 
+ 		const extensionsToUninstall: UninstallExtensionInfo[] = [{ extension: extension.local }];
+-		if (!areSameExtensions(extension.identifier, { id: this.productService.defaultChatAgent.extensionId })) {
++		// Caret: with no default chat agent nothing is pack-protected.
++		const defaultChatAgentExtensionId = this.productService.defaultChatAgent?.extensionId;
++		if (!defaultChatAgentExtensionId || !areSameExtensions(extension.identifier, { id: defaultChatAgentExtensionId })) {
+ 			for (const packExtension of this.getAllPackedExtensions(extension, this.local)) {
+ 				if (packExtension.local && !extensionsToUninstall.some(e => areSameExtensions(e.extension.identifier, packExtension.identifier))) {
+ 					extensionsToUninstall.push({ extension: packExtension.local });
+diff --git a/src/vs/workbench/contrib/welcomeOnboarding/browser/onboardingVariationA.ts b/src/vs/workbench/contrib/welcomeOnboarding/browser/onboardingVariationA.ts
+index e60eaee83eb..f41b381aa0c 100644
+--- a/src/vs/workbench/contrib/welcomeOnboarding/browser/onboardingVariationA.ts
++++ b/src/vs/workbench/contrib/welcomeOnboarding/browser/onboardingVariationA.ts
+@@ -10,7 +10,6 @@ import { isCancellationError } from '../../../../base/common/errors.js';
+ import { StopWatch } from '../../../../base/common/stopwatch.js';
+ import { URI } from '../../../../base/common/uri.js';
+ import { isWindows, isMacintosh, isLinux } from '../../../../base/common/platform.js';
+-import { assertDefined } from '../../../../base/common/types.js';
+ import { FileAccess } from '../../../../base/common/network.js';
+ import { ILayoutService } from '../../../../platform/layout/browser/layoutService.js';
+ import { KeyCode } from '../../../../base/common/keyCodes.js';
+@@ -77,7 +76,10 @@ type OnboardingActionEvent = {
+ 
+ type EnterpriseSignInUiState = 'options' | 'instance' | 'progress';
+ 
+-assertDefined(product.defaultChatAgent, 'Onboarding requires a default chat agent product configuration.');
++// Caret: product.json ships no default chat agent (OMP is the only harness), so
++// this Copilot-flavored onboarding has nothing to sign in to. Throwing here runs
++// at import time and takes the whole workbench down with a blank window, so the
++// service stays loadable and retires in show() instead.
+ const defaultChat = product.defaultChatAgent;
+ 
+ /**
+@@ -166,7 +168,7 @@ export class OnboardingVariationA extends Disposable implements IOnboardingServi
+ 	}
+ 
+ 	show(): void {
+-		if (this.overlay) {
++		if (!product.defaultChatAgent || this.overlay) {
+ 			return;
+ 		}
+ 
+diff --git a/src/vs/workbench/services/accounts/browser/defaultAccount.ts b/src/vs/workbench/services/accounts/browser/defaultAccount.ts
+index ed179795202..a2debe707b8 100644
+--- a/src/vs/workbench/services/accounts/browser/defaultAccount.ts
++++ b/src/vs/workbench/services/accounts/browser/defaultAccount.ts
+@@ -90,7 +90,14 @@ interface IMcpRegistryResponse {
+ 	readonly mcp_registries: ReadonlyArray<IMcpRegistryProvider>;
+ }
+ 
+-function toDefaultAccountConfig(defaultChatAgent: IDefaultChatAgent): IDefaultAccountConfig {
++function toDefaultAccountConfig(defaultChatAgent: IDefaultChatAgent | undefined): IDefaultAccountConfig | undefined {
++	// Caret: product.json has no default chat agent, because Caret signs in to
++	// nothing (OMP is the only harness). Upstream's sessions setup already treats
++	// a missing chat agent as a supported state, so the account surface has to
++	// tolerate it too instead of reading through the missing configuration.
++	if (!defaultChatAgent) {
++		return undefined;
++	}
+ 	return {
+ 		preferredExtensions: [
+ 			defaultChatAgent.chatExtensionId,
+@@ -147,7 +154,7 @@ export class DefaultAccountService extends Disposable implements IDefaultAccount
+ 	private readonly _onDidChangeManagedSettingsFreshness = this._register(new Emitter<IManagedSettingsFreshness>());
+ 	readonly onDidChangeManagedSettingsFreshness = this._onDidChangeManagedSettingsFreshness.event;
+ 
+-	private readonly defaultAccountConfig: IDefaultAccountConfig;
++	private readonly defaultAccountConfig: IDefaultAccountConfig | undefined;
+ 	private defaultAccountProvider: IDefaultAccountProvider | null = null;
+ 
+ 	constructor(
+@@ -155,6 +162,11 @@ export class DefaultAccountService extends Disposable implements IDefaultAccount
+ 	) {
+ 		super();
+ 		this.defaultAccountConfig = toDefaultAccountConfig(productService.defaultChatAgent);
++		if (!this.defaultAccountConfig) {
++			// Without a chat agent no account provider is ever registered, so let
++			// account reads resolve to "signed out" instead of blocking callers.
++			this.initBarrier.open();
++		}
+ 	}
+ 
+ 	async getDefaultAccount(): Promise<IDefaultAccount | null> {
+@@ -167,7 +179,8 @@ export class DefaultAccountService extends Disposable implements IDefaultAccount
+ 			return this.defaultAccountProvider.getDefaultAccountAuthenticationProvider();
+ 		}
+ 		return {
+-			...this.defaultAccountConfig.authenticationProvider.default,
++			id: this.defaultAccountConfig?.authenticationProvider.default.id ?? '',
++			name: this.defaultAccountConfig?.authenticationProvider.default.name ?? '',
+ 			enterprise: false
+ 		};
+ 	}
+@@ -1641,7 +1654,11 @@ class DefaultAccountProviderContribution extends Disposable implements IWorkbenc
+ 		@IDefaultAccountService defaultAccountService: IDefaultAccountService,
+ 	) {
+ 		super();
+-		const defaultAccountProvider = this._register(instantiationService.createInstance(DefaultAccountProvider, toDefaultAccountConfig(productService.defaultChatAgent)));
++		const defaultAccountConfig = toDefaultAccountConfig(productService.defaultChatAgent);
++		if (!defaultAccountConfig) {
++			return; // Caret: no default chat agent, so there is nothing to sign in to.
++		}
++		const defaultAccountProvider = this._register(instantiationService.createInstance(DefaultAccountProvider, defaultAccountConfig));
+ 		defaultAccountService.setDefaultAccountProvider(defaultAccountProvider);
+ 	}
+ }

@@ -72,7 +72,7 @@ export async function startHostServer(options: Omit<HostOptions, "store"> & { po
     writeFileSync(temporary, JSON.stringify(descriptor), { mode: 0o600 });
     renameSync(temporary, descriptorPath); chmodSync(descriptorPath, 0o600);
     let closing: Promise<void> | undefined;
-    return { host, auth, router, descriptor, close(): Promise<void> {
+    return { host, auth, router, descriptor, editors, close(): Promise<void> {
       return closing ??= (async () => {
         server!.closeAllConnections();
         await new Promise<void>(resolve => server!.close(() => resolve()));

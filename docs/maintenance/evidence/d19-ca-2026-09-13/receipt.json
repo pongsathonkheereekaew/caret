@@ -1,0 +1,38 @@
+{
+  "scope": "D19 behavioral gap fixes CA-01..CA-06 (composer gating, pairing entry, first Files open, non-Git review, task-actions menu, idle composer) plus packaged-app rebuild",
+  "capturedAt": "2026-09-13T17:14:32Z",
+  "source": {
+    "webviewTsSha256Prefix": "98df1343727b5394",
+    "composerRuntimeTsSha256Prefix": "cfe3b70b803fbb25",
+    "workbenchModeTsSha256Prefix": "860a6127d8523956",
+    "extensionTsSha256Prefix": "2641e4152fcd2118",
+    "packagedExtensionJsSha256Prefix": "be15169ab99bf7a6"
+  },
+  "implemented": [
+    "CA-01 composer gating honesty: composer-runtime.ts now resolves structured model readiness (ready / not_selected / unavailable) plus modelReason, requires readiness==='ready' for dispatch, exposes action-specific reasons for Queue/Steer/Stop, and the webview renders the initial composer inert until the first authoritative snapshot; every disabled control carries title + aria-label reasons (apps/macos/src/composer-runtime.ts, apps/macos/src/webview.ts)",
+    "CA-02 pairing no longer dead-ends: the pairing command surfaces host-unavailable / unsupported / failure through an actionable notification pointing at the host settings or Caret Settings -> Devices; the native caret.host* setting descriptions no longer read as the iPhone connection flow; the Devices section keeps the explicit pairing CTA (apps/macos/src/extension.ts, apps/macos/package.json, apps/macos/src/webview.ts)",
+    "CA-03 first Files open: resolveStartupView() makes a pending native destination authoritative at activation, so a persisted 'explorer' destination consumes before the remembered Agents mode and the first Files action lands in the IDE with Explorer; Agents/IDE stays a presentation switch with no new OMP session (apps/macos/src/workbench-mode.ts, apps/macos/src/extension.ts)",
+    "CA-04 non-Git review routing: verified correct in source (ideLandingForWorkTab + REVIEW_NO_GIT_REASON, no SCM fallback) and pinned with a regression test instead of rewriting (apps/macos/test/extension-honesty.test.ts)",
+    "CA-05 deterministic task-actions menu: explicit taskActionsOpen/taskActionsTrigger state, state preserved across re-render, first enabled item focused on open, every close path (item, Escape, click-away, route change) updates aria-expanded and returns focus, and an empty action list renders a readable explanation row with its own style (apps/macos/src/webview.ts)",
+    "CA-06 idle composer: the control row is non-wrapping with an overflow policy, the shortcut hint drops before it displaces controls, and idle renders only model + thinking + primary Send (apps/macos/src/webview.ts)"
+  ],
+  "verified": {
+    "tests": "474 pass / 0 fail / 2636 assertions (bun run test, 71 files)",
+    "typecheck": "tsc --noEmit clean",
+    "ciValidate": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "packagedBundle": "the packaged app carries the fixes: out/extension.js contains the nowrap composer bar, the .menu-empty rule, the taskActionsOpen state machine, the structured modelReadiness and resolveStartupView",
+    "packagedLive": "rebuilt and launched as an isolated fixture (empty window): the idle composer renders one row with only + / Model / Thinking and a disabled Send while the host reports no model, and no Follow up or shortcut hint appears — CA-06 verified live, CA-01 gating visible"
+  },
+  "notVerified": [
+    "CA-01 via the accessibility tree: this build exposes only native window chrome through AX (the webview HTML is not in the AX tree), so the reason strings could not be observed through AX the way the D19 audit observed enabled controls",
+    "CA-02 live pairing entry and its failure branch (needs a relay/host that can attempt pairing)",
+    "CA-03 end-to-end first-Files-open on the packaged app (needs a trusted workspace folder; the folder path still raises the workspace-trust prompt in a fresh fixture profile)",
+    "CA-05 live menu open (the task-actions trigger only exists with a task/session; the fixture host has no session)",
+    "light theme, high contrast, reduced motion, 200% zoom, Thai IME, VoiceOver",
+    "Cursor running/queued/approval/error states and timing; Codex pixel freeze (CX-01 reference-blocked)"
+  ],
+  "openObservations": [
+    "The packaged app still shows a ~20px window-background inset at the top-left (traffic lights float over it) rather than the shell running flush to the window edge; carried over from the packaged-shell receipt",
+    "Seven orphaned crashpad-handler + host-serve process pairs from the earlier /tmp/caret-ui-shell-20260913 fixture session remain unreaped"
+  ]
+}

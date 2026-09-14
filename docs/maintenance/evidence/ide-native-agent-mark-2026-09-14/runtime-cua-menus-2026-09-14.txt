@@ -1,0 +1,43 @@
+Caret menus on the packaged app - 2026-09-14
+
+Editor context menu, by a real right-click in the editor (status bar read
+"Ln 4, Col 1 (75 selected)" while the menu was open), listed:
+
+  Add Selection to Caret Task  Option+Command+K
+  Edit Selection with Caret   Command+K
+  Explain Selection with Caret
+  Fix Selection with Caret
+
+with the keybinding labels rendered by the engine, and with the editor title
+showing "Edit Selection with Caret (Command+K)" because a selection was active.
+That is a second, independent confirmation of the editor menu entries the
+earlier receipt recorded.
+
+Terminal context menu - re-confirmed limitation, not a Caret defect.
+The terminal/context and terminal/title/context entries are gated on
+`terminalTextSelected`, and the terminal canvas is not exposed as an
+accessibility element in this harness. Attempted this session, on the packaged
+app:
+
+  - Control+` (the documented focus shortcut) did open and focus the panel:
+    "Toggle Panel (Command+J)" then read Value: 1 and the panel showed its own
+    tab bar Problems / Output / Debug Console / Terminal (selected) / Ports,
+    with the Terminal actions toolbar (Focus Terminal, New Terminal, Kill
+    Terminal).
+  - Command+Down (the shortcut the panel's own "Focus Terminal (Command+Down)"
+    button advertises) also left focus in the editor: the accessibility tree
+    still reported "The focused UI element is 121 editor (settable)" and the
+    status bar read "Ln 4, Col 1".
+  - Command+A after that still selected *editor* text (the status bar read
+    "Ln 4, Col 1 (75 selected)"), so `terminalTextSelected` stayed false.
+  - Shift+F10 with the editor focused opened no Caret entries: at best a menu
+    appeared, but with the terminal unfocused and unselected it carried no
+    "Add Terminal Selection to Caret Task" entry. Coordinate right-clicks aimed
+    at the panel area landed in the editor, which is how the editor menu above
+    got captured.
+
+So the entries themselves still have no screenshot. What is verified for them:
+the command behind them runs (an earlier receipt captured its honest refusal
+notification), and the contribution points and the `terminalTextSelected` /
+`terminalFocus` context keys are resolved against the pinned Code-OSS checkout by
+the menu contract test.

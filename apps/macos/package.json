@@ -4,6 +4,10 @@
   "description": "Caret's authenticated Mac task surface for the Caret host.",
   "version": "0.1.0",
   "private": true,
+  "enabledApiProposals": [
+    "chatSessionsProvider",
+    "chatParticipantPrivate"
+  ],
   "type": "module",
   "main": "./out/extension.js",
   "scripts": {
@@ -23,8 +27,29 @@
         "category": "Caret"
       },
       {
+        "command": "caret.showAgents",
+        "title": "Show Agents",
+        "category": "Caret",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "caret.showIde",
+        "title": "Show IDE",
+        "category": "Caret"
+      },
+      {
         "command": "caret.newTask",
         "title": "New Task",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.openFolder",
+        "title": "Open Folder",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.skipToTask",
+        "title": "Skip to Task",
         "category": "Caret"
       },
       {
@@ -63,6 +88,11 @@
         "category": "Caret"
       },
       {
+        "command": "caret.connectIPhone",
+        "title": "Connect iPhone",
+        "category": "Caret"
+      },
+      {
         "command": "caret.manageDevices",
         "title": "Manage Devices",
         "category": "Caret"
@@ -76,12 +106,293 @@
         "command": "caret.taskActions",
         "title": "Task Actions",
         "category": "Caret"
+      },
+      {
+        "command": "caret.addSelectionToTask",
+        "title": "Add Selection to Caret Task",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.addFileToTask",
+        "title": "Add File to Caret Task",
+        "category": "Caret",
+        "icon": "$(add)"
+      },
+      {
+        "command": "caret.addTerminalSelectionToTask",
+        "title": "Add Terminal Selection to Caret Task",
+        "category": "Caret",
+        "icon": "$(add)"
+      },
+      {
+        "command": "caret.reviewInDiff",
+        "title": "Review Active File in Diff",
+        "category": "Caret",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "caret.inlineEdit",
+        "title": "Edit Selection with Caret",
+        "category": "Caret",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "caret.explainSelection",
+        "title": "Explain Selection with Caret",
+        "category": "Caret",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "caret.fixSelection",
+        "title": "Fix Selection with Caret",
+        "category": "Caret",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "caret.keepAgentEdit",
+        "title": "Keep the Caret Edit",
+        "category": "Caret",
+        "icon": "$(check)"
+      },
+      {
+        "command": "caret.revertAgentEdit",
+        "title": "Take Back the Caret Edit",
+        "category": "Caret",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "caret.reviewAgentEdit",
+        "title": "Review the Caret Edit",
+        "category": "Caret",
+        "icon": "$(diff)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "caret.addSelectionToTask",
+          "when": "editorHasSelection && caret.taskAvailable",
+          "group": "caret@1"
+        },
+        {
+          "command": "caret.inlineEdit",
+          "when": "editorHasSelection && caret.taskAvailable",
+          "group": "caret@2"
+        },
+        {
+          "command": "caret.explainSelection",
+          "when": "editorHasSelection && caret.taskAvailable",
+          "group": "caret@3"
+        },
+        {
+          "command": "caret.fixSelection",
+          "when": "editorHasSelection && caret.taskAvailable",
+          "group": "caret@4"
+        },
+        {
+          "command": "caret.reviewAgentEdit",
+          "when": "caret.agentEditPending",
+          "group": "caret@5"
+        },
+        {
+          "command": "caret.keepAgentEdit",
+          "when": "caret.agentEditPending",
+          "group": "caret@6"
+        },
+        {
+          "command": "caret.revertAgentEdit",
+          "when": "caret.agentEditPending",
+          "group": "caret@7"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "caret.addFileToTask",
+          "when": "caret.taskAvailable",
+          "group": "caret@1"
+        },
+        {
+          "command": "caret.reviewInDiff",
+          "when": "caret.taskAvailable && !isInDiffEditor",
+          "group": "caret@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "caret.inlineEdit",
+          "when": "editorHasSelection && caret.taskAvailable",
+          "group": "navigation@1"
+        },
+        {
+          "command": "caret.reviewInDiff",
+          "when": "caret.taskAvailable && !isInDiffEditor",
+          "group": "navigation@2"
+        },
+        {
+          "command": "caret.reviewAgentEdit",
+          "when": "caret.agentEditPending",
+          "group": "navigation@3"
+        },
+        {
+          "command": "caret.keepAgentEdit",
+          "when": "caret.agentEditPending",
+          "group": "navigation@4"
+        },
+        {
+          "command": "caret.revertAgentEdit",
+          "when": "caret.agentEditPending",
+          "group": "navigation@5"
+        }
+      ],
+      "editor/lineNumber/context": [
+        {
+          "command": "caret.inlineEdit",
+          "when": "caret.taskAvailable",
+          "group": "caret@1"
+        },
+        {
+          "command": "caret.addSelectionToTask",
+          "when": "caret.taskAvailable",
+          "group": "caret@2"
+        },
+        {
+          "command": "caret.explainSelection",
+          "when": "caret.taskAvailable",
+          "group": "caret@3"
+        },
+        {
+          "command": "caret.fixSelection",
+          "when": "caret.taskAvailable",
+          "group": "caret@4"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "caret.reviewInDiff",
+          "when": "caret.taskAvailable",
+          "group": "navigation@1"
+        },
+        {
+          "command": "caret.showAgents",
+          "when": "caret.taskAvailable",
+          "group": "navigation@2"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "caret.addFileToTask",
+          "when": "caret.taskAvailable",
+          "group": "caret@1"
+        },
+        {
+          "command": "caret.reviewInDiff",
+          "when": "caret.taskAvailable",
+          "group": "caret@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "caret.addFileToTask",
+          "when": "caret.taskAvailable && resourceScheme == file",
+          "group": "caret@1"
+        },
+        {
+          "command": "caret.reviewInDiff",
+          "when": "caret.taskAvailable && resourceScheme == file",
+          "group": "caret@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "caret.newTask",
+          "when": "view == caretComposerDock || view == caretComposer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "caret.showIde",
+          "when": "view == caretComposerDock || view == caretComposer",
+          "group": "navigation@2"
+        }
+      ],
+      "terminal/context": [
+        {
+          "command": "caret.addTerminalSelectionToTask",
+          "when": "terminalFocus && terminalTextSelected && caret.taskAvailable",
+          "group": "caret@1"
+        }
+      ],
+      "terminal/title/context": [
+        {
+          "command": "caret.addTerminalSelectionToTask",
+          "when": "terminalTextSelected && caret.taskAvailable",
+          "group": "caret@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "caret.showAgents",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      },
+      {
+        "command": "caret.showIde",
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i"
+      },
+      {
+        "command": "caret.openComposer",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
+      },
+      {
+        "command": "caret.newTask",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      },
+      {
+        "command": "caret.searchTasks",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f"
+      },
+      {
+        "command": "caret.skipToTask",
+        "key": "alt+t",
+        "mac": "alt+t"
+      },
+      {
+        "command": "caret.addSelectionToTask",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k"
+      },
+      {
+        "command": "caret.inlineEdit",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "caret.openFiles",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e"
+      },
+      {
+        "command": "caret.reviewInDiff",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "caretAgents",
+          "title": "Caret",
+          "icon": "media/caret.svg"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "caretDock",
           "title": "Caret",
           "icon": "media/caret.svg"
         }
@@ -94,25 +405,45 @@
           "name": "Tasks",
           "type": "webview"
         }
+      ],
+      "caretDock": [
+        {
+          "id": "caretComposerDock",
+          "name": "Agents",
+          "type": "webview"
+        }
       ]
     },
+    "customEditors": [
+      {
+        "viewType": "caret.agentsShell",
+        "displayName": "Agents",
+        "selector": [
+          {
+            "filenamePattern": "*.caret-shell"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
     "configuration": {
       "title": "Caret",
       "properties": {
         "caret.hostNodePath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the Node runtime used to start the Caret host helper."
+          "description": "Advanced: absolute path to the Node runtime used to start the Caret host helper. To connect an iPhone, use Caret Settings \u2192 Devices.",
+          "markdownDescription": "Advanced host setting only; it is not the iPhone connection flow. To connect an iPhone, use Caret Settings \u2192 Devices and the Pair iPhone action."
         },
         "caret.hostScriptPath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the Caret host helper script. OMP is started by that host, never by the extension."
+          "description": "Advanced: absolute path to the Caret host helper script; not the iPhone connection flow. To connect an iPhone, use Caret Settings \u2192 Devices."
         },
         "caret.hostStateDir": {
           "type": "string",
           "default": "",
-          "description": "Private Caret host state directory. Defaults to ~/Library/Application Support/Caret/host so all Mac windows share one host."
+          "description": "Advanced: private Caret host state directory. To connect an iPhone, use Caret Settings \u2192 Devices. Defaults to ~/Library/Application Support/Caret/host so all Mac windows share one host."
         },
         "caret.hostRequestTimeoutMs": {
           "type": "number",
@@ -130,12 +461,35 @@
     "configurationDefaults": {
       "chat.disableAIFeatures": true,
       "workbench.startupEditor": "none"
-    }
+    },
+    "chatSessions": [
+      {
+        "type": "caret.omp",
+        "name": "omp",
+        "displayName": "Caret",
+        "description": "Run work in this workspace with OMP",
+        "icon": "$(comment-discussion)",
+        "inputPlaceholder": "Plan, Build, / for skills, @ for context"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "caret.omp",
+        "name": "omp",
+        "fullName": "Caret",
+        "description": "Run work in this workspace with OMP, Caret's only harness",
+        "isSticky": true
+      }
+    ]
   },
   "activationEvents": [
     "onView:caretComposer",
+    "onView:caretComposerDock",
     "onCommand:caret.openComposer",
     "onCommand:caret.openTask",
+    "onCommand:caret.showAgents",
+    "onCommand:caret.showIde",
+    "onCustomEditor:caret.agentsShell",
     "onStartupFinished"
   ],
   "engines": {

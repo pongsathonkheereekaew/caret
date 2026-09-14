@@ -1,0 +1,49 @@
+diff --git a/src/vs/platform/agentHost/node/shared/sessionPluginBundler.ts b/src/vs/platform/agentHost/node/shared/sessionPluginBundler.ts
+index 31e2f09e772..078007ed059 100644
+--- a/src/vs/platform/agentHost/node/shared/sessionPluginBundler.ts
++++ b/src/vs/platform/agentHost/node/shared/sessionPluginBundler.ts
+@@ -13,7 +13,32 @@ import { IFileService } from '../../../files/common/files.js';
+ import { IAgentPluginManager } from '../../common/agentPluginManager.js';
+ import { customizationId, type ClientPluginCustomization } from '../../common/state/sessionState.js';
+ import { CustomizationType, type URI as ProtocolURI } from '../../common/state/protocol/state.js';
+-import { DiscoveredType, type IDiscoveredDirectory } from '../copilot/sessionCustomizationDiscovery.js';
++
++/**
++ * Shape of the host-side customization discovery result. These declarations
++ * used to live in the Copilot session-customization module; this bundler is the
++ * only consumer, so Caret keeps them here (see CARET-PLAN-2026-09-14.th.md S1b).
++ */
++const enum DiscoveredType {
++	Agent = 'agent',
++	Skill = 'skill',
++	Instruction = 'instruction',
++	Hook = 'hook',
++	AgentInstruction = 'agentInstruction',
++}
++
++interface IDiscoveredFile {
++	readonly uri: URI;
++	readonly etag: string;
++}
++
++interface IDiscoveredDirectory {
++	readonly uri: URI;
++	readonly type: DiscoveredType;
++	readonly name: string;
++	readonly writable: boolean;
++	readonly files: readonly IDiscoveredFile[];
++}
+ 
+ const DISPLAY_NAME = 'VS Code Synced Data';
+ const HOST_DISCOVERY_DIR = 'host-discovery';
+diff --git a/src/vs/sessions/contrib/providers/remoteAgentHost/browser/remoteAgentHost.contribution.ts b/src/vs/sessions/contrib/providers/remoteAgentHost/browser/remoteAgentHost.contribution.ts
+index ef6db93b0a3..77273fec02f 100644
+--- a/src/vs/sessions/contrib/providers/remoteAgentHost/browser/remoteAgentHost.contribution.ts
++++ b/src/vs/sessions/contrib/providers/remoteAgentHost/browser/remoteAgentHost.contribution.ts
+@@ -730,6 +730,5 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
+ // Side-effect registrations for the remote agent host feature
+ import './remoteAgentHostActions.js';
+ import './manageRemoteAgentHosts.js';
+-import '../../agentHost/browser/agentHostAgentPicker.js';
+ import { AgentCustomizationItemProvider } from '../../../../../workbench/contrib/chat/browser/agentSessions/agentHost/agentCustomizationItemProvider.js';
+ import { Codicon } from '../../../../../base/common/codicons.js';

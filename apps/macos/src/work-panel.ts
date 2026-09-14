@@ -53,9 +53,9 @@ export function workResourceId(taskKey: string, tab: WorkPanelTab): string {
 	return `${taskKey}:${tab}`;
 }
 
-export const SIDEBAR_MIN_WIDTH = 200;
+export const SIDEBAR_MIN_WIDTH = 160;
 export const SIDEBAR_MAX_WIDTH = 360;
-export const SIDEBAR_PREFERRED_WIDTH = 260;
+export const SIDEBAR_PREFERRED_WIDTH = 180;
 export const PANEL_MIN_WIDTH = 280;
 export const PANEL_MAX_WIDTH = 640;
 export const PANEL_PREFERRED_WIDTH = 360;

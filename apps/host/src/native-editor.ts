@@ -38,7 +38,12 @@ export class NativeEditorBridge {
   async handle(input: unknown, signal: AbortSignal): Promise<unknown> {
     if (!record(input) || typeof input.path !== "string") throw new Error("Invalid native editor request");
     if (input.kind === "apply_disk") return this.#applyDisk(input, signal);
-    if (input.kind === "snapshot") return { document: await this.snapshot(input.path, signal) };
+    if (input.kind === "snapshot") {
+      return {
+        document: await this.snapshot(input.path, signal),
+        editorWorkspace: this.#editors.hasConnection(this.#cwd) || this.#editors.hasRegisteredWorkspace(this.#cwd),
+      };
+    }
     if (input.kind === "create") return this.#create(input, signal);
     if (input.kind === "delete") return this.#mutate(input, signal, "delete");
     if (input.kind === "move") return this.#mutate(input, signal, "move");
@@ -126,6 +131,9 @@ export class NativeEditorBridge {
     const current = await this.#read(path, signal);
     if (!current || current.handle.id !== guard.handle.id || current.handle.uri !== guard.handle.uri
       || current.documentVersion !== guard.expectedVersion || current.sha256 !== guard.expectedHash) throw new Error("Editor changed after the native edit snapshot; read again before editing");
+    if (kind === "move" && (isUntitledEditorPath(path) || isUntitledEditorPath(String(input.destination ?? "")))) {
+      throw new Error("Untitled documents must be created at a workspace path before move");
+    }
     const destination = kind === "move" ? this.#identity(String(input.destination)).canonical : undefined;
     if (kind === "move" && (typeof input.destination !== "string" || !destination)) throw new Error("Invalid native editor move");
     const result = await this.#editors.request(this.#cwd, {

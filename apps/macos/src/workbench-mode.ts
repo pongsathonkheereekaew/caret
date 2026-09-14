@@ -74,6 +74,38 @@ export function consumePendingNativeDestination(mode: "agents" | "ide", pending?
 	return { openExplorer: false };
 }
 
+export function resolveStartupView(input: {
+	readonly pending?: NativeDestination;
+	readonly rememberedMode?: WorkbenchMode;
+	readonly startupView: "last_task" | "agents" | "ide";
+}): { readonly mode: WorkbenchMode; readonly openExplorer: boolean; readonly revealDock: boolean; readonly pending?: NativeDestination } {
+	if (input.pending) {
+		const consumed = consumePendingNativeDestination("ide", input.pending);
+		return {
+			mode: "ide",
+			openExplorer: consumed.openExplorer,
+			// A pending Explorer destination still shows the agent beside it, so
+			// the user does not lose the task surface when native chrome returns.
+			revealDock: true,
+			...(consumed.pending ? { pending: consumed.pending } : {}),
+		};
+	}
+	if (input.startupView === "agents") return { mode: "agents", openExplorer: false, revealDock: false };
+	// An explicit IDE choice keeps the native chrome and shows the agent beside
+	// it. Without this branch the option would fall through to the default below
+	// and the IDE setting would be unreachable from the settings surface.
+	if (input.startupView === "ide") return { mode: "ide", openExplorer: false, revealDock: true };
+	if (input.startupView === "last_task") {
+		const mode = input.rememberedMode === "ide" ? "ide" : "agents";
+		return { mode, openExplorer: false, revealDock: mode === "ide" };
+	}
+	// Default: the full-window Caret shell, which carries its own IDE switch.
+	// This is the documented first screen (UI interaction spec section 2: Caret
+	// opens the Agents page by default with an easily found IDE button), and it
+	// is also what an unknown or missing value means.
+	return { mode: "agents", openExplorer: false, revealDock: false };
+}
+
 /** After `vscode.openFolder` this extension instance dies. Persist the destination; do not consume it here. */
 export function persistDestinationAcrossReload(willReloadWindow: boolean, pending?: NativeDestination): { pending?: NativeDestination; consumeNow: boolean } {
 	if (!pending) return { consumeNow: false };
@@ -88,6 +120,7 @@ export interface IdeLayoutSnapshot {
 	readonly activeEditorUri?: string;
 	readonly showTabs?: string;
 	readonly statusBarVisible?: boolean;
+	readonly breadcrumbsEnabled?: boolean;
 	readonly activityBarLocation?: string;
 }
 
@@ -173,14 +206,23 @@ export function rememberIdeChrome(layout: IdeLayoutSnapshot, change: Partial<Ide
 export function normalizeIdeLayout(value: unknown, fallback: IdeLayoutSnapshot = DEFAULT_IDE_LAYOUT): IdeLayoutSnapshot {
 	if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
 	const record = value as Record<string, unknown>;
+	// Caret writes these exact values into the workspace settings while it hides
+	// chrome for Agents mode. They are Caret's own footprint, not a layout the
+	// user chose, so they must never be read back as the IDE layout: on the next
+	// run the workspace setting is still "none"/false, the snapshot would capture
+	// it, and "IDE" would come back with no tabs and no status bar. Each of these
+	// falls back instead, exactly as activityBar.location already did.
+	const storedShowTabs = typeof record.showTabs === "string" ? record.showTabs : undefined;
+	const storedActivityBar = typeof record.activityBarLocation === "string" ? record.activityBarLocation : undefined;
 	return {
 		sidebarVisible: record.sidebarVisible !== false,
 		auxiliaryBarVisible: record.auxiliaryBarVisible === true,
 		panelVisible: record.panelVisible !== false,
 		...(typeof record.activeEditorUri === "string" ? { activeEditorUri: record.activeEditorUri } : {}),
-		showTabs: typeof record.showTabs === "string" ? record.showTabs : fallback.showTabs,
-		statusBarVisible: record.statusBarVisible !== false,
-		activityBarLocation: typeof record.activityBarLocation === "string" ? record.activityBarLocation : fallback.activityBarLocation,
+		showTabs: storedShowTabs && storedShowTabs !== AGENTS_EDITOR_SHOW_TABS ? storedShowTabs : fallback.showTabs,
+		statusBarVisible: record.statusBarVisible === false ? fallback.statusBarVisible !== false : true,
+		breadcrumbsEnabled: record.breadcrumbsEnabled !== false,
+		activityBarLocation: storedActivityBar && storedActivityBar !== "hidden" ? storedActivityBar : fallback.activityBarLocation,
 	};
 }
 
@@ -213,11 +255,16 @@ export function switchWorkbenchMode(input: {
 	return { mode: "ide", ideLayout: input.ideLayout, commands: ideChromeCommands(input.ideLayout) };
 }
 
+
 export async function runWorkbenchCommands(
 	executeCommand: (command: string, ...args: unknown[]) => Thenable<unknown>,
 	commands: readonly string[],
 ): Promise<void> {
+	// Best-effort chrome: one unknown/rejected command must not abort the rest
+	// of the mode switch or skip the appearance update that follows.
 	for (const command of commands) {
-		await executeCommand(command);
+		try {
+			await executeCommand(command);
+		} catch { /* cosmetic; the next chrome command still applies */ }
 	}
 }

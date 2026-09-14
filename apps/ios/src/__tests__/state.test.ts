@@ -137,4 +137,25 @@ describe("mobile list and cache state", () => {
     expect(isCacheFresh({ cacheExpiresAt: 2_000 }, 1_999)).toBe(true);
     expect(isCacheFresh({ cacheExpiresAt: 2_000 }, 2_000)).toBe(false);
   });
+
+  test("resets in-memory draft when the selected session changes so prior text cannot flash", () => {
+    let state = createInitialMobileState({ session, draft: "previous task text" });
+    state = reduceMobileState(state, { type: "session", session: { ...session, id: "s2" } });
+    expect(state.draft).toBe("");
+    expect(state.session?.id).toBe("s2");
+  });
+
+  test("keeps the draft when the same session is updated", () => {
+    let state = createInitialMobileState({ session, draft: "keep me" });
+    state = reduceMobileState(state, { type: "session", session: { ...session, status: "idle" } });
+    expect(state.draft).toBe("keep me");
+  });
+
+  test("clears cache timestamps without inventing a connection enum", () => {
+    const state = createInitialMobileState({ session, cacheSavedAt: 10, cacheExpiresAt: 20 });
+    const next = reduceMobileState(state, { type: "cache_cleared" });
+    expect(next.cacheSavedAt).toBeUndefined();
+    expect(next.cacheExpiresAt).toBeUndefined();
+    expect(next.connection).toBe(state.connection);
+  });
 });

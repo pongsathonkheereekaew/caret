@@ -1407,7 +1407,7 @@ index 02db57c..c76135e 100644
  				"process.env.PI_TINY_TRANSFORMERS_VERSION": JSON.stringify(options.transformersVersion),
  				"process.env.PI_DOCS_EMBED": JSON.stringify((await buildDocsIndexPayload()).payload),
 diff --git a/packages/coding-agent/src/edit/index.ts b/packages/coding-agent/src/edit/index.ts
-index a622221..815e81b 100644
+index a622221..e297b3e 100644
 --- a/packages/coding-agent/src/edit/index.ts
 +++ b/packages/coding-agent/src/edit/index.ts
 @@ -52,6 +52,7 @@ import { outputMeta } from "../tools/output-meta";
@@ -1550,7 +1550,7 @@ index a622221..815e81b 100644
  			editSession.close();
  			if (this.#sessions.get(toolCallId) === editSession) this.#sessions.delete(toolCallId);
  		}
-@@ -574,6 +665,175 @@ export class EditTool implements AgentTool<TInput> {
+@@ -574,6 +665,181 @@ export class EditTool implements AgentTool<TInput> {
  	}
  
  	async #write(request: EditWriteRequest, signal?: AbortSignal): Promise<EditWriteResponse> {
@@ -1699,6 +1699,12 @@ index a622221..815e81b 100644
 +			};
 +		}
 +
++		if (untitledEditorPath(request.path) || untitledEditorPath(request.moveTo ?? "")) {
++			throw new ToolError("Untitled documents must be created at a workspace path before move or disk fallback", {
++				path: request.path,
++			});
++		}
++
 +		if (request.op === "create" && bridge?.capabilities.nativeEditor && bridge.nativeEditor?.create) {
 +			if (request.content === undefined) {
 +				throw new ToolError("Native editor create omitted content", { path: request.path });
@@ -1726,7 +1732,7 @@ index a622221..815e81b 100644
  		if (request.op === "delete") {
  			await deleteFileWithFallback(request.path, Bun.file(request.path));
  			if (this.session.enableLsp ?? true) {
-@@ -629,14 +889,14 @@ export class EditTool implements AgentTool<TInput> {
+@@ -629,14 +895,14 @@ export class EditTool implements AgentTool<TInput> {
  			};
  		}
  
@@ -2173,10 +2179,10 @@ index 14d0ac8..78fa17e 100644
  			logger.warn("Failed to refresh slash command state for custom editor", { error: String(error) });
 diff --git a/packages/coding-agent/src/modes/rpc/caret-client-bridge.ts b/packages/coding-agent/src/modes/rpc/caret-client-bridge.ts
 new file mode 100644
-index 0000000..f022ea9
+index 0000000..7e7efad
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/caret-client-bridge.ts
-@@ -0,0 +1,746 @@
+@@ -0,0 +1,749 @@
 +/**
 + * Caret's native-client bridge for OMP RPC mode.
 + *
@@ -2600,7 +2606,10 @@ index 0000000..f022ea9
 +	if (document && !(await pathsReferToSameDocument(requestedPath, document.path, document.isUntitled === true))) {
 +		throw new Error("Caret native editor response was malformed: document.path does not match the requested path");
 +	}
-+	return { document };
++	return {
++		document,
++		...(parsed.editorWorkspace === true ? { editorWorkspace: true } : {}),
++	};
 +}
 +
 +async function parseEditorApplyResponse(
@@ -4554,7 +4563,7 @@ index 0000000..3840a4c
 +	return { anchor: "bottom-center", width: "100%", maxHeight: "100%", margin: 0 };
 +}
 diff --git a/packages/coding-agent/src/session/client-bridge.ts b/packages/coding-agent/src/session/client-bridge.ts
-index d3db194..2867067 100644
+index d3db194..f27bcfb 100644
 --- a/packages/coding-agent/src/session/client-bridge.ts
 +++ b/packages/coding-agent/src/session/client-bridge.ts
 @@ -18,6 +18,8 @@ export interface ClientBridgeCapabilities {
@@ -4566,7 +4575,7 @@ index d3db194..2867067 100644
  }
  
  export interface ClientBridgePermissionToolCall {
-@@ -70,6 +72,99 @@ export interface ClientBridgeCreateTerminalParams {
+@@ -70,6 +72,101 @@ export interface ClientBridgeCreateTerminalParams {
  	outputByteLimit?: number;
  }
  
@@ -4596,6 +4605,8 @@ index d3db194..2867067 100644
 + * ever owned the path and callers may use ordinary headless filesystem IO. */
 +export interface ClientBridgeEditorSnapshotResponse {
 +	document: ClientBridgeEditorDocumentSnapshot | null;
++	/** True when a Caret editor workspace owns this cwd; new files must not fall back to silent disk create. */
++	editorWorkspace?: boolean;
 +}
 +
 +/** Base revision required by the native guarded editor apply. */
@@ -4666,7 +4677,7 @@ index d3db194..2867067 100644
  export interface ClientBridge {
  	readonly capabilities: ClientBridgeCapabilities;
  	/** ACP v1 clients cannot show server-initiated turns as busy after prompt response. */
-@@ -77,6 +172,7 @@ export interface ClientBridge {
+@@ -77,6 +174,7 @@ export interface ClientBridge {
  	readTextFile?(params: { path: string; line?: number; limit?: number }): Promise<string>;
  	writeTextFile?(params: { path: string; content: string }): Promise<void>;
  	createTerminal?(params: ClientBridgeCreateTerminalParams): Promise<ClientBridgeTerminalHandle>;
@@ -4675,7 +4686,7 @@ index d3db194..2867067 100644
  		toolCall: ClientBridgePermissionToolCall,
  		options: ClientBridgePermissionOption[],
 diff --git a/packages/coding-agent/src/tools/acp-bridge.ts b/packages/coding-agent/src/tools/acp-bridge.ts
-index b63b798..5b5ed50 100644
+index b63b798..8413df1 100644
 --- a/packages/coding-agent/src/tools/acp-bridge.ts
 +++ b/packages/coding-agent/src/tools/acp-bridge.ts
 @@ -1,3 +1,4 @@
@@ -4700,7 +4711,7 @@ index b63b798..5b5ed50 100644
  import { isInternalUrlPath } from "./path-utils";
  import { resolvePlanPath, targetsLocalSandbox } from "./plan-mode-guard";
  import { ToolError } from "./tool-errors";
-@@ -123,3 +131,140 @@ export async function routeWriteThroughBridge(
+@@ -123,3 +131,150 @@ export async function routeWriteThroughBridge(
  	}
  	return { text: actualText, driftedFromRequest: actualText !== content };
  }
@@ -4758,8 +4769,18 @@ index b63b798..5b5ed50 100644
 +	if (!shouldRouteWriteThroughBridge(session, requestedPath, absolutePath)) return undefined;
 +
 +	const bridge = session.getClientBridge?.();
-+	if (!bridge?.capabilities.nativeEditor || !bridge.nativeEditor?.create) return undefined;
++	if (!bridge?.capabilities.nativeEditor || !bridge.nativeEditor) return undefined;
 +	if (await Bun.file(absolutePath).exists()) return undefined;
++	if (!bridge.nativeEditor.create) {
++		const probe = await bridge.nativeEditor.snapshot({ path: absolutePath }, signal);
++		if (probe.editorWorkspace === true) {
++			throw new ToolError(
++				"Native editor create is unavailable; refusing to create this file on disk behind the editor",
++				{ path: requestedPath },
++			);
++		}
++		return undefined;
++	}
 +
 +	signal?.throwIfAborted();
 +	const created = await bridge.nativeEditor.create({ path: absolutePath, content }, signal);
@@ -6135,10 +6156,10 @@ index 0000000..e53963e
 +});
 diff --git a/packages/coding-agent/test/caret-editor-bridge.test.ts b/packages/coding-agent/test/caret-editor-bridge.test.ts
 new file mode 100644
-index 0000000..87656d8
+index 0000000..5af87e9
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-editor-bridge.test.ts
-@@ -0,0 +1,234 @@
+@@ -0,0 +1,251 @@
 +import { describe, expect, it } from "bun:test";
 +import * as fs from "node:fs/promises";
 +import * as os from "node:os";
@@ -6201,6 +6222,23 @@ index 0000000..87656d8
 +		host.handleResult({ type: "host_tool_result", id: request.id, result: resultText({ document: null }) });
 +
 +		expect(await pending).toEqual({ document: null });
++	});
++
++	it("forwards editorWorkspace so missing create cannot fall back to disk", async () => {
++		const frames: Array<RpcHostToolCallRequest | RpcHostToolCancelRequest> = [];
++		const host = new RpcHostToolBridge(frame => frames.push(frame));
++		const bridge = createCaretEditorBridge(host, { timeoutMs: 100 });
++		if (!bridge.nativeEditor) throw new Error("Expected native editor capability");
++
++		const pending = bridge.nativeEditor.snapshot({ path: "/workspace/new.ts" });
++		const request = requestFrame(frames);
++		host.handleResult({
++			type: "host_tool_result",
++			id: request.id,
++			result: resultText({ document: null, editorWorkspace: true }),
++		});
++
++		expect(await pending).toEqual({ document: null, editorWorkspace: true });
 +	});
 +
 +	it("matches a missing document below a symlinked directory by its canonical ancestor", async () => {
@@ -6375,10 +6413,10 @@ index 0000000..87656d8
 +});
 diff --git a/packages/coding-agent/test/caret-editor-routing.test.ts b/packages/coding-agent/test/caret-editor-routing.test.ts
 new file mode 100644
-index 0000000..53e9c85
+index 0000000..b2a9877
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-editor-routing.test.ts
-@@ -0,0 +1,676 @@
+@@ -0,0 +1,738 @@
 +import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 +import { createHash } from "node:crypto";
 +import * as fs from "node:fs/promises";
@@ -7053,6 +7091,68 @@ index 0000000..53e9c85
 +
 +		expect(result.isError).not.toBe(true);
 +		expect(deleted).toEqual(["untitled:Untitled-1"]);
++	});
++
++	it("refuses WriteTool disk create when an editor workspace is registered but create is missing", async () => {
++		const target = path.join(tmpDir, "behind-editor.ts");
++		let applyCalls = 0;
++		const bridge: ClientBridge = {
++			capabilities: { nativeEditor: true },
++			nativeEditor: {
++				snapshot: async () => ({ document: null, editorWorkspace: true }),
++				apply: async () => {
++					applyCalls++;
++					throw new Error("must not apply missing create");
++				},
++			},
++		};
++
++		await expect(
++			new WriteTool(createSession(tmpDir, bridge)).execute("write", {
++				path: target,
++				content: "must not land on disk\n",
++			}),
++		).rejects.toThrow(/refusing to create this file on disk behind the editor/);
++		expect(applyCalls).toBe(0);
++		expect(await fs.stat(target).catch(() => undefined)).toBeUndefined();
++	});
++
++	it("rejects untitled move instead of writing a workspace destination", async () => {
++		const destination = path.join(tmpDir, "from-untitled.ts");
++		const untitled = {
++			...document,
++			path: "untitled:Untitled-1",
++			handle: { id: "untitled-1", uri: "untitled:Untitled-1" },
++			isUntitled: true,
++		};
++		const moved: unknown[] = [];
++		const bridge: ClientBridge = {
++			capabilities: { nativeEditor: true },
++			nativeEditor: {
++				snapshot: async () => ({ document: untitled }),
++				apply: async () => {
++					throw new Error("must not apply untitled move");
++				},
++				move: async params => {
++					moved.push(params);
++					throw new Error("Untitled documents must be created at a workspace path before move");
++				},
++			},
++		};
++
++		const result = await new EditTool(createSession(tmpDir, bridge), "patch").execute("move", {
++			path: "untitled:Untitled-1",
++			edits: [{
++				op: "update",
++				rename: "from-untitled.ts",
++				diff: "@@\n-export const source = 'unsaved';\n+export const source = 'unsaved';\n",
++			}],
++		});
++
++		expect(result.isError).toBe(true);
++		expect(outputText(result)).toMatch(/Untitled documents must be created at a workspace path before move/);
++		expect(moved).toHaveLength(1);
++		expect(await fs.stat(destination).catch(() => undefined)).toBeUndefined();
 +	});
 +});
 diff --git a/packages/coding-agent/test/rpc-input-frame.test.ts b/packages/coding-agent/test/rpc-input-frame.test.ts

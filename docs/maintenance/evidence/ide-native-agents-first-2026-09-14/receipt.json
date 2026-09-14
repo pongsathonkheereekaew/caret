@@ -1,0 +1,53 @@
+{
+  "scope": "Why the user's Caret looked unchanged from before on both the agent page and the IDE page, and what now makes the first screen match the reference Agents window.",
+  "capturedAt": "2026-09-14T08:10:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "headCommit": "aa2942fe44e847e09b5fddf2119660939abe781e",
+  "question": "The user sent a screenshot of the reference product's Agents window and asked why Caret does not open like that, why switching to IDE does not look like an IDE, and why the previous goal made no visible difference.",
+  "finding": {
+    "summary": "Three separate causes, only one of which was a design decision.",
+    "causes": [
+      {
+        "id": "stale-bundle",
+        "severity": "blocking",
+        "detail": "The packaged app on disk was built before the source changed. apps/macos/src/product-prefs.ts and apps/macos/src/workbench-mode.ts were modified at 07:45:07 and 07:45:14 by something outside this session's edits, after the last --package at 07:31, so the running app still carried the old behaviour. Nothing in the app was rebuilt between the change and the user's launch.",
+        "evidence": "app extension bundle mtime 07:31 vs source mtime 07:45; the app log line read 'startup view=ide mode=ide revealDock=true' while the source answered agents for the same input"
+      },
+      {
+        "id": "restricted-mode-on-a-stale-fixture-folder",
+        "severity": "blocking for the user's own launch",
+        "detail": "The user's real profile (~/Library/Application Support/Caret) restores the folder /private/tmp/caret-ide-l/workspace, a leftover fixture from earlier test runs that is not trusted. Caret therefore takes the documented Restricted-Mode path: it shows the static Restricted surface and stock IDE chrome with a trust banner, and never starts the agent shell. This is why clicking the app produced an IDE-looking window with a 'trust this folder' message instead of the Agents screen.",
+        "evidence": "window AX: 'Restricted Mode: Some features are disabled because this folder is not trusted.' plus the Caret view text 'This folder is in Restricted Mode... Trust the folder to start tasks or connect to the Caret host.', with the Explorer rooted at /private/tmp/caret-ide-l/workspace"
+      },
+      {
+        "id": "polluted-ide-layout",
+        "severity": "user-visible correctness",
+        "detail": "The saved IDE layout in the real profile held showTabs 'none' and statusBarVisible false. Those are the exact values Caret writes into the workspace settings while it hides chrome for Agents mode, so the snapshot had captured Caret's own footprint instead of the user's IDE layout. Switching back to IDE then restored an 'IDE' with no editor tabs and no status bar.",
+        "evidence": "globalState caret.ideLayout = {showTabs: 'none', statusBarVisible: false} while the window was in Agents mode"
+      }
+    ]
+  },
+  "change": {
+    "agentsFirstDefault": "resolveStartupView now makes the IDE branch explicit (an unknown or missing value means the documented default, so 'ide' no longer silently means two different things), and the default remains the full-window Caret shell. DEFAULT_PRODUCT_PREFS.startupView and normalizeProductPrefs already said 'agents'.",
+    "chromeWithoutAFolder": "applyWorkbenchAppearance writes chrome-visibility settings to the workspace scope, which throws when the shell has no folder attached. Those settings now fall back to the global scope so the shell actually hides its chrome; colour customisations deliberately keep the workspace-only rule, because writing them globally would repaint every other window on the machine.",
+    "layoutSanitising": "normalizeIdeLayout, and captureIdeLayout which now routes through it, refuse to read Caret's own hidden chrome (showTabs 'none', statusBarVisible false, activityBar.location 'hidden') back as the IDE layout. This also repairs the profile that is already polluted, because the loader applies the same rule.",
+    "tests": "product-prefs and workbench-mode tests updated to the Agents-first contract; a new regression test pins that Caret's hidden chrome is never read back as the IDE layout; the behavioural suite gained a test that the default first screen is the shell with the IDE one command away, and the test harness now clears the appearance keys between tests so a previous test's mode switch cannot leak into the IDE snapshot."
+  },
+  "verifiedOnThisRevision": {
+    "tests": "618 pass / 0 fail / 3238 expect() calls, 86 files",
+    "typecheck": "tsc --noEmit clean",
+    "repoValidator": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "runtime": "app rebuilt with --package from this revision, launched against a private profile with trust disabled for that profile only",
+    "startupLine": "2026-09-14 08:04:53.331 [info] startup view=agents mode=agents revealDock=false",
+    "firstScreen": "window titled 'New task - Caret'; no activity bar, no status bar, no Explorer and no trust banner; a window.caret-shell webview holding the sidebar (New task, Search All/Tasks/Files/Actions/Settings, Automations, Customize, Projects, Open folder, Repositories, Settings) and the task view (Ready, IDE toggle, Folder/Folder/This Mac, composer, Add, Model, Thinking, Plan New Idea, Multitask, Run in Cloud disabled, and the four idea rows)"
+  },
+  "notVerified": {
+    "userProfileAfterFix": "The user's own profile was not relaunched after this change. Its restored folder is still the untrusted /private/tmp fixture, so the Restricted-Mode path will still apply until that folder is opened/trusted or replaced by the user's real project. This receipt does not claim their next launch shows the shell.",
+    "visualReview": "No human or model looked at the two captures; the vision model answered HTTP 429 throughout this session, so the window was read from its accessibility tree. The screenshots are attached for human confirmation.",
+    "restrictedModeDesign": "Whether Restricted Mode should offer a route into the shell was not changed; the design says the shell appears only after the folder is trusted."
+  },
+  "evidenceFiles": [
+    "first-screen-clean-profile-2026-09-14.jpg",
+    "real-profile-restricted-mode-2026-09-14.jpg"
+  ]
+}

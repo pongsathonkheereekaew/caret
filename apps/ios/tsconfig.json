@@ -11,5 +11,5 @@
       "@mobile/*": ["./src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "../../packages/protocol/src/**/*.ts"]
+  "include": ["**/*.ts", "**/*.tsx", "../../packages/protocol/src/**/*.ts", "../macos/src/composer-runtime.ts"]
 }

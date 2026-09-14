@@ -4,6 +4,9 @@ import { existsSync, linkSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { RPC_COMMAND_TYPES, type RpcCommandType } from "../../../packages/omp-adapter/src/types.ts";
+import type { Json } from "../../../packages/protocol/src/index.ts";
+import { EditorConnections } from "../src/editors.ts";
 import { CaretHost } from "../src/service.ts";
 import { DurableStore } from "../src/store.ts";
 
@@ -179,6 +182,86 @@ describe("CaretHost", () => {
     expect(second.status).toBe("completed");
   });
 
+  it("classifies every pinned RPC command as ACK-complete, turn-ack, or not_dispatched", async () => {
+    const fixtureHost = makeHost();
+    const session = fixtureHost.store.getSession(fixtureHost.sessionId)!;
+    const offline = await fixtureHost.host.command(fixtureHost.sessionId, "owner", {
+      commandId: "offline-get-state",
+      incarnation: session.incarnation,
+      command: "get_state",
+    });
+    expect(offline.status).toBe("not_dispatched");
+
+    const started = await fixtureHost.host.startSession(fixtureHost.sessionId);
+    const sessionFile = fixtureHost.store.getSession(fixtureHost.sessionId)!.sessionFile;
+    const payloads: Record<RpcCommandType, { [key: string]: Json }> = {
+      negotiate_protocol: { protocolVersion: 2 },
+      prompt: { message: "o11-prompt" },
+      steer: { message: "o11-steer" },
+      follow_up: { message: "o11-follow-up" },
+      abort: {},
+      abort_and_prompt: { message: "o11-abort-and-prompt" },
+      new_session: {},
+      get_state: {},
+      set_fast_mode: { enabled: false },
+      get_available_commands: {},
+      set_todos: { phases: [] },
+      set_host_tools: { tools: [] },
+      set_host_uri_schemes: { schemes: [] },
+      set_subagent_subscription: { level: "off" },
+      get_subagents: {},
+      get_subagent_messages: {},
+      set_model: { provider: "caret-fixture", modelId: "caret-fixture-model" },
+      cycle_model: {},
+      get_available_models: {},
+      set_thinking_level: { level: "off" },
+      cycle_thinking_level: {},
+      set_steering_mode: { mode: "all" },
+      set_follow_up_mode: { mode: "all" },
+      set_interrupt_mode: { mode: "immediate" },
+      compact: {},
+      set_auto_compaction: { enabled: false },
+      set_auto_retry: { enabled: false },
+      abort_retry: {},
+      bash: { command: "printf o11" },
+      abort_bash: {},
+      get_session_stats: {},
+      export_html: {},
+      switch_session: { sessionPath: sessionFile },
+      branch: { entryId: "entry-1" },
+      get_branch_messages: {},
+      get_last_assistant_text: {},
+      set_session_name: { name: "o11-fixture" },
+      handoff: { customInstructions: "o11-handoff" },
+      get_messages: {},
+      get_messages_page: { limit: 10 },
+      get_login_providers: {},
+      login: { providerId: "caret-fixture" },
+    };
+    expect(Object.keys(payloads)).toEqual([...RPC_COMMAND_TYPES]);
+
+    for (const command of RPC_COMMAND_TYPES) {
+      const result = await fixtureHost.host.command(fixtureHost.sessionId, "owner", {
+        commandId: `o11-${command}`,
+        incarnation: started.incarnation,
+        command,
+        payload: payloads[command],
+      });
+      if (command === "prompt") {
+        expect(["acknowledged", "completed"]).toContain(result.status);
+        await waitFor(() => fixtureHost.store.getCommand(fixtureHost.sessionId, `o11-${command}`)?.status === "completed");
+        continue;
+      }
+      if (command === "abort_and_prompt") {
+        expect(result.status).toBe("acknowledged");
+        continue;
+      }
+      expect(result.status).toBe("completed");
+      expect(result.result).toMatchObject({ meaning: "OMP command acknowledged" });
+    }
+    await fixtureHost.host.stopSession(fixtureHost.sessionId);
+  });
+
   it("completes a handoff ACK without requiring a later agent_end frame", async () => {
     const fixtureHost = makeHost("handoff-no-end");
     const started = await fixtureHost.host.startSession(fixtureHost.sessionId);
@@ -262,6 +345,49 @@ describe("real OMP session ownership", () => {
       secondStore.close();
     }
   }, 30_000); // Two real OMP cold starts can exceed Bun's 5-second unit-test default.
+
+  it("starts standalone OMP with the packaged editor and permission bridges", async () => {
+    const standalone = join(fileURLToPath(new URL("../../..", import.meta.url)), "dist/omp-standalone/omp");
+    if (!existsSync(standalone)) return;
+    const directory = temporaryDirectory("caret-editor-bridge-");
+    const projectPath = join(directory, "project");
+    mkdirSync(projectPath);
+    writeFileSync(join(directory, "models.yml"), `providers:\n  probe:\n    baseUrl: http://127.0.0.1:9/v1\n    auth: none\n    api: openai-completions\n    models:\n      - id: probe-model\n        name: Probe\n        api: openai-completions\n        reasoning: false\n        input: [text]\n        cost: {input: 0, output: 0, cacheRead: 0, cacheWrite: 0}\n        contextWindow: 128000\n        maxTokens: 4096\n`, { mode: 0o600 });
+    const store = DurableStore.open({ stateDir: directory, recover: false });
+    const project = store.createProject({ path: projectPath, name: "Editor bridge" });
+    const editors = new EditorConnections();
+    const host = new CaretHost({
+      store,
+      stateDir: directory,
+      editors,
+      ompExecutable: standalone,
+      editorBridge: true,
+      nativeBridge: true,
+      ompArgs: ["--no-skills", "--no-rules", "--no-extensions"],
+      ompEnv: {
+        PATH: "/usr/bin:/bin",
+        HOME: directory,
+        PI_CODING_AGENT_DIR: directory,
+        PI_NO_PTY: "1",
+        PI_NOTIFICATIONS: "off",
+      },
+    });
+    try {
+      const session = host.createSession(project.id, "Editor bridge session");
+      const started = await host.startSession(session.id);
+      expect(started.status).toBe("idle");
+      const state = await host.command(session.id, "owner", {
+        commandId: "bridge-state",
+        incarnation: started.incarnation,
+        command: "get_state",
+      });
+      expect(state.status).toBe("completed");
+      await host.stopSession(session.id);
+    } finally {
+      await host.close().catch(() => {});
+      store.close();
+    }
+  }, 30_000);
 });
 
 describe("OMP runtime lock extension", () => {

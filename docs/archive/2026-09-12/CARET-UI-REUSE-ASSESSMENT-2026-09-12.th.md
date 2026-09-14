@@ -1,6 +1,6 @@
 # Caret — ประเมิน UI references เพิ่มเติม
 
-> Archived 12 September 2026 evidence. Living UI spec: [interaction](../../maintenance/CARET-UI-INTERACTION-SPEC-2026-09-13.th.md).
+> Archived 12 September 2026 evidence. Living UI spec: [interaction](../2026-09-14-pre-ssot/CARET-UI-INTERACTION-SPEC-2026-09-13.th.md).
 
 วันที่ตรวจ 2026-09-12. สถานะ: source assessment และแผนเลือกใช้; ยังไม่ติดตั้ง dependencies/skills, ไม่คัดลอก components/assets เข้า production และยังไม่มี runtime/visual verification ของ libraries เหล่านี้ใน Caret
 

@@ -1,0 +1,60 @@
+Caret agent-edit mark - real packaged app (Computer Use), 2026-09-14
+
+Bundle: VSCode-darwin-arm64/Caret.app at Contents/MacOS/Caret (packaged 04:07 from
+the revision that adds the marks). Fixture workspace /private/tmp/caret-agent-mark
+opened with a private --user-data-dir profile (workspace trust disabled for that
+profile only, caret.hostStateDir pointed at the private host). The host was started
+in-process by scripts/ide-native-agent-mark-smoke.ts with the bundled standalone
+OMP and a local scripted (zero-cost) model; no paid inference.
+
+What the run proved (receipt.json.checks), asserted by the fixture, not by a
+screenshot:
+  1. The model's read -> edit -> read script produced exactly one guarded
+     permission, which was answered allow.
+  2. The second read saw "Welcome back." - the applied edit was in the *editor
+     buffer* the app served through the bridge.
+  3. src/greet.ts on disk still held the pre-edit text after the whole turn, so
+     the edit landed in the buffer and never behind the editor.
+  4. The operator clicked the real "Take Back the Caret Edit" editor-title
+     button; the next read saw the pre-edit text and not "Welcome back.", and
+     disk was still the pre-edit text - so take-back restored the buffer exactly
+     and never saved.
+
+What the accessibility tree showed (the part a screenshot would otherwise carry),
+read through Computer Use against the running window:
+
+  During the mark (right after the apply):
+    103 toolbar Editor actions
+      104 button Review Active File in Diff (Option+Command+R)
+      106 button Keep the Caret Edit          <- gated on caret.agentEditPending
+      108 button Take Back the Caret Edit     <- gated on caret.agentEditPending
+      110 button Split Editor Right
+    25 tab (selected) Description: Explorer (Shift+Command+E) - 1 unsaved file
+
+  After clicking element 108:
+    Removed element IDs: 104-113
+    + 230 button Review Active File in Diff (Option+Command+R)
+    + 232 button Split Editor Right
+    + 234 pop up button More Actions...
+    + 237 container Caret: took back the edit to src/greet.ts
+
+The two editor-title buttons are contributed by apps/macos/package.json with
+`when: caret.agentEditPending`, and that context key is set only by
+refreshAgentEditMarks() after a real apply reports through the editor bridge. The
+"Caret: took back the edit to src/greet.ts" line is forgetAgentEdit()'s own
+message. So a real OMP edit turned the mark on, the editor offered the two
+actions, and running Take Back turned the mark off and reported it - all on the
+packaged app, not in a stub.
+
+Screenshot: runtime-window-agent-mark-2026-09-14.png (full-window capture taken
+while the two buttons were present). The vision model was rate-limited for this
+session, so this shot was not read back as an image; the claims above rest on the
+accessibility tree and the receipt's buffer/disk assertions instead.
+
+Limits, recorded honestly:
+  - The painted decoration itself (border/background via setDecorations) is not an
+    accessibility element, so this run proves the pending record, the two actions,
+    and their effects rather than a description of the pixels. A human can confirm
+    the pixels in the screenshot.
+  - The "Keep the Caret Edit" path was not clicked here; it is covered by the unit
+    and behavioral tests, and this run proves the button appears and is wired.

@@ -21,7 +21,18 @@ try {
   const profile = join(fixture, "omp-profile"); await mkdir(profile);
   // A fresh profile intentionally has no provider; setup must still be reachable.
   const node = join(runtime, "node/bin/node"), cli = join(runtime, "host/cli.js");
-  const env = { PATH: "/usr/bin:/bin", HOME: process.env.HOME, CARET_STATE_DIR: stateDir, PI_CODING_AGENT_DIR: join(fixture, "omp-profile"), TERM: "xterm-256color", CARET_RPC_EDITOR_BRIDGE: "1" };
+  const env = {
+    PATH: "/usr/bin:/bin",
+    HOME: fixture,
+    CARET_STATE_DIR: stateDir,
+    PI_CODING_AGENT_DIR: join(fixture, "omp-profile"),
+    XDG_STATE_HOME: join(fixture, "xdg-state"),
+    XDG_CONFIG_HOME: join(fixture, "xdg-config"),
+    XDG_DATA_HOME: join(fixture, "xdg-data"),
+    XDG_CACHE_HOME: join(fixture, "xdg-cache"),
+    TERM: "xterm-256color",
+    CARET_RPC_EDITOR_BRIDGE: "1",
+  };
   execFileSync(node, [cli, "ensure"], { cwd: workspace, env, timeout: 20000, stdio: "pipe" });
   client = await CaretHostClient.fromStateDir(stateDir, { timeoutMs: 25000 }); hostPid = client.descriptor.pid;
   check(Number.isSafeInteger(hostPid) && hostPid! > 1, "Invalid owned fixture host PID");

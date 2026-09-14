@@ -1,0 +1,54 @@
+[x=0.332 y=0.013 w=0.122] greet.ts -workspace - Caret
+[x=0.881 y=0.039 w=0.073] New TaskShow IDE
+[x=0.047 y=0.052 w=0.041] EXPLORER
+[x=0.250 y=0.052 w=0.047] TS greet.ts
+[x=0.717 y=0.049 w=0.039] 0 08 0
+[x=0.805 y=0.052 w=0.028] CARET
+[x=0.883 y=0.065 w=0.023] IXN
+[x=0.917 y=0.065 w=0.018] TXI
+[x=0.977 y=0.049 w=0.013] X
+[x=0.036 y=0.083 w=0.063] V WORKSPACE
+[x=0.252 y=0.083 w=0.023] src >
+[x=0.291 y=0.082 w=0.043] greet.ts >
+[x=0.820 y=0.089 w=0.024] Back
+[x=0.859 y=0.086 w=0.037] Forward
+[x=0.042 y=0.109 w=0.046] ›vscode
+[x=0.288 y=0.104 w=0.189] export function greet(name: string) (
+[x=0.932 y=0.096 w=0.034] • Ready
+[x=0.980 y=0.096 w=0.008] IE
+[x=0.054 y=0.135 w=0.015] src
+[x=0.289 y=0.122 w=0.109] Qreturn "hi " + name;
+[x=0.813 y=0.138 w=0.057] New task
+[x=0.046 y=0.156 w=0.047] TS greet.ts
+[x=0.813 y=0.177 w=0.176] workspace • Folder • /private/tmp/caret-ide-
+[x=0.834 y=0.211 w=0.039] Changes
+[x=0.885 y=0.211 w=0.039] Browser
+[x=0.933 y=0.211 w=0.039] Terminal
+[x=0.813 y=0.240 w=0.174] Need more space to split this task. Widen th
+[x=0.813 y=0.260 w=0.031] 720px.
+[x=0.820 y=0.294 w=0.060] Maximize area
+[x=0.894 y=0.294 w=0.088] Open another window
+[x=0.011 y=0.326 w=0.011] >1
+[x=0.813 y=0.359 w=0.046] New task
+[x=0.254 y=0.656 w=0.046] PROBLEMS
+[x=0.312 y=0.656 w=0.036] OUTPUT
+[x=0.361 y=0.656 w=0.070] DEBUG CONSOLE
+[x=0.444 y=0.656 w=0.041] TERMINAL
+[x=0.499 y=0.656 w=0.029] PORTS
+[x=0.582 y=0.654 w=0.101] OMP interaction+~
+[x=0.725 y=0.654 w=0.055] ..10 X
+[x=0.828 y=0.703 w=0.052] relunnr
+[x=0.857 y=0.828 w=0.044] Model v
+[x=0.914 y=0.828 w=0.039] Thinking
+[x=0.828 y=0.880 w=0.024] Send
+[x=0.037 y=0.935 w=0.047] > OUTLINE
+[x=0.815 y=0.927 w=0.174] Choose a model before sending. Caret does
+[x=0.813 y=0.943 w=0.059] billed fallback.
+[x=0.037 y=0.958 w=0.049] > TIMELINE
+[x=0.029 y=0.982 w=0.060] o Caret ready
+[x=0.101 y=0.979 w=0.041] • 0Д0
+[x=0.696 y=0.982 w=0.099] Ln 4, Col 1 (63 selected)
+[x=0.805 y=0.982 w=0.042] Spaces: 2
+[x=0.854 y=0.982 w=0.037] UTF-8
+[x=0.889 y=0.982 w=0.015] LF
+[x=0.911 y=0.982 w=0.062] () TypeScript

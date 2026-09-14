@@ -154,9 +154,9 @@ describe("expired resource copy", () => {
 });
 
 describe("D01 geometry", () => {
-	it("clamps the sidebar between 200 and 360", () => {
+	it("clamps the sidebar between 160 and 360", () => {
 		expect(clampSidebarWidth(260)).toBe(260);
-		expect(clampSidebarWidth(120)).toBe(200);
+		expect(clampSidebarWidth(120)).toBe(160);
 		expect(clampSidebarWidth(900)).toBe(360);
 	});
 

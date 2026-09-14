@@ -9,6 +9,7 @@ import type {
 } from "../../../../packages/protocol/src/index.ts";
 import { isRecord, type LoginProviderOption, type ModelOption, type PendingUiRequest } from "./types.ts";
 import { parseArtifactChunk, parseArtifactReceipt, type ArtifactChunk, type ArtifactReceipt } from "./artifacts.ts";
+import { parseHostReview, type HostReviewPayload } from "./review-sheet.ts";
 import type { ClientTransport, TransportMethod } from "./transport.ts";
 
 function encoded(value: string): string {
@@ -171,6 +172,10 @@ export class CaretApi {
 
   getSession(sessionId: string): Promise<Session> {
     return this.request<unknown>("GET", `/v1/sessions/${encoded(sessionId)}`).then(body => objectBody<Session>(body, "session"));
+  }
+
+  getReview(sessionId: string): Promise<HostReviewPayload> {
+    return this.request<unknown>("GET", `/v1/sessions/${encoded(sessionId)}/review`).then(body => parseHostReview(body));
   }
 
   getEvents(sessionId: string, after = 0, limit = 200): Promise<EventPage> {

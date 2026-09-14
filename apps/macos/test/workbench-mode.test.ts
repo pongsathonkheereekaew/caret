@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { agentsWindowOpenMode, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, modeSwitchProof, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, retentionReceipt, serializeCaretAgentsWorkspace, switchWorkbenchMode } from "../src/workbench-mode.ts";
+import { agentsWindowOpenMode, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode } from "../src/workbench-mode.ts";
 import { createInitialTaskState, reduceTaskState } from "../src/state.ts";
 import { parseWebviewMessage } from "../src/messages.ts";
 import type { Project, Session } from "../../../packages/protocol/src/index.ts";
@@ -75,6 +75,27 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(queuePendingNativeDestination("explorer", "explorer")).toBe("explorer");
 	});
 
+	it("makes a pending Explorer destination authoritative over remembered Agents mode", () => {
+		expect(resolveStartupView({ pending: "explorer", rememberedMode: "agents", startupView: "last_task" })).toEqual({ mode: "ide", openExplorer: true, revealDock: true });
+		expect(resolveStartupView({ rememberedMode: "ide", startupView: "last_task" })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
+		expect(resolveStartupView({ rememberedMode: "ide", startupView: "agents" })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+	});
+
+	it("opens the full-window Caret shell by default, with the IDE an explicit choice", () => {
+		// The product default is the Caret shell (UI spec section 2), not the
+		// docked coexistence view, and not a remembered window.
+		expect(resolveStartupView({ startupView: "agents" })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+		// An unknown or missing value must not silently become a second meaning
+		// for "ide"; it means the documented default.
+		expect(resolveStartupView({ startupView: "nonsense" as never })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+		// Choosing IDE keeps Code-OSS chrome with the agent docked beside it, and
+		// must stay reachable from the settings surface.
+		expect(resolveStartupView({ startupView: "ide" })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
+		// A remembered IDE layout keeps the dock; a remembered Agents shell does not.
+		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "ide" })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
+		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "agents" })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+	});
+
 	it("consumes pending explorer only after switching to IDE", () => {
 		expect(consumePendingNativeDestination("ide", "explorer")).toEqual({ openExplorer: true });
 		expect(consumePendingNativeDestination("agents", "explorer")).toEqual({ pending: "explorer", openExplorer: false });
@@ -126,6 +147,39 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(next.sidebarVisible).toBe(true);
 		expect(next.panelVisible).toBe(false);
 	});
+	it("round-trips the breadcrumbs toggle through the IDE snapshot", () => {
+		const next = rememberIdeChrome(
+			{ ...DEFAULT_IDE_LAYOUT, breadcrumbsEnabled: false },
+			{ sidebarVisible: true },
+		);
+		expect(next.breadcrumbsEnabled).toBe(false);
+		expect(next.sidebarVisible).toBe(true);
+	});
+
+	it("never reads Caret's own hidden chrome back as the IDE layout", () => {
+		// What a previous Agents session leaves in the workspace settings. Read
+		// back as a layout, this is the bug that made IDE mode return without tabs
+		// or a status bar, which reads as "the switch did nothing".
+		const polluted = normalizeIdeLayout({
+			sidebarVisible: true,
+			auxiliaryBarVisible: false,
+			panelVisible: true,
+			showTabs: "none",
+			statusBarVisible: false,
+			activityBarLocation: "hidden",
+		});
+		expect(polluted.showTabs).toBe(DEFAULT_IDE_LAYOUT.showTabs);
+		expect(polluted.statusBarVisible).toBe(true);
+		expect(polluted.activityBarLocation).toBe(DEFAULT_IDE_LAYOUT.activityBarLocation);
+		// A real user choice still survives.
+		const chosen = normalizeIdeLayout({ showTabs: "multiple", statusBarVisible: false, activityBarLocation: "top" }, { ...DEFAULT_IDE_LAYOUT, showTabs: "multiple" });
+		expect(chosen.showTabs).toBe("multiple");
+		expect(chosen.activityBarLocation).toBe("top");
+		// The status bar is only offered as visible/hidden by Caret, so a stored
+		// "false" is always Caret's own footprint and falls back to the snapshot.
+		expect(chosen.statusBarVisible).toBe(true);
+		expect(normalizeIdeLayout({ statusBarVisible: false }, { ...DEFAULT_IDE_LAYOUT, statusBarVisible: false }).statusBarVisible).toBe(false);
+	});
 
 	it("accepts only agents/ide mode messages", () => {
 		expect(parseWebviewMessage({ type: "set_workbench_mode", mode: "ide" })).toEqual({ type: "set_workbench_mode", mode: "ide" });
@@ -134,5 +188,13 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(parseWebviewMessage({ type: "persist_scroll", offset: 120, followLatest: false, eventId: "evt-1" })).toEqual({
 			type: "persist_scroll", offset: 120, followLatest: false, eventId: "evt-1",
 		});
+	});
+	it("keeps applying chrome commands after one rejects", async () => {
+		const ran: string[] = [];
+		await runWorkbenchCommands(async (command) => {
+			ran.push(command);
+			if (command === "workbench.action.closeAuxiliaryBar") throw new Error("unknown command");
+		}, ["workbench.action.closeSidebar", "workbench.action.closeAuxiliaryBar", "workbench.action.closePanel"]);
+		expect(ran).toEqual(["workbench.action.closeSidebar", "workbench.action.closeAuxiliaryBar", "workbench.action.closePanel"]);
 	});
 });

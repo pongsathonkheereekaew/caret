@@ -328,7 +328,18 @@ function pendingUi(value: unknown): PendingUiRequest | undefined {
   } else if (request.method === "editor" && (request.prefill === undefined || typeof request.prefill === "string") && (request.promptStyle === undefined || typeof request.promptStyle === "boolean")) {
     normalized = { method: "editor", id: request.id, title: request.title, ...(typeof request.prefill === "string" ? { prefill: request.prefill } : {}), ...(typeof request.promptStyle === "boolean" ? { promptStyle: request.promptStyle } : {}) };
   }
-  return normalized ? { kind: "interactive", token: value.token, request: normalized } : undefined;
+  return normalized ? {
+    kind: "interactive",
+    token: value.token,
+    request: normalized,
+    ...(typeof value.sessionId === "string" && value.sessionId.trim() ? { sessionId: value.sessionId.trim() } : {}),
+    ...(typeof value.incarnation === "string" && value.incarnation.trim() ? { incarnation: value.incarnation.trim() } : {}),
+    ...(typeof request.cwd === "string" && request.cwd.trim() ? { cwd: request.cwd.trim() } : {}),
+    ...(typeof request.tool === "string" && request.tool.trim() ? { tool: request.tool.trim() } : {}),
+    ...(typeof request.target === "string" && request.target.trim() ? { target: request.target.trim() } : {}),
+    ...(value.status === "stale" || value.status === "timeout" || value.status === "responded_elsewhere" ? { status: value.status } : {}),
+    ...(typeof value.receivedAt === "number" && Number.isFinite(value.receivedAt) ? { receivedAt: value.receivedAt } : {}),
+  } : undefined;
 }
 
 function uiFromFrame(frame: Record<string, unknown>): PendingUiRequest | undefined {
@@ -373,7 +384,7 @@ function applyFrame(state: MobileTaskState, frameValue: Json, key: string): Mobi
       next = { ...next, presentations: [...next.presentations.filter(item => item.id !== presentation.id), presentation].slice(-20) };
     }
     if (ui && !next.uiRequests.some(item => item.token === ui.token)) {
-      next = { ...next, uiRequests: [...next.uiRequests, ui], attentionCount: next.attentionCount + 1 };
+      next = { ...next, uiRequests: [...next.uiRequests, { ...ui, receivedAt: ui.receivedAt ?? Date.now() }], attentionCount: next.attentionCount + 1 };
     }
     return next;
   }
@@ -444,11 +455,13 @@ export function reduceMobileState(state: MobileTaskState, action: MobileAction):
       return { ...state, projects: action.projects, project: current ? projectById(action.projects, current.id) : action.projects[0] ?? null };
     }
     case "project":
-      return { ...state, project: action.project, session: null, transcript: [], virtualTerminals: [], events: [], cursor: 0, hasMoreEvents: false, uiRequests: [], presentations: [], loginProviders: [], seenEventKeys: [], activeToolIds: [], attentionCount: 0 };
+      return { ...state, project: action.project, session: null, draft: "", transcript: [], virtualTerminals: [], events: [], cursor: 0, hasMoreEvents: false, uiRequests: [], presentations: [], loginProviders: [], seenEventKeys: [], activeToolIds: [], attentionCount: 0 };
     case "sessions":
       return { ...state, sessions: action.sessions };
-    case "session":
-      return { ...state, session: action.session, transcript: [], virtualTerminals: [], events: [], cursor: 0, hasMoreEvents: false, uiRequests: [], presentations: [], loginProviders: [], seenEventKeys: [], activeToolIds: [], attentionCount: 0 };
+    case "session": {
+      const sessionChanged = action.session?.id !== state.session?.id;
+      return { ...state, session: action.session, draft: sessionChanged ? "" : state.draft, transcript: [], virtualTerminals: [], events: [], cursor: 0, hasMoreEvents: false, uiRequests: [], presentations: [], loginProviders: [], seenEventKeys: [], activeToolIds: [], attentionCount: 0 };
+    }
     case "events": {
       const expectedSession = state.session;
       if (expectedSession) {
@@ -495,7 +508,7 @@ export function reduceMobileState(state: MobileTaskState, action: MobileAction):
     case "ui_request": {
       const request = pendingUi(action.event);
       if (!request || state.uiRequests.some(item => item.token === request.token)) return state;
-      return { ...state, uiRequests: [...state.uiRequests, request], attentionCount: state.attentionCount + 1 };
+      return { ...state, uiRequests: [...state.uiRequests, { ...request, receivedAt: request.receivedAt ?? Date.now() }], attentionCount: state.attentionCount + 1 };
     }
     case "ui_sync": {
       const existing = new Map(state.uiRequests.map(request => [request.token, request]));
@@ -504,7 +517,17 @@ export function reduceMobileState(state: MobileTaskState, action: MobileAction):
         if (!request) return [];
         // Keep the mounted object for a token that is still pending. This lets
         // the native sheet retain its draft/focus while polling GET /ui.
-        return [existing.get(request.token) ?? request];
+        const mounted = existing.get(request.token);
+        if (!mounted) return [request];
+        const extras: Partial<PendingUiRequest> = {
+          ...(request.sessionId && request.sessionId !== mounted.sessionId ? { sessionId: request.sessionId } : {}),
+          ...(request.incarnation && request.incarnation !== mounted.incarnation ? { incarnation: request.incarnation } : {}),
+          ...(request.cwd && request.cwd !== mounted.cwd ? { cwd: request.cwd } : {}),
+          ...(request.tool && request.tool !== mounted.tool ? { tool: request.tool } : {}),
+          ...(request.target && request.target !== mounted.target ? { target: request.target } : {}),
+          ...(request.status && request.status !== mounted.status ? { status: request.status } : {}),
+        };
+        return [Object.keys(extras).length > 0 ? { ...mounted, ...extras } : mounted];
       });
       return { ...state, uiRequests: requests, attentionCount: requests.length };
     }
@@ -516,6 +539,8 @@ export function reduceMobileState(state: MobileTaskState, action: MobileAction):
       return { ...state, loginProviders: action.providers };
     case "cached_meta":
       return { ...state, cacheSavedAt: action.savedAt, cacheExpiresAt: action.expiresAt };
+    case "cache_cleared":
+      return { ...state, cacheSavedAt: undefined, cacheExpiresAt: undefined };
   }
 }
 

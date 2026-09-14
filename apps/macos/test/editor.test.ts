@@ -450,4 +450,142 @@ describe("Caret editor create/delete/move/untitled", () => {
 			expect(deleted).toEqual([]);
 		} finally { editor.dispose(); rmSync(root, { recursive: true, force: true }); }
 	});
+
+	it("rejects moving an untitled document instead of writing a workspace path", async () => {
+		const root = realpathSync(mkdtempSync(join(tmpdir(), "caret-editor-untitled-move-")));
+		const dest = join(root, "saved.ts");
+		const untitledUri = { scheme: "untitled", fsPath: "", path: "Untitled-1", toString: () => "untitled:Untitled-1" };
+		const untitled = makeDocument({ uri: untitledUri, fileName: "Untitled-1", text: "scratch\n", isUntitled: true, isDirty: true, version: 2 });
+		const renamed: unknown[] = [];
+		const api = {
+			Uri: { file: fileUri },
+			Position,
+			Range,
+			WorkspaceEdit,
+			workspace: {
+				textDocuments: [untitled],
+				onDidOpenTextDocument: () => ({ dispose() {} }),
+				onDidCloseTextDocument: () => ({ dispose() {} }),
+				openTextDocument: async () => untitled,
+				applyEdit: async (edit: WorkspaceEdit) => {
+					renamed.push(...edit.renames);
+					return true;
+				},
+			},
+		} as unknown as typeof import("vscode");
+		const editor = new CaretEditorService({ api, workspaceRoots: [root] });
+		try {
+			const snapshot = await editor.read("untitled:Untitled-1");
+			await expect(editor.move({
+				path: snapshot.path,
+				destination: dest,
+				handle: snapshot.handle,
+				expectedVersion: snapshot.documentVersion,
+				expectedHash: snapshot.sha256,
+			})).rejects.toMatchObject({ code: "unsupported_document" });
+			expect(renamed).toEqual([]);
+			expect(existsSync(dest)).toBe(false);
+		} finally { editor.dispose(); rmSync(root, { recursive: true, force: true }); }
+	});
+});
+
+describe("Caret editor bridge applied-edit report", () => {
+	it("reports the geometry, the produced version, and the pre-edit text without saving", async () => {
+		const root = realpathSync(mkdtempSync(join(tmpdir(), "caret-editor-marks-")));
+		const target = join(root, "app.ts");
+		writeFileSync(target, "const answer = 41;\n");
+		const document = makeDocument({ uri: fileUri(target), fileName: target, text: "const answer = 41;\n", version: 4 });
+		const docs = [document];
+		const api = {
+			Uri: { file: fileUri },
+			Position,
+			Range,
+			WorkspaceEdit,
+			workspace: {
+				get textDocuments() { return docs; },
+				onDidOpenTextDocument: () => ({ dispose() {} }),
+				onDidCloseTextDocument: () => ({ dispose() {} }),
+				openTextDocument: async () => document,
+				applyEdit: async (edit: WorkspaceEdit) => {
+					for (const replace of edit.replaces) {
+						// A partial replace, not a whole-document write: the bridge
+						// edits one range inside the buffer.
+						const lines = document.state.text.split("\n");
+						const offsetAt = (position: Position) => {
+							let offset = 0;
+							for (let line = 0; line < position.line; line += 1) offset += (lines[line] ?? "").length + 1;
+							return offset + position.character;
+						};
+						const start = offsetAt(replace.range.start);
+						const end = offsetAt(replace.range.end);
+						document.state.text = document.state.text.slice(0, start) + replace.text + document.state.text.slice(end);
+						document.state.version += 1;
+						document.state.dirty = true;
+					}
+					return true;
+				},
+			},
+		} as unknown as typeof import("vscode");
+		const seen: unknown[] = [];
+		const editor = new CaretEditorService({ api, workspaceRoots: [root], afterApply: summary => { seen.push(summary); } });
+		try {
+			const snapshot = await editor.read(target);
+			const applied = await editor.apply({
+				path: target,
+				handle: snapshot.handle,
+				expectedVersion: snapshot.documentVersion,
+				expectedHash: snapshot.sha256,
+				edits: [{ range: { start: { line: 0, character: 15 }, end: { line: 0, character: 17 } }, text: "42" }],
+			});
+			expect(applied.kind).toBe("apply");
+			// The report is what the editor marks are built from: the real range,
+			// the version the edit produced, and the exact text to restore.
+			expect(seen).toEqual([{
+				path: target,
+				uri: `file://${target}`,
+				requestId: "",
+				version: 5,
+				textBefore: "const answer = 41;\n",
+				edits: [{ range: { start: { line: 0, character: 15 }, end: { line: 0, character: 17 } }, text: "42" }],
+			}]);
+			// An apply is never a save: the change stays in the buffer for the user
+			// to keep or take back.
+			expect(document.state.dirty).toBe(true);
+			expect(readFileSync(target, "utf8")).toBe("const answer = 41;\n");
+		} finally { editor.dispose(); rmSync(root, { recursive: true, force: true }); }
+	});
+
+	it("reports nothing when the apply is rejected", async () => {
+		const root = realpathSync(mkdtempSync(join(tmpdir(), "caret-editor-marks-reject-")));
+		const target = join(root, "app.ts");
+		writeFileSync(target, "const answer = 41;\n");
+		const document = makeDocument({ uri: fileUri(target), fileName: target, text: "const answer = 41;\n", version: 4 });
+		const api = {
+			Uri: { file: fileUri },
+			Position,
+			Range,
+			WorkspaceEdit,
+			workspace: {
+				get textDocuments() { return [document]; },
+				onDidOpenTextDocument: () => ({ dispose() {} }),
+				onDidCloseTextDocument: () => ({ dispose() {} }),
+				openTextDocument: async () => document,
+				applyEdit: async () => true,
+			},
+		} as unknown as typeof import("vscode");
+		const seen: unknown[] = [];
+		const editor = new CaretEditorService({ api, workspaceRoots: [root], afterApply: summary => { seen.push(summary); } });
+		try {
+			const snapshot = await editor.read(target);
+			await expect(editor.apply({
+				path: target,
+				handle: snapshot.handle,
+				// Stale on purpose: the guard must fail before anything is applied.
+				expectedVersion: snapshot.documentVersion + 1,
+				expectedHash: snapshot.sha256,
+				edits: [{ range: { start: { line: 0, character: 15 }, end: { line: 0, character: 17 } }, text: "42" }],
+			})).rejects.toMatchObject({ code: "stale_document" });
+			expect(seen).toEqual([]);
+		} finally { editor.dispose(); rmSync(root, { recursive: true, force: true }); }
+	});
 });

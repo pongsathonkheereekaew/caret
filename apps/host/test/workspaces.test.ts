@@ -1,13 +1,16 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
+  allocateWorkspacePort,
+  copyAllowlistedIgnored,
   createWorktree,
   gitRoot,
+  loadWorkspaceBootstrap,
   reviewWorkspace,
   saveSnapshotManifest,
   workspacePath,
@@ -93,6 +96,31 @@ describe("workspace boundaries", () => {
     expect(review.untracked).toEqual(expect.arrayContaining([
       expect.objectContaining({ path: "notes/deep/todo.txt", text: "untracked\n", binary: false }),
     ]));
+  });
+
+  it("copies only allowlisted gitignored files and assigns colliding-free ports", () => {
+    const root = gitFixture();
+    writeFileSync(join(root, ".gitignore"), ".env\n.env.example\n");
+    writeFileSync(join(root, ".env"), "SECRET=1\n");
+    writeFileSync(join(root, ".env.example"), "SECRET=\n");
+    mkdirSync(join(root, ".caret"), { recursive: true });
+    writeFileSync(join(root, ".caret", "workspace.json"), JSON.stringify({ ignoreAllowlist: [".env.example"], setup: "bun install", run: "bun run dev", portStart: 42000 }) + "\n");
+    const destination = join(dirname(realpathSync(root)), `${realpathSync(root).split("/").pop()}-task-bootstrap`);
+    directories.push(destination);
+    worktrees.push({ root, destination });
+    expect(() => copyAllowlistedIgnored(root, destination, ["../escape"])).toThrow(/workspace-relative/);
+    const snapshot = createWorktree(root, destination, "ports", {
+      allowlist: loadWorkspaceBootstrap(root).ignoreAllowlist,
+      setupScript: "bun install",
+      runScript: "bun run dev",
+      portStart: 42_000,
+      usedPorts: [42_000],
+    });
+    expect(existsSync(join(destination, ".env"))).toBe(false);
+    expect(readFileSync(join(destination, ".env.example"), "utf8")).toBe("SECRET=\n");
+    expect(snapshot.port).toBe(42_010);
+    expect(snapshot.setupScript).toBe("bun install");
+    expect(allocateWorkspacePort([42_000, 42_010], 42_000)).toBe(42_020);
   });
 
   it("returns unavailable for non-Git folders and writes a private snapshot manifest", () => {

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve, join } from "node:path";
+import { personalCaretArgv } from "./lib/personal-argv.ts";
 
 const root = resolve(import.meta.dir, "..");
 const portable = process.argv.includes("--portable") || process.argv.includes("--package");
@@ -48,6 +49,7 @@ if (process.argv.includes("--desktop")) {
   // The retained, ignored Code-OSS checkout is a build output. Tracked source stays above.
   await cp(extensionOutput, join(root, "desktop/extensions/caret"), { recursive: true });
   await cp(brandIcon, join(root, "desktop/resources/darwin/code.icns"));
+  await writeFile(join(root, "desktop/argv.json"), JSON.stringify(personalCaretArgv(), null, 2) + "\n");
 }
 if (process.argv.includes("--package")) {
   const app = join(root, `VSCode-darwin-${process.arch}`, "Caret.app");
@@ -61,6 +63,13 @@ if (process.argv.includes("--package")) {
   const appResources = join(app, "Contents/Resources/app");
   await cp(join(appResources, "node_modules.asar.unpacked/@vscode/tree-sitter-wasm"),
     join(appResources, "node_modules/@vscode/tree-sitter-wasm"), { recursive: true });
+  // Product decision 2026-09-13: single agent surface. Remove the bundled
+  // Copilot Chat agent UI (ships in the `copilot` dir) so it cannot front its
+  // own Sessions/Chats over the Caret shell. OMP stays the only harness.
+  // `github`/`github-authentication` stay: unrelated to the agent UI.
+  // Re-apply on every --package: the pinned Code-OSS packager restores it.
+  await rm(join(appResources, "extensions/copilot"), { recursive: true, force: true });
+  await writeFile(join(app, "Contents/Resources/app/argv.json"), JSON.stringify(personalCaretArgv(), null, 2) + "\n");
   execFileSync("codesign", ["--force", "--deep", "--sign", "-", app], { stdio: "inherit" });
   execFileSync("codesign", ["--verify", "--deep", "--strict", app], { stdio: "inherit" });
   console.log(`Prepared local ad-hoc signed app (not notarized): ${app}`);

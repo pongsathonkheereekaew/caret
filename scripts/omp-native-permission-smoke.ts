@@ -52,7 +52,7 @@ await writeFile(join(dir, "models.yml"), `providers:\n  caret-fixture:\n    base
 const stateDir = join(dir, "host");
 const store = DurableStore.open({ stateDir });
 const host = new CaretHost({ store, stateDir, ompExecutable: executable, nativeBridge: true,
-  ompEnv: { PATH: "/usr/bin:/bin", PI_CODING_AGENT_DIR: dir, PI_NOTIFICATIONS: "off", TERM: "xterm-256color" },
+  ompEnv: { PATH: "/usr/bin:/bin", HOME: dir, PI_CODING_AGENT_DIR: dir, PI_NOTIFICATIONS: "off", TERM: "xterm-256color" },
   ompArgs: ["--no-skills", "--no-rules", "--no-extensions"], onEvent: event => events.push(event) });
 try {
   const project = store.createProject({ path: workspace });

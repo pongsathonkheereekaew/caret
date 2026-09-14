@@ -70,6 +70,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 function strictEnv(cwd: string, virtual = true, autoReleaseMs?: number): NodeJS.ProcessEnv {
 	return {
 		PATH: `${dirname(executable)}${delimiter}/usr/bin${delimiter}/bin`,
+		HOME: cwd,
 		PI_CODING_AGENT_DIR: cwd,
 		PI_NO_PTY: "1",
 		PI_NOTIFICATIONS: "off",

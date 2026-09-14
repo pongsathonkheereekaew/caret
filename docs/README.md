@@ -1,44 +1,30 @@
-# Caret specification
+# Caret documentation
 
-เอกสารที่ยังมีอำนาจอยู่มีชุดเดียว ไฟล์เก่าอยู่ใน [archive](archive/README.md) ไม่ใช้ตัดสินงานใหม่
+แผนและสเปกที่มีอำนาจมี **ไฟล์เดียว**: [maintenance/CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md)
 
 Checkout คือ `/Users/pond/caret` บน branch `caret/g0-omp-foundation`
+เขียนเมื่อ 2026-09-14 หลังรวมเอกสารทั้งหมดเป็นฉบับเดียวและย้ายของเก่าเข้า archive
 
-## อ่านตามงาน
+## ต้นทางปัจจุบัน
 
-| งาน | ต้นทาง | ไฟล์ |
-|---|---|---|
-| กฎเอเจนต์ทุกเทิร์น | agent instructions | [AGENTS.md](../AGENTS.md) |
-| สถานะล่าสุด / ทำต่อจากไหน | handoff | [maintenance/CARET-HANDOFF-2026-09-13.th.md](maintenance/CARET-HANDOFF-2026-09-13.th.md) |
-| สถาปัตยกรรมและสไลซ์ G1–G5 | direction | [maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md](maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md) |
-| หน่วยงานบน Mac + วงจรรีวิว | workflow | [maintenance/CARET-WORKSPACE-WORKFLOW-2026-09-13.th.md](maintenance/CARET-WORKSPACE-WORKFLOW-2026-09-13.th.md) |
-| เกณฑ์รับงาน P01–P20 / E1–E4 | acceptance | [maintenance/CARET-REFERENCE-ACCEPTANCE-2026-09-12.th.md](maintenance/CARET-REFERENCE-ACCEPTANCE-2026-09-12.th.md) |
-| สเปกหน้าจอและ interaction S01–S16 | UI spec | [maintenance/CARET-UI-INTERACTION-SPEC-2026-09-13.th.md](maintenance/CARET-UI-INTERACTION-SPEC-2026-09-13.th.md) |
-| ค่า default / component / motion D00–D19 | UI design | [maintenance/CARET-UI-DETAILED-DESIGN-2026-09-13.th.md](maintenance/CARET-UI-DETAILED-DESIGN-2026-09-13.th.md) |
-| แผนที่ 198 parents / 75 families | coverage | [maintenance/CARET-UI-COVERAGE-2026-09-13.th.md](maintenance/CARET-UI-COVERAGE-2026-09-13.th.md) |
-| วิธีตรวจ UI / fixture / receipt | validation | [maintenance/CARET-UI-VALIDATION-2026-09-13.th.md](maintenance/CARET-UI-VALIDATION-2026-09-13.th.md) |
-| รายการงานและหลักฐานที่ทำแล้ว | ledger | [maintenance/CARET-FULL-IMPLEMENTATION-2026-09-12.th.md](maintenance/CARET-FULL-IMPLEMENTATION-2026-09-12.th.md) |
-| ขอบเขต OMP O01–O18 | OMP | [maintenance/CARET-OMP-COVERAGE-2026-09-12.th.md](maintenance/CARET-OMP-COVERAGE-2026-09-12.th.md) |
-| ที่มาในซอร์ส OMP | inventory | [maintenance/CARET-OMP-SOURCE-INVENTORY-2026-09-12.md](maintenance/CARET-OMP-SOURCE-INVENTORY-2026-09-12.md) |
-| สถานะสไลซ์ G0 / G1 | slice notes | [G0](maintenance/CARET-G0-IMPLEMENTATION-2026-09-12.th.md) · [G1](maintenance/CARET-G1-IMPLEMENTATION-2026-09-12.th.md) |
-| ใบเสร็จรันจริง | evidence | [maintenance/evidence/](maintenance/evidence/) |
-| pin ของ desktop / OMP | lock | [UPSTREAM-LOCK.md](UPSTREAM-LOCK.md) |
-| identifier ข้อกำหนดเก่า | historical | [archive/2026-09-09/agent.md](archive/2026-09-09/agent.md) และ `backlog/` |
-
-## สเปกละเอียดที่ใช้ออกแบบ UI
-
-อ่านสามไฟล์นี้คู่กัน ไม่รวมเป็นไฟล์เดียว:
-
-1. [Interaction spec](maintenance/CARET-UI-INTERACTION-SPEC-2026-09-13.th.md) — แผนที่จอ S01–S16, สถานะ, การกระทำ, motion ที่เสนอ
-2. [Detailed design](maintenance/CARET-UI-DETAILED-DESIGN-2026-09-13.th.md) — default/action/motion ที่ชนกับ overview ให้ใช้ไฟล์นี้
-3. [Validation](maintenance/CARET-UI-VALIDATION-2026-09-13.th.md) — ต้องมี fixture/receipt แบบไหนก่อนปิด gate
-
-ทิศทางผลิตภัณฑ์ที่ล็อกแล้ว: OMP เป็น harness และเจ้าของ execution/transcript คนเดียว · โต๊ะงานบน Mac แบบ Conductor · ความต่อเนื่องและหลักฐานบน iPhone แบบ Amp · Code-OSS เป็นฐาน IDE · Codex เป็นหลักอ้างอิงหน้าจอ
+| เรื่อง | ไฟล์ |
+|---|---|
+| กฎเอเจนต์ทุกเทิร์น | [AGENTS.md](../AGENTS.md) |
+| **นิยามผลิตภัณฑ์ + สถาปัตยกรรม + Cursor parity contract + SSOT + แผน S1–S5** | [maintenance/CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md) |
+| ใบเสร็จรันจริง (สคริปต์เขียนที่นี่) | [maintenance/evidence/](maintenance/evidence/) |
+| pin ของ desktop / OMP (ต้องอยู่ที่เดิม — `ci-validate` อ่านไฟล์นี้) | [UPSTREAM-LOCK.md](UPSTREAM-LOCK.md) |
+| identifier 198 parents / 75 UI families | [../backlog/requirement-graph.json](../backlog/requirement-graph.json) |
+| เอกสารเก่าทั้งหมด | [archive/README.md](archive/README.md) |
 
 ## ลำดับเมื่อเริ่มงานใหม่
 
-1. [AGENTS.md](../AGENTS.md)
-2. [handoff 13 กันยายน](maintenance/CARET-HANDOFF-2026-09-13.th.md)
-3. ไฟล์ในตารางตามชนิดงาน ไม่เปิด archive ยกเว้นต้องการ identifier หรือหลักฐานวันที่ระบุ
+1. [AGENTS.md](../AGENTS.md) — กฎและ invariant ของโปรเจกต์
+2. [CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md) — เริ่มที่ §0 นิยาม แล้วตาม §6 SSOT และ §7 แผน
+3. เปิด archive เฉพาะเมื่อต้องการ identifier เก่า, การวัด Cursor ฉบับเต็ม, หรือหลักฐานย้อนหลัง
 
-ข้อกำหนด 198 parents / 75 UI families ยังเป็นกราฟใน `backlog/requirement-graph.json` การมี identifier เก่าไม่ขยายงานที่มีขอบเขตให้กลายเป็นทั้งแบ็กล็อก
+## กติกาเอกสาร
+
+- เอกสารนี้และ `CARET-PLAN` เท่านั้นที่ตัดสินงานใหม่ ถ้าแผนเปลี่ยน ให้แก้ที่ `CARET-PLAN` แล้วอัปเดตตารางนี้ถ้าจำเป็น
+- ห้ามสร้างเอกสารแผน/สเปกใหม่ใน `docs/` โดยไม่ย้ายของเดิมเข้า archive ก่อน — เพื่อไม่ให้มีสองเจ้าของความจริง
+- ใบเสร็จ (evidence) อยู่ที่ `maintenance/evidence/` เสมอ เพราะสคริปต์และเทสต์อ้างพาธนี้
+- เอกสารที่ย้ายเข้า archive แล้ว **ไม่มีอำนาจ** แม้เนื้อหาจะดูทันสมัย

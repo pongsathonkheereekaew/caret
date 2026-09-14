@@ -1,0 +1,72 @@
+Caret mark pixels - the decoration is painted, proven by colour, 2026-09-14
+
+Goal: confirm the painted decoration without a vision model. Two screenshot pairs
+were taken on the packaged app, and the pixels read with a small stdlib-only probe
+(scripts/png-pixel-probe.py: zlib plus the PNG scanline filters; macOS
+screencapture writes 8-bit RGBA, non-interlaced).
+
+A. First pair, clearing the mark with Keep.
+   Capture while the edit was pending, click "Keep the Caret Edit", capture again.
+   A and B show the same file text, but keeping also saves, so the diff (99756
+   differing pixels, five bands) mixes in save-induced chrome that lands on the
+   same rows: the Explorer row gains "M", the activity-bar tab loses
+   "- 1 unsaved file", Source Control goes 1 -> 2, the editor gains "Open
+   Changes", and git paints a gutter marker on the changed line. The largest
+   editor-column band starts at the gutter, exactly where that post-save marker
+   appears.
+
+B. Second pair, clearing the mark with Reload Window.
+   Reloading keeps the unsaved buffer but gives the extension a fresh state, so
+   the pending record and its rendering are gone while the text stays:
+
+     palette offers Reload Window: true
+     mark after reload: false
+     still unsaved: true
+
+   This pair is 51049 differing pixels and produced a positive result about the
+   CodeLens: in the editor text column (x 1032..2531) rows y 380..423 have
+   identical bright-pixel counts in both captures, while the last bright row is
+   y=491 with the mark and y=459 without, i.e. the text sits about one CodeLens
+   row lower when the mark is present. The in-editor lens therefore really
+   occupies editor layout, not just the accessibility tree.
+
+C. The decisive check: the decoration's own theme colour.
+   Caret's decoration paints backgroundColor = ThemeColor
+   "editor.wordHighlightStrongBackground" over the line. In this build the
+   shipped Dark 2026 theme (extensions/theme-defaults/themes/2026-dark.json)
+   defines:
+
+     editor.background                    #121314        rgb(18, 19, 20)
+     editor.wordHighlightStrongBackground #27678280      50% alpha
+
+   Compositing 50% of rgb(39, 103, 130) over rgb(18, 19, 20) gives about
+   rgb(29, 61, 75); macOS colour management shifts red a few units, so the
+   captured value is rgb(38, 61, 74) (green and blue match).
+
+   Probing the editor text column, y 430..500, in both captures:
+
+     python3 scripts/png-pixel-probe.py top  runtime-window-agent-mark-on-2026-09-14.png  1032 430 2531 500 6
+       rgb(18, 19, 20)  77660 px     <- editor.background
+       rgb(38, 61, 74)  18217 px     <- the composited Caret highlight
+       ...
+     python3 scripts/png-pixel-probe.py top  runtime-window-agent-mark-off-2026-09-14.png 1032 430 2531 500 6
+       rgb(18, 19, 20)  98986 px
+       (no rgb(38, 61, 74) at all)
+     near ...mark-on...  38 61 74 2  -> 18289 px
+     near ...mark-off... 38 61 74 2  -> 0 px
+
+   18217 pixels of the decoration's own composited theme colour are present when
+   the mark is pending and exactly none when it is not, in the editor text
+   column. The editor background count drops by 21326 between the captures, which
+   is the highlight plus the glyphs re-antialiased over it. No other Caret
+   surface paints this colour, and it is not a selection or find colour: those
+   composite to rgb(36, 92, 115) (editor.selectionBackground, 0xdd) or
+   rgb(30, 66, 82) (editor.findMatchBackground, 0x90), both different in green
+   and blue from what was measured.
+
+Conclusion: the agent-edit mark is really painted on the changed line, with the
+theme's own highlight colour, in the packaged app. Together with the earlier
+receipts this closes the mark: the range is computed from the text the apply
+produced, the decoration is applied to the editor holding the buffer, it renders
+on the changed line, and its decisions (Keep, Take Back) plus Review act on the
+real buffer and disk from the editor title, the context menu, and the lens.

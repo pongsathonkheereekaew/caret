@@ -1,6 +1,6 @@
 # Caret — เริ่ม session ในโปรเจกต์ใหม่
 
-> Archived 12 September 2026. Living map: [docs/README.md](../../README.md). อ่าน [ทิศทางล่าสุด](../../maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md) และ [acceptance](../../maintenance/CARET-REFERENCE-ACCEPTANCE-2026-09-12.th.md) ก่อนใช้ข้อเสนอด้านล่าง Checkout ปัจจุบันคือ `/Users/pond/caret` ไม่มี `source/` ซ้อน
+> Archived 12 September 2026. Living map: [docs/README.md](../../README.md). อ่าน [ทิศทางล่าสุด](../2026-09-14-pre-ssot/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md) และ [acceptance](../2026-09-14-pre-ssot/CARET-REFERENCE-ACCEPTANCE-2026-09-12.th.md) ก่อนใช้ข้อเสนอด้านล่าง Checkout ปัจจุบันคือ `/Users/pond/caret` ไม่มี `source/` ซ้อน
 
 ## เป้าหมายและสถานะ
 

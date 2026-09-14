@@ -83,7 +83,7 @@ Status meanings: **Supported** means source inspection found an adapter path; th
 
 ## Integrated review corrections
 
-- Schema membership is not measured feature coverage; protocol negotiation and raw steer/follow-up exist outside the 16-command schema. Full command IDs are in [source inventory](evidence/omp-rpc-2026-09-12/source-inventory.json).
+- Schema membership is not measured feature coverage; protocol negotiation and raw steer/follow-up exist outside the 16-command schema. Full command IDs are in [source inventory](../../maintenance/evidence/omp-rpc-2026-09-12/source-inventory.json).
 - E2EE does not prove approved-device identity. Paseo SECURITY.md describes ephemeral phone keys and lacks live-session replay protection. Caret device allowlist/revoke and durable idempotency remain implementation gates; see [relay assessment](CARET-RELAY-ASSESSMENT-2026-09-12.th.md).
 - A separate user PTY does not close the OMP PTY semantics gap imposed by rpc-ui; G1 needs an explicit bridge/patch/SDK decision.
 - All Supported labels above mean source paths identified, not tests run in Caret. Paseo adapter suites were not run.

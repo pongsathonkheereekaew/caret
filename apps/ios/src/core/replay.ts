@@ -11,10 +11,22 @@ export interface SnapshotCache {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
   remove?(key: string): Promise<void>;
+  keys?(): Promise<readonly string[]>;
 }
 
 export function snapshotKey(sessionId: string): string {
   return `caret.mobile.snapshot.v${SNAPSHOT_VERSION}:${encodeURIComponent(sessionId)}`;
+}
+
+export function isSnapshotCacheKey(key: string): boolean {
+  return key.startsWith(`caret.mobile.snapshot.v${SNAPSHOT_VERSION}:`);
+}
+
+/** Removes snapshot keys only. Pairing secrets and composer drafts stay. */
+export async function clearSnapshotCache(cache: SnapshotCache): Promise<void> {
+  if (!cache.keys || !cache.remove) return;
+  const keys = (await cache.keys()).filter(isSnapshotCacheKey);
+  await Promise.all(keys.map(key => cache.remove!(key)));
 }
 
 export function createCachedSnapshot(state: Pick<MobileTaskState, "session" | "cursor" | "cacheSavedAt" | "cacheExpiresAt" | "events">, now = Date.now(), ttlMs = DEFAULT_CACHE_TTL_MS): CachedTaskSnapshot | null {

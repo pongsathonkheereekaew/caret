@@ -2,8 +2,8 @@
 
 > Archived 9 September 2026 baseline. Living map: [docs/README.md](../../README.md).
 > Current rules: [AGENTS.md](../../../AGENTS.md),
-> [direction](../../maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md),
-> [workspace workflow](../../maintenance/CARET-WORKSPACE-WORKFLOW-2026-09-13.th.md).
+> [direction](../2026-09-14-pre-ssot/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md),
+> [workspace workflow](../2026-09-14-pre-ssot/CARET-WORKSPACE-WORKFLOW-2026-09-13.th.md).
 > Their OMP-only execution, Codex UI, and Mac-workspace/phone-proof decisions
 > supersede conflicting choices below.
 

@@ -45,7 +45,7 @@ const address = model.address(); if (!address || typeof address === "string") th
 await writeFile(join(dir, "models.yml"), `providers:\n  caret-fixture:\n    baseUrl: http://127.0.0.1:${address.port}/v1\n    auth: none\n    api: openai-completions\n    models:\n      - id: editor-fixture\n        name: Caret local editor fixture\n        reasoning: false\n        input: [text]\n        cost: {input: 0, output: 0, cacheRead: 0, cacheWrite: 0}\n        contextWindow: 128000\n        maxTokens: 4096\n`);
 const stateDir = join(dir, "host");
 const server = await startHostServer({ stateDir, ompExecutable: executable, editorBridge: true,
-  ompEnv: { PATH: "/usr/bin:/bin", PI_CODING_AGENT_DIR: dir, PI_EDIT_VARIANT: "replace", PI_NOTIFICATIONS: "off", TERM: "xterm-256color" },
+  ompEnv: { PATH: "/usr/bin:/bin", HOME: dir, PI_CODING_AGENT_DIR: dir, PI_EDIT_VARIANT: "replace", PI_NOTIFICATIONS: "off", TERM: "xterm-256color" },
   ompArgs: ["--no-skills", "--no-rules", "--no-extensions"] });
 const host = server.host;
 let serial = 0, approvals = 0;

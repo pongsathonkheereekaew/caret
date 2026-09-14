@@ -1,0 +1,280 @@
+diff --git a/src/vs/platform/agentHost/node/agentHostBootstrap.ts b/src/vs/platform/agentHost/node/agentHostBootstrap.ts
+index ef5d005eeb6..eae05ec8ba0 100644
+--- a/src/vs/platform/agentHost/node/agentHostBootstrap.ts
++++ b/src/vs/platform/agentHost/node/agentHostBootstrap.ts
+@@ -31,7 +31,6 @@ import { registerAgentHostCoreServices, registerAgentHostHostServices } from './
+ import { StrictServiceCollection } from '../../instantiation/common/strictServiceCollection.js';
+ import { IAgentSdkDownloader, type IAgentSdkDownloadProgress } from './agentSdkDownloader.js';
+ import { IByokLmBridgeRegistry, NullByokLmBridgeRegistry } from './byokLmBridgeRegistry.js';
+-import { registerPendingEditContentProvider } from './copilot/pendingEditContentStore.js';
+ import { SessionDataService } from './sessionDataService.js';
+ import { IAgentCustomizationSettingsRegistration } from '../common/agentCustomizationSettings.js';
+ import { AgentHostLaunchKind } from '../common/agentHostTelemetry.js';
+@@ -40,7 +39,6 @@ import { AgentHostSessionTitleController, IAgentHostSessionTitleController } fro
+ import { AgentHostLocalTurns, IAgentHostLocalTurns } from './agentHostLocalTurns.js';
+ import { AgentHostLocalCommands, IAgentHostLocalCommands } from './localCommands/localChatCommand.js';
+ import { IAgentHostOctoKitService } from './shared/agentHostOctoKitService.js';
+-import { ICopilotApiService } from './shared/copilotApiService.js';
+ 
+ export interface ICreateAgentHostRuntimeOptions {
+ 	readonly environmentService: INativeEnvironmentService;
+@@ -107,7 +105,6 @@ export async function createAgentHostRuntime(options: ICreateAgentHostRuntimeOpt
+ 	try {
+ 		const fileService = infrastructure.add(new FileService(logService));
+ 		infrastructure.add(fileService.registerProvider(Schemas.file, infrastructure.add(new DiskFileSystemProvider(logService))));
+-		infrastructure.add(registerPendingEditContentProvider(fileService));
+ 		const sessionDataService = new SessionDataService(URI.file(environmentService.userDataPath), fileService, logService);
+ 		const services = new StrictServiceCollection(
+ 			[INativeEnvironmentService, environmentService],
+@@ -163,7 +160,6 @@ export async function createAgentHostRuntime(options: ICreateAgentHostRuntimeOpt
+ 		});
+ 		instantiationService = new InstantiationService(services, /*strict*/ true);
+ 		const octoKitService = instantiationService.invokeFunction(accessor => accessor.get(IAgentHostOctoKitService));
+-		const copilotApiService = instantiationService.invokeFunction(accessor => accessor.get(ICopilotApiService));
+ 		services.set(IAgentHostSessionTitleController, infrastructure.add(instantiationService.createInstance(AgentHostSessionTitleController, foundation.stateManager, {
+ 			sessionDataService,
+ 			getGitHubCopilotToken: () => {
+@@ -176,7 +172,6 @@ export async function createAgentHostRuntime(options: ICreateAgentHostRuntimeOpt
+ 			},
+ 			getGitHubHost: () => foundation.gitHubEndpointService.getEnterpriseHost() ?? 'github.com',
+ 			octoKitService,
+-			copilotApiService,
+ 			isActiveAgentTitleGenerationEnabled: () => foundation.configurationService.getRootValue(platformRootSchema, AgentHostActiveAgentTitleGenerationConfigKey) === true,
+ 		})));
+ 		const localTurns = new AgentHostLocalTurns(sessionDataService, logService);
+diff --git a/src/vs/platform/agentHost/node/agentHostMain.ts b/src/vs/platform/agentHost/node/agentHostMain.ts
+index 9146e372dd4..2b20d27eccf 100644
+--- a/src/vs/platform/agentHost/node/agentHostMain.ts
++++ b/src/vs/platform/agentHost/node/agentHostMain.ts
+@@ -15,18 +15,12 @@ import { URI } from '../../../base/common/uri.js';
+ import { generateUuid } from '../../../base/common/uuid.js';
+ import * as os from 'os';
+ import * as inspector from 'inspector';
+-import { AgentHostClaudeAgentEnabledEnvVar, AgentHostCodexAgentEnabledEnvVar, AgentHostIpcChannels, IAgentHostInspectInfo, IAgentHostSocketInfo, IConnectionTrackerService, isAgentEnabled } from '../common/agentService.js';
+-import { AgentHostCodexEnabledConfigKey, platformRootSchema } from '../common/agentHostSchema.js';
++import { AgentHostIpcChannels, IAgentHostInspectInfo, IAgentHostSocketInfo, IConnectionTrackerService } from '../common/agentService.js';
+ import { AgentModelRefreshScheduler, MODEL_REFRESH_INTERVAL_MS } from './agentModelRefreshScheduler.js';
+ import { AgentService } from './agentService.js';
+ import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateManager.js';
+ import { IAgentConfigurationService } from './agentConfigurationService.js';
+ import { IAgentHostCompletions } from './agentHostCompletions.js';
+-import { CopilotAgent } from './copilot/copilotAgent.js';
+-import { ClaudeAgent } from './claude/claudeAgent.js';
+-import { ClaudeSdkPackage } from './claude/claudeAgentSdkService.js';
+-import { CodexAgent, CodexSdkPackage } from './codex/codexAgent.js';
+-import { createCodexProviderConfiguration } from './codex/codexProviderConfiguration.js';
+ import { ByokLmBridgeRegistry } from './byokLmBridgeRegistry.js';
+ import { IAgentHostProxyResolver } from './agentHostProxyResolver.js';
+ import { IAgentSdkDownloader, type IAgentSdkDownloadProgress } from './agentSdkDownloader.js';
+@@ -126,7 +120,7 @@ async function startAgentHost(): Promise<void> {
+ 			loggerService,
+ 			transientProxyConfiguration: true,
+ 			hostLaunchKind,
+-			providerConfigurations: [createCodexProviderConfiguration(environmentService.userHome)],
++			providerConfigurations: [],
+ 			byok: { kind: 'renderer', bridgeRegistry: byokLmBridgeRegistry },
+ 		});
+ 		disposables.add(runtime);
+@@ -142,51 +136,14 @@ async function startAgentHost(): Promise<void> {
+ 			stateManager: accessor.get(IAgentHostStateManager),
+ 			completions: accessor.get(IAgentHostCompletions),
+ 		}));
+-		const agentConfigurationService = runtimeServices.configurationService;
+ 		fileService = runtimeServices.fileService;
+ 		proxyResolver = runtimeServices.proxyResolver;
+ 		stateManager = runtimeServices.stateManager;
+ 		completionTriggerCharacters = runtimeServices.completions.triggerCharacters;
+ 		errorTelemetry.value = new ErrorTelemetry(runtimeServices.telemetryService);
+-		const agentSdkDownloader = runtimeServices.agentSdkDownloader;
+-		const providerService = runtimeServices.providerService;
+ 		sdkDownloadProgress = runtime.sdkDownloadProgress;
+-		providerService.registerProvider(instantiationService.createInstance(CopilotAgent));
+-		// Claude and Codex providers are gated on two things:
+-		//  1. The user-facing enable toggle (`chat.agentHost.<x>Agent.enabled`,
+-		//     forwarded as an env var by the starters). Claude defaults to on,
+-		//     Codex defaults to off.
+-		//  2. The SDK being reachable. Claude is a devDependency of this repo
+-		//     so the bare-import path in `ClaudeAgentSdkService._loadSdk`
+-		//     always succeeds in dev; in built products the SDK ships via
+-		//     `product.agentSdks.claude` and the downloader handles it. Codex
+-		//     is likewise a devDependency, so `CodexAgent._resolveSdkRoot`
+-		//     resolves it from `node_modules` in dev; built products use the
+-		//     env-var override or a `product.agentSdks.codex` entry.
+-		// If either gate fails, the provider is not registered and never appears
+-		// in the agent picker (matches the pre-CDN UX exactly).
+-		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], true) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
+-			providerService.registerProvider(instantiationService.createInstance(ClaudeAgent));
+-		}
+-		// Codex registration is one-way (register-on-enable): the env-var toggle
+-		// or the renderer-forwarded `codexAgentEnabled` root config enables it.
+-		// Disabling requires an agent host restart.
+-		if (!environmentService.isBuilt || agentSdkDownloader.isAvailable(CodexSdkPackage)) {
+-			let codexRegistered = false;
+-			const registerCodexIfEnabled = () => {
+-				if (codexRegistered) {
+-					return;
+-				}
+-				const enabledByEnv = isAgentEnabled(process.env[AgentHostCodexAgentEnabledEnvVar], false);
+-				const enabledByRootConfig = agentConfigurationService.getRootValue(platformRootSchema, AgentHostCodexEnabledConfigKey) === true;
+-				if (enabledByEnv || enabledByRootConfig) {
+-					codexRegistered = true;
+-					providerService.registerProvider(instantiationService.createInstance(CodexAgent));
+-				}
+-			};
+-			registerCodexIfEnabled();
+-			disposables.add(agentConfigurationService.onDidRootConfigChange(registerCodexIfEnabled));
+-		}
++		// Caret registers no agent harness here. OMP is the only harness and it is
++		// driven by the Caret extension host, not by this provider registry.
+ 	} catch (err) {
+ 		logService.error('Failed to create AgentService', err);
+ 		disposables.dispose();
+diff --git a/src/vs/platform/agentHost/node/agentHostServerMain.ts b/src/vs/platform/agentHost/node/agentHostServerMain.ts
+index b6e53d93e1c..d42783c98b0 100644
+--- a/src/vs/platform/agentHost/node/agentHostServerMain.ts
++++ b/src/vs/platform/agentHost/node/agentHostServerMain.ts
+@@ -37,16 +37,10 @@ import { IAgentHostCompletions } from './agentHostCompletions.js';
+ import { IAgentHostCustomizationEnablementService } from './agentHostCustomizationEnablementService.js';
+ import { IAgentHostStateManager } from './agentHostStateManager.js';
+ import { BANG_COMMAND_PREFIX } from './agentHostBangCommand.js';
+-import { CopilotAgent } from './copilot/copilotAgent.js';
+-import { ClaudeAgent } from './claude/claudeAgent.js';
+-import { ClaudeSdkPackage } from './claude/claudeAgentSdkService.js';
+-import { CodexAgent, CodexSdkPackage } from './codex/codexAgent.js';
+-import { createCodexProviderConfiguration } from './codex/codexProviderConfiguration.js';
+ import { IAgentSdkDownloader, type IAgentSdkDownloadProgress } from './agentSdkDownloader.js';
+ import { IAgentHostProviderService } from './agentHostProviderService.js';
+-import { AgentHostCodexEnabledConfigKey, platformRootSchema } from '../common/agentHostSchema.js';
+ import { AgentModelRefreshScheduler, MODEL_REFRESH_INTERVAL_MS } from './agentModelRefreshScheduler.js';
+-import { AgentHostClaudeAgentEnabledEnvVar, AgentHostClaudeSdkRootEnvVar, AgentHostCodexAgentEnabledEnvVar, AgentHostCodexAgentSdkRootEnvVar, isAgentEnabled } from '../common/agentService.js';
++import { AgentHostClaudeSdkRootEnvVar, AgentHostCodexAgentSdkRootEnvVar } from '../common/agentService.js';
+ import { WebSocketProtocolServer } from './webSocketTransport.js';
+ import { ProtocolServerHandler } from './protocolServerHandler.js';
+ import { AgentHostClientFileSystemProvider } from '../common/agentHostClientFileSystemProvider.js';
+@@ -199,7 +193,7 @@ async function main(): Promise<void> {
+ 		disableTelemetry: options.quiet,
+ 		transientProxyConfiguration: false,
+ 		hostLaunchKind: AgentHostLaunchKind.VSCodeCLI,
+-		providerConfigurations: [createCodexProviderConfiguration(environmentService.userHome)],
++		providerConfigurations: [],
+ 		byok: { kind: 'unavailable' },
+ 	});
+ 	disposables.add(runtime);
+@@ -216,57 +210,18 @@ async function main(): Promise<void> {
+ 		customizationEnablementService: accessor.get(IAgentHostCustomizationEnablementService),
+ 	}));
+ 	const {
+-		configurationService: agentConfigurationService,
+ 		fileService,
+ 		sessionDataService,
+-		agentSdkDownloader,
+-		providerService,
+ 		stateManager,
+ 		completions,
+ 		customizationEnablementService,
+ 	} = runtimeServices;
+ 	errorTelemetry.value = new ErrorTelemetry(runtimeServices.telemetryService);
+ 
+-	// Register agents
++	// Caret registers no agent harness here. OMP is the only harness.
+ 	let sdkDownloadProgress: Event<IAgentSdkDownloadProgress> | undefined;
+ 	if (!options.quiet) {
+ 		sdkDownloadProgress = runtime.sdkDownloadProgress;
+-		providerService.registerProvider(instantiationService.createInstance(CopilotAgent));
+-		log('CopilotAgent registered');
+-		// Claude and Codex providers are gated on two things:
+-		//  1. The user-facing enable toggle (`chat.agentHost.<x>Agent.enabled`,
+-		//     forwarded as an env var by the renderer-side starters; the remote
+-		//     server reads the env directly). Claude defaults to on, Codex
+-		//     defaults to off.
+-		//  2. The SDK being reachable. Claude is a devDependency of this repo
+-		//     so the bare-import path in `ClaudeAgentSdkService._loadSdk`
+-		//     always succeeds in dev; in built/shipped server installs the
+-		//     SDK comes from the CLI flag / env var dev override or a
+-		//     `product.agentSdks.claude` entry. Codex is likewise a
+-		//     devDependency, so `CodexAgent._resolveSdkRoot` resolves it from
+-		//     `node_modules` in dev; built/shipped installs use the env-var
+-		//     override or `product.agentSdks.codex`.
+-		if (isAgentEnabled(process.env[AgentHostClaudeAgentEnabledEnvVar], true) && (!environmentService.isBuilt || agentSdkDownloader.isAvailable(ClaudeSdkPackage))) {
+-			providerService.registerProvider(instantiationService.createInstance(ClaudeAgent));
+-			log('ClaudeAgent registered');
+-		}
+-		if (!environmentService.isBuilt || agentSdkDownloader.isAvailable(CodexSdkPackage)) {
+-			let codexRegistered = false;
+-			const registerCodexIfEnabled = () => {
+-				if (codexRegistered) {
+-					return;
+-				}
+-				const enabledByEnv = isAgentEnabled(process.env[AgentHostCodexAgentEnabledEnvVar], false);
+-				const enabledByRootConfig = agentConfigurationService.getRootValue(platformRootSchema, AgentHostCodexEnabledConfigKey) === true;
+-				if (enabledByEnv || enabledByRootConfig) {
+-					codexRegistered = true;
+-					providerService.registerProvider(instantiationService.createInstance(CodexAgent));
+-					log('CodexAgent registered');
+-				}
+-			};
+-			registerCodexIfEnabled();
+-			disposables.add(agentConfigurationService.onDidRootConfigChange(() => registerCodexIfEnabled()));
+-		}
+ 	}
+ 
+ 	// Surface agent-SDK download progress to clients as generic `progress`
+@@ -286,15 +241,6 @@ async function main(): Promise<void> {
+ 		)));
+ 	}
+ 
+-	if (options.enableMockAgent) {
+-		// Dynamic import to avoid bundling test code in production
+-		import('../test/node/mockAgent.js').then(({ ScriptedMockAgent }) => {
+-			providerService.registerProvider(new ScriptedMockAgent());
+-		}).catch(err => {
+-			logService.error('[AgentHostServer] Failed to load mock agent', err);
+-		});
+-	}
+-
+ 	// Keep every provider's model catalog fresh. Provider-owned refresh
+ 	// triggers (authentication, transport flips, client restarts) are all
+ 	// edge-based, so this periodic tick is the only thing that notices a model
+diff --git a/src/vs/platform/agentHost/node/agentHostServices.ts b/src/vs/platform/agentHost/node/agentHostServices.ts
+index da336c112e0..c846a9b6df4 100644
+--- a/src/vs/platform/agentHost/node/agentHostServices.ts
++++ b/src/vs/platform/agentHost/node/agentHostServices.ts
+@@ -24,16 +24,12 @@ import { IAgentHostCheckpointService } from '../common/agentHostCheckpointServic
+ import { IAgentHostGitStateService } from '../common/agentHostGitStateService.js';
+ import { IAgentHostReviewService } from '../common/agentHostReviewService.js';
+ import { IAgentHostSubscriptionService } from '../common/agentHostSubscriptionService.js';
+-import { CopilotApiService, ICopilotApiService } from './shared/copilotApiService.js';
++import { ICopilotApiService } from './shared/copilotApiService.js';
+ import { AgentHostFileMonitorService, IAgentHostFileMonitorService } from './agentHostFileMonitorService.js';
+ import { AgentHostGitService } from './agentHostGitService.js';
+ import { AgentPluginManager } from './agentPluginManager.js';
+ import { AgentSdkDownloader, IAgentSdkDownloader } from './agentSdkDownloader.js';
+ import { IByokLmBridgeRegistry } from './byokLmBridgeRegistry.js';
+-import { ClaudeAgentSdkService, IClaudeAgentSdkService } from './claude/claudeAgentSdkService.js';
+-import { ClaudeProxyService, IClaudeProxyService } from './claude/claudeProxyService.js';
+-import { ByokLmProxyService, IByokLmProxyService, NullByokLmProxyService } from './copilot/byokLmProxyService.js';
+-import { CodexProxyService, ICodexProxyService } from './codex/codexProxyService.js';
+ import { NodeWorkerDiffComputeService } from './diffComputeService.js';
+ import { NetworkDiagnosticsService, INetworkDiagnosticsService } from './networkDiagnosticsService.js';
+ import { AgentHostOTelService } from './otel/agentHostOTelService.js';
+@@ -84,7 +80,6 @@ export function registerAgentHostCoreServices(services: ServiceCollection, input
+ 	services.set(IAgentHostManagedSettingsService, new SyncDescriptor(AgentHostManagedSettingsService));
+ 	services.set(IAgentHostOctoKitService, new SyncDescriptor(AgentHostOctoKitService, [inputs.fetchFn]));
+ 	services.set(IGitHubService, new SyncDescriptor(GitHubService, [inputs.gitHubServiceOptions]));
+-	services.set(ICopilotApiService, inputs.copilotApiService ?? new SyncDescriptor(CopilotApiService, [inputs.fetchFn]));
+ 	services.set(IAgentHostCustomizationEnablementService, new SyncDescriptor(AgentHostCustomizationEnablementService));
+ 	services.set(IAgentHostGitStateService, new SyncDescriptor(AgentHostGitStateService));
+ 	services.set(IAgentHostCheckpointService, new SyncDescriptor(AgentHostCheckpointService));
+@@ -121,12 +116,5 @@ export function registerAgentHostHostServices(services: ServiceCollection, input
+ 	services.set(IAgentHostGitService, new SyncDescriptor(AgentHostGitService));
+ 	services.set(IAgentPluginManager, new SyncDescriptor(AgentPluginManager, [inputs.userDataPath]));
+ 	services.set(IAgentSdkDownloader, new SyncDescriptor(AgentSdkDownloader));
+-	services.set(IClaudeAgentSdkService, new SyncDescriptor(ClaudeAgentSdkService));
+-	services.set(IClaudeProxyService, new SyncDescriptor(ClaudeProxyService));
+-	services.set(ICodexProxyService, new SyncDescriptor(CodexProxyService));
+ 	services.set(IAgentHostOTelService, new SyncDescriptor(AgentHostOTelService, [inputs.fetchFn]));
+-	services.set(
+-		IByokLmProxyService,
+-		inputs.byok.kind === 'renderer' ? new SyncDescriptor(ByokLmProxyService) : new NullByokLmProxyService(),
+-	);
+ }

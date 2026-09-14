@@ -1,0 +1,38 @@
+image 2880x1800, 37 text runs
+y=  13 x=  63 w= 42  •
+y=  21 x= 837 w= 80  < →
+y=  25 x= 959 w= 67  Caret
+y=  21 x=2658 w= 38  08
+y=  71 x=2541 w=205  New TaskShow IDE.
+y=  96 x= 134 w=121  EXPLORER
+y=  92 x=2319 w= 80  CARET
+y=  88 x=2817 w= 33  X
+y= 117 x=2545 w= 63  TEN
+y= 151 x= 105 w=180  V WORKSPACE
+y= 176 x=2687 w= 96  • Ready
+y= 197 x= 147 w=109  vscode
+y= 239 x= 121 w= 75  › src
+y= 280 x= 117 w=197  • README.md
+y= 716 x=2449 w=381  Folder v Folder v This Mac v
+y= 816 x=2470 w=364  Plan, Build, / for skills, @for
+y= 867 x=2466 w=105  context
+y= 980 x=2566 w=134  Model V
+y= 980 x=2733 w=113  Thinking
+y=1130 x=1214 w=272  Show All Commands
+y=1180 x=1214 w=213  Toggle Terminal
+y=1185 x=2461 w=180  Plan New Idea
+y=1185 x=2696 w=117  Multitask
+y=1235 x=1214 w=193  Open Settings
+y=1264 x=2461 w=159  Run in Cloud
+y=1319 x=2742 w=105  Turn a fr
+y=1352 x=2449 w=398  • Build from a design inPortaitve
+y=1386 x=2445 w=402  • Deploy my prototybiet g tink
+y=1427 x=2696 w=151  implemente
+y=1457 x=2445 w=251  •= Start with a plan
+y=1473 x=2746 w= 76  ore wr
+y=1507 x=2449 w=234  * Debug an issue
+y=1515 x=2687 w=155  and fix trick!
+y=1678 x= 109 w=134  › OUTLINE
+y=1720 x= 109 w=138  › TIMELINE
+y=1762 x=  80 w=155  Lê main* Co
+y=1767 x= 251 w=188  o Caret ready

@@ -4,7 +4,7 @@
     "icon": "../../assets/brand/insert-v1/app-light.png",
     "slug": "caret",
     "version": "0.1.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "scheme": "caret",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

@@ -8,7 +8,7 @@ import { ExtensionUiBroker } from "../../../packages/omp-adapter/src/ui.ts";
 import { RPC_COMMAND_TYPES, CARET_UI_COMMAND_TYPES, type CaretUiCommandType, type RpcCommandType, type RpcCommandPayload, type OmpFrame } from "../../../packages/omp-adapter/src/types.ts";
 import type { Command, CommandRequest, Json, Session, SessionEvent, UiResponseRequest } from "../../../packages/protocol/src/index.ts";
 import { DurableStore } from "./store.ts";
-import { createWorktree, saveSnapshotManifest, workspacePath } from "./workspaces.ts";
+import { collectUsedWorkspacePorts, createWorktree, loadWorkspaceBootstrap, saveSnapshotManifest, workspacePath } from "./workspaces.ts";
 import { EditorConnections } from "./editors.ts";
 import { NativeEditorBridge } from "./native-editor.ts";
 import { OmpHostDispatcher } from "../../../packages/omp-adapter/src/host.ts";
@@ -78,7 +78,14 @@ export class CaretHost {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     if (workspaceMode === "worktree") {
       try {
-        const snapshot = createWorktree(project.path, join(this.#options.stateDir, "worktrees", session.id), session.id);
+        const bootstrap = loadWorkspaceBootstrap(project.path);
+        const snapshot = createWorktree(project.path, join(this.#options.stateDir, "worktrees", session.id), session.id, {
+          allowlist: bootstrap.ignoreAllowlist,
+          setupScript: bootstrap.setupScript,
+          runScript: bootstrap.runScript,
+          portStart: bootstrap.portStart,
+          usedPorts: collectUsedWorkspacePorts(this.#options.stateDir),
+        });
         saveSnapshotManifest(join(directory, "workspace.json"), snapshot);
         this.store.updateSession(session.id, { cwd: snapshot.cwd });
       } catch (error) {
@@ -133,7 +140,15 @@ export class CaretHost {
       runtime.client = await OmpRpcClient.start({ executable, cwd: realpathSync(session.cwd),
         args: ["--no-title", "--cwd", session.cwd, "--session", session.sessionFile, "--session-dir", directory,
           ...(this.#options.ompArgs ?? []), "--trusted-extension", lockExtension],
-        env: { ...(this.#options.ompEnv ?? process.env), CARET_SESSION_LOCK: join(directory, "owner.sqlite"), CARET_NATIVE_CACHE_DIR: join(this.#options.stateDir, "omp-natives"), ...(this.#options.virtualUi ? { CARET_RPC_VIRTUAL_UI: "1" } : {}), ...(this.#options.nativeBridge ? { CARET_RPC_NATIVE_BRIDGE: "1" } : {}), ...(this.#options.editorBridge ? { CARET_RPC_EDITOR_BRIDGE: "1" } : {}) },
+        env: {
+          ...(this.#options.ompEnv ?? process.env),
+          XDG_STATE_HOME: (this.#options.ompEnv ?? process.env).XDG_STATE_HOME ?? join(this.#options.stateDir, "xdg-state"),
+          CARET_SESSION_LOCK: join(directory, "owner.sqlite"),
+          CARET_NATIVE_CACHE_DIR: join(this.#options.stateDir, "omp-natives"),
+          ...(this.#options.virtualUi ? { CARET_RPC_VIRTUAL_UI: "1" } : {}),
+          ...(this.#options.nativeBridge ? { CARET_RPC_NATIVE_BRIDGE: "1" } : {}),
+          ...(this.#options.editorBridge ? { CARET_RPC_EDITOR_BRIDGE: "1" } : {}),
+        },
         readyTimeoutMs: 20_000, requestTimeoutMs: 30_000,
         onFrame: frame => this.#onFrame(runtime, frame),
       });

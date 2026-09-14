@@ -90,6 +90,19 @@ describe("mobile host API", () => {
     await expect(api.readArtifact("s1", receipt.sha256)).rejects.toThrow("different task");
   });
 
+  test("reads host review through GET /v1/sessions/:id/review", async () => {
+    const paths: string[] = [];
+    const transport: ClientTransport = {
+      request: async (method, path) => {
+        paths.push(`${method} ${path}`);
+        return { status: 200, body: { available: true, branch: "main", diff: "", untracked: [] } };
+      },
+    };
+    const api = new CaretApi({ transport });
+    await expect(api.getReview("s1")).resolves.toEqual({ available: true, branch: "main", diff: "", untracked: [] });
+    expect(paths).toEqual(["GET /v1/sessions/s1/review"]);
+  });
+
   test("reads login providers from the command envelope without opening a URL", () => {
     const command = {
       sessionId: "s1",
