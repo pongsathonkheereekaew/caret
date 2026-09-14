@@ -88,8 +88,9 @@ const APPEARANCE_KEYS = [
 	"breadcrumbs.enabled",
 ];
 
-async function activateAndSettle(themeKind = 2, rejectWorkspaceWrites = false): Promise<void> {
+async function activateAndSettle(themeKind = 2, rejectWorkspaceWrites = false, workspaceFileUri: any = undefined): Promise<void> {
 	resetVscodeStub();
+	stubState.workspaceFileUri = workspaceFileUri;
 	// resetVscodeStub returns the theme to dark; callers that need light set it
 	// here so the activation reads the intended kind.
 	stubState.themeKind = themeKind;
@@ -233,26 +234,25 @@ describe("ide-native workbench surface", () => {
 		for (const id of menuCommands) expect(`${id}: ${typeof stubState.commands.get(id)}`).toBe(`${id}: function`);
 	});
 
-	it("opens the full-window Caret shell by default, keeping the IDE one switch away", async () => {
+	it("opens a plain IDE window on full chrome by default, keeping agents in their own window", async () => {
 		await activateAndSettle();
 		const startup = stubState.executed.map(entry => entry.id);
-		// The default first screen is the Caret shell, not stock IDE chrome.
-		expect(startup).toContain("workbench.action.closeSidebar");
-		expect(startup).toContain("workbench.action.activityBarLocation.hide");
-		expect(stubState.config.get("workbench.activityBar.location")).toBe("hidden");
-		expect(stubState.config.get("workbench.statusBar.visible")).toBe(false);
-		expect(stubState.config.get("workbench.editor.showTabs")).toBe("none");
-		// Reaching the IDE must not require the docked coexistence view.
-		expect(startup).not.toContain("workbench.view.extension.caretDock");
+		// Native world (plan section 2): a plain window is an IDE window, so
+		// startup must not strip Code-OSS chrome. The agent lives in the base
+		// sessions window opened via caret.showAgents.
+		expect(startup).not.toContain("workbench.action.closeSidebar");
+		expect(startup).not.toContain("workbench.action.activityBarLocation.hide");
+		expect(stubState.config.get("workbench.activityBar.location")).not.toBe("hidden");
+		expect(stubState.config.get("workbench.statusBar.visible")).not.toBe(false);
+		expect(stubState.config.get("workbench.editor.showTabs")).not.toBe("none");
 
-		// ...and the IDE is one command away, restoring the native chrome.
+		// ...and showIde is a safe no-op when the chrome was never stripped.
 		stubState.executed.length = 0;
 		await stubState.commands.get("caret.showIde")!();
 		await new Promise(resolve => setTimeout(resolve, 20));
-		expect(stubState.executed.map(entry => entry.id)).toContain("workbench.view.explorer");
-		expect(stubState.config.get("workbench.activityBar.location")).toBe("default");
-		expect(stubState.config.get("workbench.statusBar.visible")).toBe(true);
-		expect(stubState.config.get("workbench.editor.showTabs")).toBe("multiple");
+		expect(stubState.executed.map(entry => entry.id)).not.toContain("workbench.action.closeSidebar");
+		expect(stubState.config.get("workbench.activityBar.location")).not.toBe("hidden");
+		expect(stubState.config.get("workbench.statusBar.visible")).not.toBe(false);
 	});
 
 	it("paints the workbench with Caret's own chrome, not the engine's teal default", async () => {
@@ -570,33 +570,23 @@ describe("ide-native workbench surface", () => {
 		}
 	});
 
-	it("hides chrome for Agents mode and restores it for IDE mode", async () => {
+	it("opens the native Agents window for showAgents and restores chrome for showIde", async () => {
 		await activateAndSettle();
 		await stubState.commands.get("caret.showAgents")!();
 		await new Promise(resolve => setTimeout(resolve, 20));
-		const agentsCommands = stubState.executed.map(entry => entry.id);
-		expect(agentsCommands).toContain("workbench.action.closeSidebar");
-		expect(agentsCommands).toContain("workbench.action.activityBarLocation.hide");
-		expect(stubState.config.get("workbench.activityBar.location")).toBe("hidden");
-		expect(stubState.config.get("workbench.editor.showTabs")).toBe("none");
-		expect(stubState.config.get("workbench.statusBar.visible")).toBe(false);
-		// Cursor's agent window has no editor tab strip and no Split Editor /
-		// Toggle Panel / More Actions toolbar beside the shell. `showTabs: none`
-		// alone moves those controls into the title bar instead of removing
-		// them, so Agents mode must hide the actions and the layout control too.
-		expect(stubState.config.get("workbench.editor.editorActionsLocation")).toBe("hidden");
-		expect(stubState.config.get("workbench.layoutControl.enabled")).toBe(false);
+		// The agent surface is the base sessions window (plan S1c), so
+		// showAgents opens that window instead of stripping this one's chrome.
+		expect(stubState.executed.map(entry => entry.id)).toContain("workbench.action.openAgentsWindow");
+		expect(stubState.executed.map(entry => entry.id)).not.toContain("workbench.action.closeSidebar");
 
 		stubState.executed.length = 0;
 		await stubState.commands.get("caret.showIde")!();
 		await new Promise(resolve => setTimeout(resolve, 20));
-		expect(stubState.executed.map(entry => entry.id)).toContain("workbench.view.explorer");
-		expect(stubState.config.get("workbench.activityBar.location")).toBe("default");
-		expect(stubState.config.get("workbench.editor.showTabs")).toBe("multiple");
-		expect(stubState.config.get("workbench.statusBar.visible")).toBe(true);
-		// The IDE is the editor owner, so the actions come back with it.
-		expect(stubState.config.get("workbench.editor.editorActionsLocation")).toBe("default");
-		expect(stubState.config.get("workbench.layoutControl.enabled")).toBe(true);
+		// Nothing was stripped, so restore is a safe no-op that leaves the
+		// chrome values alone instead of rewriting them.
+		expect(stubState.executed.map(entry => entry.id)).not.toContain("workbench.action.closeSidebar");
+		expect(stubState.config.get("workbench.activityBar.location")).not.toBe("hidden");
+		expect(stubState.config.get("workbench.statusBar.visible")).not.toBe(false);
 	});
 
 	it("keeps the Agents window menu patch and the manifest digest in agreement", async () => {
@@ -638,7 +628,7 @@ describe("ide-native workbench surface", () => {
 		// workspace-scope write rejects. The window then showed the raw shell
 		// document name ("window.caret-shell") in its title bar, which reads as
 		// an internal Code-OSS file instead of the product.
-		await activateAndSettle(2, true);
+		await activateAndSettle(2, true, { fsPath: "/tmp/caret-agents.code-workspace", path: "/tmp/caret-agents.code-workspace" });
 		// A rejected workspace write is retried at the global scope, which the
 		// stub records separately from workspace-scope values.
 		expect(stubState.globalConfig.get("window.title")).toBe("New task — Caret");

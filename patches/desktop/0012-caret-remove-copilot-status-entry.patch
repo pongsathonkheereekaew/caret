@@ -1,0 +1,33 @@
+diff --git a/src/vs/workbench/contrib/chat/browser/chat.shared.contribution.ts b/src/vs/workbench/contrib/chat/browser/chat.shared.contribution.ts
+index cec9b29bf6c..9b98bf10022 100644
+--- a/src/vs/workbench/contrib/chat/browser/chat.shared.contribution.ts
++++ b/src/vs/workbench/contrib/chat/browser/chat.shared.contribution.ts
+@@ -215,7 +215,6 @@ import { ChatQuotaNotificationContribution } from './chatQuotaNotification.js';
+ import { ChatRepoInfoContribution } from './chatRepoInfo.js';
+ import { ChatSetupContribution, ChatTeardownContribution } from './chatSetup/chatSetupContributions.js';
+ import { ChatSessionOptionSlashCommandsContribution, ChatSlashCommandsContribution } from './chatSlashCommands.js';
+-import { ChatStatusBarEntry } from './chatStatus/chatStatusEntry.js';
+ import { ChatTipService, IChatTipService } from './chatTipService.js';
+ import { ChatWindowNotifier } from './chatWindowNotifier.js';
+ import { AgentPluginRecommendations } from './claudePluginRecommendations.js';
+@@ -2359,7 +2358,7 @@ configurationRegistry.registerConfiguration({
+ 		[ChatAIDisabledSettingId]: {
+ 			type: 'boolean',
+ 			description: nls.localize('chat.disableAIFeatures', "Disable and hide built-in AI features provided by GitHub Copilot, including chat and inline suggestions."),
+-			default: false,
++			default: true, // Caret uses OMP; opt in explicitly to upstream AI surfaces.
+ 			scope: ConfigurationScope.WINDOW,
+ 		},
+ 		[ChatConfiguration.TitleBarSignInEnabled]: {
+@@ -3259,7 +3258,10 @@ registerWorkbenchContribution2(ChatPromoNotificationContribution.ID, ChatPromoNo
+ registerWorkbenchContribution2(ChatExpNotificationContribution.ID, ChatExpNotificationContribution, WorkbenchPhase.AfterRestored);
+ registerWorkbenchContribution2(HasByokModelsContribution.ID, HasByokModelsContribution, WorkbenchPhase.BlockRestore);
+ registerWorkbenchContribution2(ChatTeardownContribution.ID, ChatTeardownContribution, WorkbenchPhase.AfterRestored);
+-registerWorkbenchContribution2(ChatStatusBarEntry.ID, ChatStatusBarEntry, WorkbenchPhase.BlockRestore);
++// Caret: the Copilot quota/sign-in status entry has no backend here (OMP is the
++// only harness) and would front a dead "Copilot status" button, so it stays
++// unregistered in both windows. Model state surfaces through the OMP-backed
++// composer picker instead.
+ registerWorkbenchContribution2(BuiltinToolsContribution.ID, BuiltinToolsContribution, WorkbenchPhase.Eventually);
+ registerWorkbenchContribution2(ClientToolSetsContribution.ID, ClientToolSetsContribution, WorkbenchPhase.Eventually);
+ registerWorkbenchContribution2(UsagesToolContribution.ID, UsagesToolContribution, WorkbenchPhase.BlockRestore);

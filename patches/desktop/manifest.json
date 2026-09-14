@@ -36,6 +36,14 @@
     {
       "file": "0011-caret-sessions-model-picker.patch",
       "sha256": "e931bc428daa641e7dd08f2ec52c28aa76ebccead8b040017e44d41d71e5e49a"
+    },
+    {
+      "file": "0012-caret-remove-copilot-status-entry.patch",
+      "sha256": "addd4342d7d2ec8b819e24dff4fb245bfbbc8696b48cfb2451477bb4300c8779"
+    },
+    {
+      "file": "0013-caret-sessions-option-key-bridge.patch",
+      "sha256": "3995b8cbd4214a76b42d2ef71f971380b7fa53474c7167c47db5489f920e2309"
     }
   ],
   "removals": [

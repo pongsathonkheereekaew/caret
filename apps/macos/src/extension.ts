@@ -658,6 +658,9 @@ export class CaretTaskViewProvider {
 		}));
 		this.#context.subscriptions.push(vscode.window.onDidChangeVisibleTextEditors(editors => {
 			if (!this.#prefs.autoHideEmptyIde) return;
+			// Native world: only the agents workspace may strip chrome. A plain
+			// IDE window keeps full chrome even when it has no editors open.
+			if (!this.inAgentsWindow()) return;
 			if (this.#agentsChromeApplied || this.#state.workbenchMode !== "ide") return;
 			const remaining = editors.filter(editor => editor.document.uri.scheme !== "untitled" || editor.document.getText().length > 0)
 				.filter(editor => !editor.document.uri.path.endsWith(".caret-shell"));
@@ -1208,6 +1211,7 @@ export class CaretTaskViewProvider {
 			pending: this.#pendingNativeDestination,
 			rememberedMode: this.#context.globalState.get("caret.lastWorkbenchMode"),
 			startupView: this.#prefs.startupView,
+			inAgentsWindow: this.inAgentsWindow(),
 		});
 		this.#log.info(`startup view=${this.#prefs.startupView} mode=${startup.mode} revealDock=${startup.revealDock}`);
 		void this.setWorkbenchMode(startup.mode)

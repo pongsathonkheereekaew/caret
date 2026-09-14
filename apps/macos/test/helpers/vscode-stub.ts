@@ -74,6 +74,8 @@ export interface StubState {
 	activeEditor: any;
 	activeTerminal: any;
 	workspaceRoot: string | undefined;
+	/** Window workspace file (agents workspace detection); undefined = plain window. */
+	workspaceFileUri: any;
 	readonly documents: Map<string, { text: string; languageId?: string }>;
 	/** Chat session item controllers created via the proposed sessions API. */
 	readonly chatSessionControllers: any[];
@@ -108,6 +110,7 @@ export const stubState: StubState = {
 	activeEditor: undefined,
 	activeTerminal: undefined,
 	workspaceRoot: undefined,
+	workspaceFileUri: undefined,
 	documents: new Map(),
 	chatSessionControllers: [],
 	chatInputStates: [],
@@ -136,6 +139,7 @@ export function resetVscodeStub(): void {
 	stubState.themeKind = 2;
 	stubState.themeChangeListeners.length = 0;
 	stubState.rejectWorkspaceWrites = false;
+	stubState.workspaceFileUri = undefined;
 	stubState.chatSessionControllers.length = 0;
 	stubState.chatInputStates.length = 0;
 }
@@ -304,7 +308,9 @@ export function createVscodeStub(): unknown {
 			get rootPath() {
 				return stubState.workspaceRoot;
 			},
-			workspaceFile: undefined,
+			get workspaceFile() {
+				return stubState.workspaceFileUri;
+			},
 			get workspaceFolders() {
 				return stubState.workspaceRoot ? [{ uri: uriFile(stubState.workspaceRoot), name: "workspace", index: 0 }] : [];
 			},

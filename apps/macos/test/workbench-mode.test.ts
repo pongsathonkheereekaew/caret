@@ -76,24 +76,33 @@ describe("Agent ↔ IDE workbench mode", () => {
 	});
 
 	it("makes a pending Explorer destination authoritative over remembered Agents mode", () => {
-		expect(resolveStartupView({ pending: "explorer", rememberedMode: "agents", startupView: "last_task" })).toEqual({ mode: "ide", openExplorer: true, revealDock: true });
-		expect(resolveStartupView({ rememberedMode: "ide", startupView: "last_task" })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
-		expect(resolveStartupView({ rememberedMode: "ide", startupView: "agents" })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+		expect(resolveStartupView({ pending: "explorer", rememberedMode: "agents", startupView: "last_task", inAgentsWindow: true })).toEqual({ mode: "ide", openExplorer: true, revealDock: true });
+		expect(resolveStartupView({ rememberedMode: "ide", startupView: "last_task", inAgentsWindow: true })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
+		expect(resolveStartupView({ rememberedMode: "ide", startupView: "agents", inAgentsWindow: true })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
 	});
 
 	it("opens the full-window Caret shell by default, with the IDE an explicit choice", () => {
 		// The product default is the Caret shell (UI spec section 2), not the
 		// docked coexistence view, and not a remembered window.
-		expect(resolveStartupView({ startupView: "agents" })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+		expect(resolveStartupView({ startupView: "agents", inAgentsWindow: true })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
 		// An unknown or missing value must not silently become a second meaning
 		// for "ide"; it means the documented default.
-		expect(resolveStartupView({ startupView: "nonsense" as never })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+		expect(resolveStartupView({ startupView: "nonsense" as never, inAgentsWindow: true })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
 		// Choosing IDE keeps Code-OSS chrome with the agent docked beside it, and
 		// must stay reachable from the settings surface.
-		expect(resolveStartupView({ startupView: "ide" })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
+		expect(resolveStartupView({ startupView: "ide", inAgentsWindow: true })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
 		// A remembered IDE layout keeps the dock; a remembered Agents shell does not.
-		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "ide" })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
-		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "agents" })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "ide", inAgentsWindow: true })).toEqual({ mode: "ide", openExplorer: false, revealDock: true });
+		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "agents", inAgentsWindow: true })).toEqual({ mode: "agents", openExplorer: false, revealDock: false });
+	});
+
+
+	it("keeps a plain IDE window on full chrome and opens it clean", () => {
+		// Native world (plan section 2): outside the agents workspace the agent
+		// lives in its own window, so startup prefs must not strip the IDE.
+		expect(resolveStartupView({ startupView: "agents", inAgentsWindow: false })).toEqual({ mode: "ide", openExplorer: false, revealDock: false });
+		expect(resolveStartupView({ startupView: "last_task", rememberedMode: "agents", inAgentsWindow: false })).toEqual({ mode: "ide", openExplorer: false, revealDock: false });
+		expect(resolveStartupView({ pending: "explorer", rememberedMode: "agents", startupView: "agents", inAgentsWindow: false })).toEqual({ mode: "ide", openExplorer: true, revealDock: true });
 	});
 
 	it("consumes pending explorer only after switching to IDE", () => {

@@ -1,0 +1,41 @@
+{
+  "scope": "Parity sweep: Agents window vs plan section 3 plus IDE window boot and cleanliness (dev builds, CDP DOM)",
+  "capturedAt": "2026-09-14T19:10:00+07:00",
+  "branch": "main",
+  "method": "dev build + --agents and plain windows + CDP Runtime.evaluate on DOM and aria. Trusted Input events for picker clicks. Native menus unread (no Accessibility trust) so menu rows rest on bundle grep only. Geometry at 1440x900 viewports, not the section 3.1 rig.",
+  "fixesThisSlice": [
+    "IDE window no longer strips its own chrome on startup or when empty (resolveStartupView inAgentsWindow gate plus autoHide guard). Verified: activity bar, sidebar with folder, status bar all present; zero Copilot surfaces.",
+    "Removed ChatStatusBarEntry registration (patch 0012): the Copilot status button is gone from both windows.",
+    "Sessions option groups dual-indexed under controller key and resource-scheme key in sessions windows only (patch 0013): picker lists the OMP catalog again after the scheme/type split was understood (registration stores caret.omp, readers use caret).",
+    "Test isolation per the stub's own contract (shared vscode stub superset): full suite 554 pass, 1 pre-existing fail (menus-contract, fails on clean tree)."
+  ],
+  "agentsWindowPass": [
+    "Mounts with title Agents; sidebar lists Automations plus workspace group plus session row with status, name and relative time.",
+    "Composer send path exists; Models picker lists exactly the OMP catalog (5 models), label tracks selection, zero Copilot or sign-in text anywhere (was reproducible before 0011).",
+    "Back/forward navigation, New Session Command+N, Automations entry, filter and find sessions, queue todos, context usage, Send.",
+    "No editor-tab text, pet text or Run Task text in the open-chat view body (Add Tab, Close Editor Area and the pet button still exist as aria buttons - see gaps).",
+    "Token parity check passes (340 keys, 0 mismatches plus 46 shell tokens)."
+  ],
+  "agentsWindowGaps": [
+    "Sidebar labels: Sessions/New/Workspace/Customize instead of New Chat/Search/Projects plus New Project/Repositories plus Customize Sidebar/Open Workspace; no Getting Started card; no per-row Dismiss.",
+    "Header: Open in VS Code Editor Window instead of IDE; Run Primary Task title action present; no Chat actions or Show Apps.",
+    "Editor-group column still mounted (576px at 1440x900) with Add Tab and Close Editor Area; section 3 forbids editor tabs and title actions.",
+    "VS Code pet button present.",
+    "Composer lacks project/branch/This-Mac row, reasoning popup and voice input; placeholder is Pitch your idea, not the Cursor copy.",
+    "No idea rows with Dismiss in empty state; no Changes/Files/Browser/Terminal panels (window.caret-shell column 468px occupies the right side - S3).",
+    "Sidebar 280px vs measured 255px (splitter-adjustable, minor); composer 572x110 at 1440x900 (rig comparison at 1710x1073 pending).",
+    "Native menu bar contents unverified (no Accessibility trust); bundle shows Selection/Go/Terminal removed.",
+    "Selection write-through: label updates but no set_model reaches host; prompt round-trip blocked on that plus provider auth."
+  ],
+  "ideWindowPass": [
+    "Boots with full chrome when a folder is open: activity bar (Explorer, Search, Source Control, Run and Debug, Extensions, Caret), sidebar with files, status bar, panel infrastructure.",
+    "Zero Copilot surfaces: no Copilot status button (removed), no Copilot text, no sign-in gates in the probed surface.",
+    "Caret views present (CHAT/CARET welcome, Open in Agents command, Caret ready status); Restricted Mode trust gate behaves honestly on untrusted folders.",
+    "Syntax colors intentionally Code-OSS default (plan section 5 licensing deviation, not a gap)."
+  ],
+  "ideWindowGaps": [
+    "copilot-cloud-agent sessions errors come from the dev-only built-in extensions/copilot (packaged app removes it); dev noise only, but remoteAgentHost-family removal is still open for S1 completeness.",
+    "Panel hidden by default on the probed windows (minor; opens on demand)."
+  ],
+  "checks": "bun test apps/macos 554 pass, 1 pre-existing fail; tsc clean; desktop typecheck-client clean; ci-validate CI-OK"
+}

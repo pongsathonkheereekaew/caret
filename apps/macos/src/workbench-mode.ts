@@ -78,6 +78,8 @@ export function resolveStartupView(input: {
 	readonly pending?: NativeDestination;
 	readonly rememberedMode?: WorkbenchMode;
 	readonly startupView: "last_task" | "agents" | "ide";
+	/** False in a plain IDE window (no agents workspace file). */
+	readonly inAgentsWindow: boolean;
 }): { readonly mode: WorkbenchMode; readonly openExplorer: boolean; readonly revealDock: boolean; readonly pending?: NativeDestination } {
 	if (input.pending) {
 		const consumed = consumePendingNativeDestination("ide", input.pending);
@@ -89,6 +91,13 @@ export function resolveStartupView(input: {
 			revealDock: true,
 			...(consumed.pending ? { pending: consumed.pending } : {}),
 		};
+	}
+	// Native world (plan section 2): the agent lives in its own Agents window,
+	// so a plain IDE window always keeps full Code-OSS chrome and opens clean
+	// (no forced agent dock). Shell-era defaults below apply only inside the
+	// agents workspace until S3 retires them.
+	if (!input.inAgentsWindow) {
+		return { mode: "ide", openExplorer: false, revealDock: false };
 	}
 	if (input.startupView === "agents") return { mode: "agents", openExplorer: false, revealDock: false };
 	// An explicit IDE choice keeps the native chrome and shows the agent beside
