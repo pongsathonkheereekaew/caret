@@ -120,6 +120,41 @@ Cursor Agents (window)
 เวลาวัดเพื่อปิด §8 ข้อ 2 ให้ใช้ full-screen capture ที่มีทั้งสองแอปในจอเดียว หรือใช้ค่า theme file
 เป็นฐานแล้วตรวจกับ full-screen — ห้ามใช้ `screencapture -l` เทียบสีตรง ๆ
 
+### 3.2 แก้ §3 ด้วย AX ของ Cursor 3.20.17 (2026-09-14, รอบที่สอง)
+
+§3 ข้างบนมาจากตารางที่สรุปไว้ก่อนหน้า รอบนี้ดึง **accessibility tree ของหน้าต่าง
+`Cursor Agents` ที่รันอยู่จริง** (Computer Use → `@oai/sky`, เก็บดิบที่
+[evidence/cursor-agents-ax-2026-09-14/cursor-agents-ax-tree.txt](evidence/cursor-agents-ax-2026-09-14/cursor-agents-ax-tree.txt))
+แล้วพบจุดที่ตารางเดิมคลาดเคลื่อน ต้องยึดตามนี้:
+
+- **ไม่มี menu bar ในหน้าต่าง**: `Cursor | File | Edit | View | Window | Help` เป็นเมนูบาร์ของ
+  macOS (sibling ของ window ใน AX) ไม่ได้วาดในหน้าต่าง และ **ไม่มี title bar band** —
+  ปุ่ม traffic light ลอยอยู่บน sidebar เอง
+- **ฝั่งขวาเป็น panel เดียว ไม่ใช่รายการ panel**: `Panel editor-panel-group` มีหัวเป็น
+  `Tabs` + ปุ่ม `Open new tab menu` + `Enter Full Screen` + `Hide Apps` และแถบ
+  `Changes · Browser · Terminal · File` (เรียงเป็นแท็บ) — คำสั่ง `Show Apps`/`Hide Apps`
+  คือการเปิด/ปิด panel นี้ (storage key `cursor/glass.rightPane`), และ panel กว้าง
+  ~608px เท่ากับ composer
+- **composer ไม่มีปุ่ม Send ในสถานะว่าง**: toolbar มีแค่ `Add agents, context, tools` ▾,
+  `High` ▾ (reasoning) และ `Start voice input`; แถวบนคือ project popup + branch combo
+  (`main`) + `This Mac`
+- **แถวคำแนะนำมี subtitle และ Dismiss ไม่ครบทุกแถว**: `Plan New Idea ⇧Tab` · `Multitask` ·
+  `Run in Cloud` (ไม่มี subtitle) · `Build from a design — Turn a frame into working UI in this
+  repo` + Dismiss · `Deploy my prototype — Put it on a live link anyone can open` + Dismiss ·
+  `Start with a plan — Align on implementation before writing code` · `Debug an issue — Find root
+  causes and fix tricky bugs`; `Run in Cloud` สื่อความหมายเป็น runtime option ของ cloud (มีใน
+  แหล่งโค้ดของ Cursor เป็น label ในเมนู Autopilot PR) ไม่ใช่ cloud agent เต็มรูปแบบ
+- **sidebar ตามลำดับจริง**: Hide Sidebar · Go Back(disabled) · Go Forward(disabled) ·
+  New Chat ⌘N · Search ⌘K · Automations · Customize · Projects (+ New Project) ·
+  Repositories (+ Customize Sidebar ▾, Open Workspace ▾) · กลุ่มโปรเจกต์แบบลากได้ (sortable) ·
+  การ์ด Getting Started (Skip step n of m, Connect Slack) · Account menu · Settings · splitter
+  `Resize sidebar`; **ไม่มี** label `Sessions` และไม่มี pet
+- **สีที่อ่านจากจอจริง (dark)**: chrome/sidebar `rgb(35,35,37)` · main pane `rgb(27,27,27)` ·
+  การ์ด composer `rgb(34,34,34)` (สว่างกว่าพื้น) · panel `rgb(26,26,26)`; composer กว้าง 608
+  สูง ~107 อยู่กลาง main pane ที่ rig 1710×1073 (ตรงกับ §3.1 ที่วัดตอน light)
+- **ยังไม่ยืนยัน**: สถานะ running/approval/error, panel ที่มี tab จริง, dark ของ light-theme
+  pair, และจังหวะ animation
+
 ## 4. Surface ที่ Cursor ไม่มี (ดีไซน์ของ Caret, ขับด้วย OMP)
 
 ไม่นับเป็น parity แต่ต้องอยู่ในหน้าต่างเดียวกัน:
