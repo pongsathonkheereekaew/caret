@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
+	normalizeOmpModels,
+	projectOmpModelSnapshot,
+} from "../src/chat-sessions-map.ts";
+import {
 	composerAxesFromTask,
 	resolveComposerControls,
 	shouldSendOnEnter,
@@ -107,6 +111,24 @@ describe("composer runtime axes", () => {
 		const unavailable = composerAxesFromTask({ ...connectedTask, connection: "offline" });
 		expect(unavailable.modelReadiness).toBe("unavailable");
 		expect(unavailable.modelReason).toContain("unavailable");
+	});
+
+	it("drives sendIntent from the OMP catalog snapshot, not a hardcoded id", () => {
+		const catalog = projectOmpModelSnapshot(
+			normalizeOmpModels({ data: { models: [{ id: "probe-model", provider: "probe" }] } }),
+			"probe-model",
+		);
+		const advertised = controlsFrom({ selectedModel: catalog.selectedModelId });
+		expect(catalog.hasModels).toBe(true);
+		expect(advertised.primary).toBe("send");
+		expect(advertised.primaryEnabled).toBe(true);
+		expect(advertised.sendIntent).toBe("send_prompt");
+		const emptyCatalog = projectOmpModelSnapshot(normalizeOmpModels({ models: [] }), undefined);
+		const disabled = controlsFrom({ selectedModel: emptyCatalog.selectedModelId });
+		expect(emptyCatalog.hasModels).toBe(false);
+		expect(disabled.primaryEnabled).toBe(false);
+		expect(disabled.sendIntent).toBeNull();
+		expect(disabled.primaryReason).toBe("Choose a model");
 	});
 
 	it("disables Send when the payload is empty", () => {

@@ -19,15 +19,103 @@ import {
 	CARET_CHAT_PARTICIPANT_ID,
 	CARET_CHAT_SESSION_SCHEME,
 	CARET_CHAT_SESSION_TYPE,
+	currentModelIdFromOmpState,
+	getAvailableModelsRequest,
+	getLoginProvidersRequest,
+	getOmpStateRequest,
+	modelPickerGroupFromSnapshot,
+	normalizeOmpLoginProviders,
+	normalizeOmpModels,
+	projectOmpModelSnapshot,
 	promptRequest,
+	resolveOmpModelPickProvider,
 	sessionIdFromUri,
 	sessionItemShape,
 	sessionUriString,
+	setOmpModelRequest,
 	turnPlansFromTranscript,
+	type OmpAdvertisedModel,
+	type OmpLoginProvider,
+	type OmpModelSnapshot,
 	type SessionState,
 } from "./chat-sessions-map.ts";
 
 export { CARET_CHAT_PARTICIPANT_ID, CARET_CHAT_SESSION_SCHEME, CARET_CHAT_SESSION_TYPE } from "./chat-sessions-map.ts";
+export type { OmpAdvertisedModel, OmpLoginProvider, OmpModelSnapshot };
+
+/** Option-group id the native and webview model pickers share. */
+export const CARET_OMP_MODELS_GROUP_ID = "models";
+
+/**
+ * List OMP's advertised models through the existing host command envelope
+ * (`get_available_models:{}` -> ack/result `.models`). No new host route;
+ * failures propagate so callers can degrade honestly to an empty catalog.
+ */
+export async function fetchOmpModels(client: CaretHostClient, session: Session): Promise<OmpAdvertisedModel[]> {
+	const result = await client.sendCommand(session.id, getAvailableModelsRequest(session, randomUUID()));
+	return normalizeOmpModels(result.result ?? result.ack);
+}
+
+/** Read OMP's current model id via `get_state` (undefined when unadvertised). */
+export async function fetchOmpCurrentModelId(client: CaretHostClient, session: Session): Promise<string | undefined> {
+	const result = await client.sendCommand(session.id, getOmpStateRequest(session, randomUUID()));
+	return currentModelIdFromOmpState(result.result ?? result.ack);
+}
+
+/**
+ * Honest OMP catalog snapshot: models plus the current id when still
+ * advertised, annotated with `needs_auth` from `get_login_providers` when OMP
+ * has that data. Never throws and never invents a fallback — host failures
+ * yield an empty catalog (and empty login data) so the picker stays
+ * honest-disabled. An explicit `options.loginProviders` wins (fixture
+ * injection); otherwise the providers are fetched best-effort in this same
+ * path and a fetch failure degrades to unannotated rather than throwing.
+ */
+export async function fetchOmpModelSnapshot(
+	client: CaretHostClient,
+	session: Session,
+	options: { readonly loginProviders?: readonly OmpLoginProvider[]; readonly log?: (message: string) => void } = {},
+): Promise<OmpModelSnapshot> {
+	let models: OmpAdvertisedModel[] = [];
+	let current: string | undefined;
+	try {
+		models = await fetchOmpModels(client, session);
+	} catch (error) {
+		options.log?.(`Caret could not list OMP models: ${error instanceof Error ? error.message : String(error)}`);
+	}
+	try {
+		current = await fetchOmpCurrentModelId(client, session);
+	} catch (error) {
+		options.log?.(`Caret could not read the OMP model state: ${error instanceof Error ? error.message : String(error)}`);
+	}
+	let loginProviders = options.loginProviders;
+	if (loginProviders === undefined) {
+		try {
+			const result = await client.sendCommand(session.id, getLoginProvidersRequest(session, randomUUID()));
+			loginProviders = normalizeOmpLoginProviders(result.result ?? result.ack);
+		} catch (error) {
+			options.log?.(`Caret could not list OMP login providers: ${error instanceof Error ? error.message : String(error)}`);
+			loginProviders = undefined;
+		}
+	}
+	return projectOmpModelSnapshot(models, current, loginProviders);
+}
+
+/**
+ * Change OMP's model via `set_model:{provider,modelId}`. The provider must come
+ * from the advertised catalog (see `fetchOmpModels`); callers resolve it from
+ * the snapshot rather than guessing.
+ */
+export async function setOmpModel(client: CaretHostClient, session: Session, provider: string, modelId: string): Promise<void> {
+	if (!provider.trim() || !modelId.trim()) {
+		throw new Error("Model provider and id are required; refresh the model list first.");
+	}
+	const result = await client.sendCommand(session.id, setOmpModelRequest(session, provider, modelId, randomUUID()));
+	if (result.status === "failed") throw new Error(result.error ?? "OMP did not accept the model change.");
+	if (result.status === "outcome_unknown" || result.status === "not_dispatched") {
+		throw new Error(result.error ?? "Model change outcome is unknown; check status before retrying.");
+	}
+}
 
 /** Delay between host event polls while a turn is streaming. */
 export const STREAM_POLL_INTERVAL_MS = 400;
@@ -130,6 +218,83 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 		return item;
 	};
 
+	// The native model picker reads this input state. It lists exactly what OMP
+	// advertised via `get_available_models` (plus the `get_state` current id for
+	// the initial selection) and writes the user's choice back with `set_model`.
+	// Empty catalogs stay empty: no fallback is invented, so the picker shows
+	// its honest-disabled state downstream.
+	controller.getChatSessionInputState = async (sessionResource, _context, token) => {
+		let hostSession: Session | undefined;
+		if (sessionResource) {
+			try {
+				const id = sessionIdFromUri({
+					scheme: sessionResource.scheme,
+					authority: sessionResource.authority,
+					path: sessionResource.path,
+				});
+				if (id) {
+					if (token.isCancellationRequested) return controller.createChatSessionInputState([]);
+					hostSession = await (await getClient()).getSession(id);
+				}
+			} catch (error) {
+				log(`Caret could not resolve the session for the model picker: ${error instanceof Error ? error.message : String(error)}`);
+			}
+		}
+		// Draft (untitled) inputs have no OMP session yet, so there is nothing
+		// to list from. Returning an empty group keeps the picker honest instead
+		// of showing models that cannot be applied.
+		let snapshot: OmpModelSnapshot = { models: [], hasModels: false };
+		if (hostSession && !token.isCancellationRequested) {
+			try {
+				snapshot = await fetchOmpModelSnapshot(await getClient(), hostSession, { log });
+			} catch (error) {
+				log(`Caret could not read OMP models: ${error instanceof Error ? error.message : String(error)}`);
+				snapshot = { models: [], hasModels: false };
+			}
+		}
+		const group = modelPickerGroupFromSnapshot(snapshot);
+		const inputState = controller.createChatSessionInputState([
+			group as unknown as vscode.ChatSessionProviderOptionGroup,
+		]);
+		if (hostSession) {
+			const watched = hostSession;
+			let selectedId = snapshot.selectedModelId;
+			let liveSnapshot = snapshot;
+			inputState.onDidChange(() => {
+				void (async () => {
+					try {
+						const picked = inputState.groups.find(candidate => candidate.id === CARET_OMP_MODELS_GROUP_ID)?.selected;
+						// The outer `token` belongs to the getChatSessionInputState
+						// fetch and is normally cancelled by the time the user
+						// picks, so it must not gate the pick — dropping it here
+						// was a ship-blocker (every pick returned early).
+						if (!picked || picked.id === selectedId) return;
+						// Re-read the catalog so a pick after a catalog change
+						// resolves against live data instead of the captured
+						// snapshot; on refresh failure fall back honestly.
+						try {
+							liveSnapshot = await fetchOmpModelSnapshot(await getClient(), watched, { log });
+						} catch (error) {
+							log(`Caret could not refresh OMP models before changing the model: ${error instanceof Error ? error.message : String(error)}`);
+						}
+						const description = (picked as { readonly description?: unknown }).description;
+						const provider = resolveOmpModelPickProvider(liveSnapshot, picked.id, description)
+							?? resolveOmpModelPickProvider(snapshot, picked.id, description);
+						if (!provider) {
+							log(`Caret cannot change the model: provider for '${picked.id}' is unknown. Refresh the model list first.`);
+							return;
+						}
+						await setOmpModel(await getClient(), watched, provider, picked.id);
+						selectedId = picked.id;
+					} catch (error) {
+						log(`Caret could not change the model: ${error instanceof Error ? error.message : String(error)}`);
+					}
+				})();
+			});
+		}
+		return inputState;
+	};
+
 	const provider: vscode.ChatSessionContentProvider = {
 		async provideChatSessionContent(resource, token) {
 			const sessionId = sessionIdFromUri(resource);
@@ -173,6 +338,12 @@ export function historyFromState(state: TaskState, participantId: string): Reado
  * Send one prompt to the host and stream the OMP frames it produces back into
  * the native chat view. The host remains the only writer of the transcript:
  * this reads events forward from the cursor captured before the prompt.
+ *
+ * S2 is text-only: `prompt` is a plain string (see `promptRequest`) and the
+ * bridge forwards `query` only. Images, attachments and streamingBehavior are
+ * accepted nowhere on this path yet; thread them through `promptRequest` and
+ * the bridge `sendRequest` when that slice lands. No silent downgrade beyond
+ * this note.
  */
 export async function runTurn(
 	client: CaretHostClient,

@@ -1,9 +1,9 @@
 diff --git a/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
 new file mode 100644
-index 00000000000..af762141212
+index 00000000000..2308963b6c3
 --- /dev/null
 +++ b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
-@@ -0,0 +1,330 @@
+@@ -0,0 +1,444 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret contributors. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -18,7 +18,12 @@ index 00000000000..af762141212
 + * extension does) has its items published but never listed. This provider is
 + * the generic bridge: it reads `IChatSessionsService.getChatSessionItems()` and
 + * exposes those items as sessions, so Caret sessions appear in the window that
-+ * produced them.
++ * produced them. The OMP model catalog flows the same way: Caret's extension
++ * advertises it as the `models` option group (via `getChatSessionInputState`,
++ * backed by host `get_available_models`/`get_state`), and this bridge projects
++ * that group into `getModelsSnapshot` read-only. Selection writes through via
++ * `chatSessionsService.setSessionOption`, which notifies the extension to call
++ * host `set_model`. Empty catalogs stay empty (honest-disabled, no Auto).
 + *
 + * Ownership stays where it was: the extension owns the items and the transcript,
 + * the host owns OMP execution. This file only adapts shapes, and it fails safe —
@@ -29,22 +34,31 @@ index 00000000000..af762141212
 +import { CancellationToken } from '../../../../../base/common/cancellation.js';
 +import { Emitter } from '../../../../../base/common/event.js';
 +import { Disposable } from '../../../../../base/common/lifecycle.js';
-+import { IObservable, observableValue } from '../../../../../base/common/observable.js';
++import { IObservable, ISettableObservable, observableValue } from '../../../../../base/common/observable.js';
 +import { ThemeIcon } from '../../../../../base/common/themables.js';
 +import { URI } from '../../../../../base/common/uri.js';
 +import { localize } from '../../../../../nls.js';
 +import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
++import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
 +import { ILogService } from '../../../../../platform/log/common/log.js';
 +import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
 +import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../workbench/common/contributions.js';
 +import { IChatSessionItem, IChatSessionsService } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
 +import { IChatService } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
++import { resolveModelIdentifier } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
 +import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 +import { ChatInteractivity, ChatModelSource, IChat, IChatCheckpoints, ISession, ISessionCapabilities, ISessionType, ISessionWorkspace, ISessionWorkspaceBrowseAction, SessionStatus, SessionTypeAuthRequirement } from '../../../../services/sessions/common/session.js';
 +import { ISessionChangeEvent, ISessionModelPickerOptions, ISessionModelsSnapshot, ISessionsProvider, ISessionsProviderCreateSessionOptions, ISendRequestOptions } from '../../../../services/sessions/common/sessionsProvider.js';
 +
 +const EXTENSION_SESSIONS_PROVIDER_ID = 'caret-extension-sessions';
 +const UNSUPPORTED = 'Caret sessions are owned by the Caret host; that action is not advertised yet.';
++const CARET_MODELS_GROUP_ID = 'models';
++const CARET_EXTENSION_ID = 'caret.caret';
++
++/** Non-empty string or undefined (option-group items carry OMP labels loosely). */
++function cleanText(value: unknown): string | undefined {
++	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
++}
 +
 +/** Chat-session status -> sessions-core status. */
 +function sessionStatus(status: IChatSessionItem['status']): SessionStatus {
@@ -63,8 +77,10 @@ index 00000000000..af762141212
 +	readonly updatedAt: IObservable<Date>;
 +	readonly status: IObservable<SessionStatus>;
 +	readonly changes: IObservable<readonly never[]> = observableValue(this, []);
-+	readonly modelId: IObservable<string | undefined> = observableValue(this, undefined);
-+	readonly modelSource: IObservable<ChatModelSource | undefined> = observableValue(this, undefined);
++	readonly modelId: IObservable<string | undefined>;
++	readonly modelSource: IObservable<ChatModelSource | undefined>;
++	private readonly _modelId: ISettableObservable<string | undefined>;
++	private readonly _modelSource: ISettableObservable<ChatModelSource | undefined>;
 +	readonly mode: IObservable<{ readonly id: string; readonly kind: string } | undefined> = observableValue(this, undefined);
 +	readonly isArchived: IObservable<boolean>;
 +	readonly isRead: IObservable<boolean> = observableValue(this, true);
@@ -80,6 +96,16 @@ index 00000000000..af762141212
 +		this.updatedAt = observableValue(this, new Date(item.timing?.lastRequestEnded ?? item.timing?.created ?? Date.now()));
 +		this.status = observableValue(this, sessionStatus(item.status));
 +		this.isArchived = observableValue(this, item.archived === true);
++		this._modelId = observableValue(this, undefined);
++		this._modelSource = observableValue(this, undefined);
++		this.modelId = this._modelId;
++		this.modelSource = this._modelSource;
++	}
++
++	/** Confirmed model selection only; uses the same public `.set` API as `_sessionTypes`. */
++	setModelSelection(modelId: string | undefined, source: ChatModelSource | undefined): void {
++		this._modelId.set(modelId, undefined);
++		this._modelSource.set(source, undefined);
 +	}
 +}
 +
@@ -96,7 +122,9 @@ index 00000000000..af762141212
 +	readonly status: IObservable<SessionStatus>;
 +	readonly changes: IObservable<readonly never[]> = observableValue(this, []);
 +	readonly changesets: IObservable<undefined> = observableValue(this, undefined);
-+	readonly modelId: IObservable<string | undefined> = observableValue(this, undefined);
++	readonly modelId: IObservable<string | undefined>;
++	private readonly _modelId: ISettableObservable<string | undefined>;
++	private readonly _chat: ExtensionSessionChat;
 +	readonly mode: IObservable<{ readonly id: string; readonly kind: string } | undefined> = observableValue(this, undefined);
 +	readonly loading: IObservable<boolean> = observableValue(this, false);
 +	readonly isArchived: IObservable<boolean>;
@@ -119,6 +147,9 @@ index 00000000000..af762141212
 +		this.isArchived = observableValue(this, item.archived === true);
 +		this.workspace = observableValue(this, workspace);
 +		const chat = new ExtensionSessionChat(item);
++		this._chat = chat;
++		this._modelId = observableValue(this, undefined);
++		this.modelId = this._modelId;
 +		this.chats = observableValue(this, [chat]);
 +		this.mainChat = observableValue(this, chat);
 +		// Capabilities state what Caret can actually do today: everything else is
@@ -135,6 +166,15 @@ index 00000000000..af762141212
 +	/** True when this session wraps the given chat session resource. */
 +	matches(resource: URI): boolean {
 +		return this.item.resource.toString() === resource.toString();
++	}
++
++	/**
++	 * Confirmed model selection only; writes through the same public `.set`
++	 * API as `_sessionTypes` and keeps the session and its main chat in sync.
++	 */
++	setModelSelection(modelId: string | undefined, source: ChatModelSource | undefined): void {
++		this._modelId.set(modelId, undefined);
++		this._chat.setModelSelection(modelId, source);
 +	}
 +}
 +
@@ -171,6 +211,10 @@ index 00000000000..af762141212
 +			this.updateSessionTypes();
 +			void this.refresh();
 +		}));
++		// The OMP catalog arrives as the extension's `models` option group; re-read
++		// the picker snapshot whenever it (or a session's selection) changes.
++		this._register(this.chatSessionsService.onDidChangeOptionGroups(() => this._onDidChangeModels.fire()));
++		this._register(this.chatSessionsService.onDidChangeSessionOptions(() => this._onDidChangeModels.fire()));
 +		this.updateSessionTypes();
 +		void this.refresh();
 +	}
@@ -285,18 +329,88 @@ index 00000000000..af762141212
 +		return session;
 +	}
 +
-+	getModelsSnapshot(_sessionId: string, _desiredModelId?: string): ISessionModelsSnapshot {
-+		return { models: [], desiredModelResolution: { kind: 'notRequested' }, modelTarget: undefined };
++	getModelsSnapshot(sessionId: string, desiredModelId?: string): ISessionModelsSnapshot {
++		// Read-only projection of the extension's `models` option group, which the
++		// extension builds from host `get_available_models` + `get_state`. No host
++		// access here: the renderer never holds the host token. Empty catalogs stay
++		// empty (honest-disabled downstream); absence is conclusive, never pending.
++		const session = this.sessions.find(candidate => candidate.sessionId === sessionId) as ExtensionSession | undefined;
++		const sessionType = (session as { readonly sessionType?: string } | undefined)?.sessionType;
++		const groups = sessionType ? this.chatSessionsService.getOptionGroupsForSessionType(sessionType) : undefined;
++		const items = groups?.find(group => group.id === CARET_MODELS_GROUP_ID)?.items ?? [];
++		const models = items.map(item => {
++			const record = item as { readonly description?: unknown; readonly tooltip?: unknown };
++			// Never invent a vendor: unknown stays empty (type requires a
++			// string, so empty is the honest unknown, not 'caret').
++			const vendor = cleanText(record.description) ?? '';
++			return {
++				identifier: item.id,
++				metadata: {
++					extension: new ExtensionIdentifier(CARET_EXTENSION_ID),
++					id: item.id,
++					name: item.name,
++					vendor,
++					version: '1.0',
++					family: item.id,
++					tooltip: cleanText(record.tooltip),
++					detail: cleanText(record.description),
++					// 0 is the neutral unknown: core guards token display with
++					// `if (maxInputTokens || maxOutputTokens)`, so 0 renders as
++					// unknown rather than asserting a false limit.
++					maxInputTokens: 0,
++					maxOutputTokens: 0,
++					isDefaultForLocation: {},
++					targetChatSessionType: sessionType,
++					isUserSelectable: true,
++				},
++			};
++		});
++		return {
++			models,
++			// Conclusive: OMP lists are authoritative, so a missing id is genuinely
++			// gone (unavailable), not still loading (pending). No desired id means
++			// notRequested, which keeps the picker honest-disabled until chosen.
++			desiredModelResolution: resolveModelIdentifier(models, desiredModelId, true),
++			modelTarget: sessionType,
++		};
 +	}
 +
 +	getModelPickerOptions(_sessionId: string): ISessionModelPickerOptions {
-+		// OMP advertises models through the host; until the picker is wired to that
-+		// list the window must not offer a Caret-side model choice.
-+		return { useGroupedModelPicker: false, showFeatured: false, showUnavailableFeatured: false, showManageModelsAction: false, showAutoModel: false };
++		// Minimal grouped picker for the OMP catalog. No featured models, no manage
++		// action, and no synthetic Auto fallback: with no advertised models the core
++		// picker shows its "No models available" state instead of inventing one.
++		return { useGroupedModelPicker: true, showFeatured: false, showUnavailableFeatured: false, showManageModelsAction: false, showAutoModel: false };
 +	}
 +
-+	setModel(_sessionId: string, _chatResource: URI, _modelId: string, _source: ChatModelSource): void {
-+		// Model choice belongs to OMP, not to this window.
++	setModel(sessionId: string, chatResource: URI, modelId: string, source: ChatModelSource): void {
++		const session = this.sessions.find(candidate => candidate.sessionId === sessionId) ?? this.sessions.find(candidate => candidate.matches(chatResource));
++		if (!session) throw new Error(UNSUPPORTED);
++		const chat = session.mainChat.get();
++		const previousSessionModel = session.modelId.get();
++		const previousChatModel = chat.modelId.get();
++		const previousSource = chat.modelSource.get();
++		// Optimistic local feedback so the picker reflects the choice; the
++		// durable write is the extension option update below, which owns host
++		// `set_model`. Uses only the public `.set` API (same as `_sessionTypes`).
++		session.setModelSelection(modelId, source);
++		let confirmed = false;
++		try {
++			confirmed = this.chatSessionsService.setSessionOption(chatResource, CARET_MODELS_GROUP_ID, modelId);
++		} catch (error) {
++			this.logService.warn(`[extensionSessions] could not forward model selection: ${error instanceof Error ? error.message : String(error)}`);
++			confirmed = false;
++		}
++		if (!confirmed) {
++			session.setModelSelection(previousSessionModel, previousSource);
++			// Restore the exact previous chat model when it differed from the
++			// session view (normally identical; kept separate for honesty).
++			if (previousChatModel !== previousSessionModel) {
++				(session.mainChat.get() as ExtensionSessionChat).setModelSelection(previousChatModel, previousSource);
++			}
++			this.logService.warn(`[extensionSessions] model selection was not accepted; restored previous model.`);
++			return;
++		}
++		this._onDidChangeSessions.fire({ added: [], removed: [], changed: [session] });
 +	}
 +
 +	async renameChat(_sessionId: string, _chatUri: URI, _title: string): Promise<void> { throw new Error(UNSUPPORTED); }
