@@ -287,6 +287,29 @@ managed-settings/tool-ids/slash-command compat) — ไม่ register และ
 แล้วจึง S4 (parity §3: layout ของหน้าต่าง Agents ที่ยังมีคอลัมน์ editor/detail 298px,
 ปุ่ม pet, `Run Task` title action, label sidebar/composer)
 
+**S4 เริ่มแล้ว — ปิดได้ 4 แถว, ยืนยันด้วยรันจริง** (2026-09-14)
+
+- `patches/desktop/0015` (7 ไฟล์ ใต้ `src/vs/sessions/**` เท่านั้น → หน้าต่าง IDE ไม่ถูกแตะ):
+  placeholder ของ composer เหลือข้อความเดียวตาม Cursor, header entry point เป็น `IDE`
+  (ทั้ง action ที่หน้าต่างนี้ register จริงและ widget hover), ปุ่ม sidebar `New` → `New Chat`,
+  และ `sessions.developerJoy.enabled` default `true` → `false` (ปุ่ม pet หายจากหน้าต่าง)
+- **verified (dev build + `--agents` + CDP DOM)**: ข้อความหน้าต่างขึ้นต้นด้วย `IDE`,
+  ไม่มี `Open in VS Code`/`Open in Editor`, composer มี `Plan, Build, / for skills, @ for context`
+  และ `Pitch your idea` หายไป, sidebar เป็น `New Chat ⌘N`, element ของ pet ยังอยู่ใน DOM
+  แต่ `hidden` + ขนาด 0 (มองไม่เห็น) — ใบเสร็จ [s4-agents-cursor-copy-2026-09-14](evidence/s4-agents-cursor-copy-2026-09-14/receipt.json)
+- **S3 ยังไม่ทำ และรอบนี้ยืนยันหลักฐานว่าจำเป็น**: หน้าต่าง Agents ยัง mount shell ของเรา
+  (ท้าย innerText คือ `window.caret-shell`, CDP target list มี webview ของ `caret.caret`)
+  ⇒ §8.3 ยังไม่ผ่าน
+- แถว §3 ที่ยังเปิด: sidebar vocabulary (`Sessions`/`Workspace`/`Customize` → New Chat/Search/
+  Projects/Repositories + Getting Started + Dismiss), คอลัมน์ editor group, แถว project/branch/
+  environment + reasoning + voice ใน composer, แถวแนะนำ + Dismiss, panels Changes/Files/
+  Browser/Terminal, sidebar 280px เทียบ 255px, และการวัดที่ rig 1710×1073
+- **อ้างอิงภายนอก**: `cursor.com/docs` ยืนยันว่าผลิตภัณฑ์มีสองหน้าต่างจริง — Agents Window
+  (เปิดจาก editor ด้วย `Cmd+Shift+P → Open Agents Window`) และ IDE (`→ Open IDE`)
+  และ "you can switch back to the editor anytime, or have both open simultaneously"
+  ([/docs/agent/agents-window](https://cursor.com/docs/agent/agents-window)) ⇒ สถาปัตยกรรม 2 หน้าต่าง
+  ของเราตรงกับผลิตภัณฑ์ต้นทาง
+
 ## 7. แผนลงมือ
 
 | ขั้น | งาน | เจ้าของ | exit evidence |

@@ -1,0 +1,124 @@
+diff --git a/src/vs/sessions/browser/actions/vscodeActions.ts b/src/vs/sessions/browser/actions/vscodeActions.ts
+index 59d159c1035..47dc16d2768 100644
+--- a/src/vs/sessions/browser/actions/vscodeActions.ts
++++ b/src/vs/sessions/browser/actions/vscodeActions.ts
+@@ -34,7 +34,8 @@ export class OpenInVSCodeAction extends Action2 {
+ 	constructor() {
+ 		super({
+ 			id: OpenInVSCodeAction.ID,
+-			title: localize2('openInVSCode', 'Open in Editor'),
++			// Caret: the parity contract section 3 names this entry point "IDE".
++			title: localize2('openInVSCode', 'IDE'),
+ 			icon: Codicon.vscodeInsiders,
+ 			precondition: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated()),
+ 			menu: [{
+diff --git a/src/vs/sessions/browser/widget/openInVSCodeWidget.ts b/src/vs/sessions/browser/widget/openInVSCodeWidget.ts
+index 5d7e07a0833..f000a5b860d 100644
+--- a/src/vs/sessions/browser/widget/openInVSCodeWidget.ts
++++ b/src/vs/sessions/browser/widget/openInVSCodeWidget.ts
+@@ -44,7 +44,9 @@ export class OpenInVSCodeTitleBarWidget extends BaseActionViewItem {
+ 		}
+ 
+ 		const label = this.action.label;
+-		const hoverText = this.keybindingService.appendKeybinding(localize('openInVSCodeHover', "Open in VS Code Editor Window"), this.keybindingCommandId);
++		// Caret: contract section 3 pins the header label to "IDE"; keep the resolved
++		// keybinding in the hover so the shortcut stays discoverable.
++		const hoverText = this.keybindingService.appendKeybinding(localize('openInVSCodeHover', "IDE"), this.keybindingCommandId);
+ 		container.setAttribute('aria-label', hoverText);
+ 		this._register(this.hoverService.setupManagedHover(getDefaultHoverDelegate('element'), container, hoverText));
+ 
+diff --git a/src/vs/sessions/contrib/aquarium/browser/aquarium.contribution.ts b/src/vs/sessions/contrib/aquarium/browser/aquarium.contribution.ts
+index 4e1a2df7d34..e802cae55bf 100644
+--- a/src/vs/sessions/contrib/aquarium/browser/aquarium.contribution.ts
++++ b/src/vs/sessions/contrib/aquarium/browser/aquarium.contribution.ts
+@@ -19,7 +19,9 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
+ 	properties: {
+ 		[SESSIONS_DEVELOPER_JOY_ENABLED_SETTING]: {
+ 			type: 'boolean',
+-			default: true,
++			// Caret: contract section 3 has no pet button in the Agents window, so the
++			// easter egg ships off. Users can still opt in through this setting.
++			default: false,
+ 			description: localize('sessions.developerJoy.enabled', "Adds an easter egg to the Agents window."),
+ 			tags: ['experimental'],
+ 		},
+diff --git a/src/vs/sessions/contrib/chat/browser/newChatInput.ts b/src/vs/sessions/contrib/chat/browser/newChatInput.ts
+index c2793b07eca..ce8467998c6 100644
+--- a/src/vs/sessions/contrib/chat/browser/newChatInput.ts
++++ b/src/vs/sessions/contrib/chat/browser/newChatInput.ts
+@@ -364,26 +364,13 @@ export interface INewChatInputSendRequest {
+ }
+ 
+ /**
+- * Randomized, friendly placeholders shown in the new-session chat input
+- * to add a bit of personality. One is picked per widget instance, avoiding
+- * an immediate repeat of the previous pick.
++ * Caret: Cursor's Agents window shows one stable composer placeholder that
++ * teaches the three input affordances. The base randomized a pool of
++ * personality strings; parity contract section 3 pins the copy, so the pool
++ * collapses to the single reference placeholder.
+  */
+ const RANDOM_PLACEHOLDERS = [
+-	localize('sessionsChatInput.placeholder.whatAreYouBuilding', "What are you building?"),
+-	localize('sessionsChatInput.placeholder.whatWillYouShipToday', "What will you ship today?"),
+-	localize('sessionsChatInput.placeholder.describeWhatYouWantToBuild', "Describe what you want to build"),
+-	localize('sessionsChatInput.placeholder.whatsYourNextMilestone', "What's your next milestone?"),
+-	localize('sessionsChatInput.placeholder.whatAreYouTryingToAchieve', "What are you trying to achieve?"),
+-	localize('sessionsChatInput.placeholder.pitchYourIdea', "Pitch your idea"),
+-	localize('sessionsChatInput.placeholder.whatsTheGoal', "What's the goal?"),
+-	localize('sessionsChatInput.placeholder.whatWillYouCreate', "What will you create?"),
+-	localize('sessionsChatInput.placeholder.whatFeatureAreYouDreamingUp', "What feature are you dreaming up?"),
+-	localize('sessionsChatInput.placeholder.describeTheOutcome', "Describe the outcome you want"),
+-	localize('sessionsChatInput.placeholder.whatProblemAreYouSolving', "What problem are you solving?"),
+-	localize('sessionsChatInput.placeholder.whatsNextOnYourRoadmap', "What's next on your roadmap?"),
+-	localize('sessionsChatInput.placeholder.whatWouldYouLikeToAutomate', "What would you like to automate?"),
+-	localize('sessionsChatInput.placeholder.whatWillYouLaunch', "What will you launch?"),
+-	localize('sessionsChatInput.placeholder.describeYourMission', "Describe your mission"),
++	localize('sessionsChatInput.placeholder.planBuild', "Plan, Build, / for skills, @ for context"),
+ ];
+ 
+ let lastPlaceholderIndex = -1;
+diff --git a/src/vs/sessions/contrib/chat/browser/newChatWidget.ts b/src/vs/sessions/contrib/chat/browser/newChatWidget.ts
+index a8dddb7d499..ea51db02bb1 100644
+--- a/src/vs/sessions/contrib/chat/browser/newChatWidget.ts
++++ b/src/vs/sessions/contrib/chat/browser/newChatWidget.ts
+@@ -242,7 +242,9 @@ export class NewChatWidget extends Disposable {
+ 			hasAdditionalSendContent: hasFeedback,
+ 			loading,
+ 			historyKey: constObservable(undefined), // no persisted history for the new-session view
+-			placeholder: localize('newSessionPromptPlaceholder', "Pitch your idea"),
++			// Caret: composer copy is pinned by the parity contract section 3 so the
++			// empty draft matches Cursor's composer verbatim.
++			placeholder: localize('newSessionPromptPlaceholder', "Plan, Build, / for skills, @ for context"),
+ 			supportsBackground: true,
+ 			deferredNotificationsEnabled,
+ 			petHostPreferred: this.options.petHostPreferred,
+diff --git a/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts b/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
+index f998a726e0e..4e3ffec4eab 100644
+--- a/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
++++ b/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
+@@ -1386,7 +1386,8 @@ export class NewSessionActionViewItem extends CompactButtonActionViewItem {
+ 	}
+ 
+ 	protected override get label(): string {
+-		return localize('newCompact', "New");
++		// Caret: contract section 3 names the sidebar action "New Chat".
++		return localize('newCompact', "New Chat");
+ 	}
+ 
+ 	protected override get onboardingTargetId(): string {
+diff --git a/src/vs/sessions/electron-browser/actions/vscodeActions.ts b/src/vs/sessions/electron-browser/actions/vscodeActions.ts
+index 188a45b48de..fa5885cffc9 100644
+--- a/src/vs/sessions/electron-browser/actions/vscodeActions.ts
++++ b/src/vs/sessions/electron-browser/actions/vscodeActions.ts
+@@ -38,7 +38,9 @@ export class OpenSessionInVSCodeAction extends Action2 {
+ 	constructor() {
+ 		super({
+ 			id: OpenSessionInVSCodeAction.ID,
+-			title: localize2('openInVSCode', 'Open in Editor'),
++			// Caret: the parity contract section 3 names this Agents-window header
++			// entry point "IDE" (it opens the separate editor window).
++			title: localize2('openInVSCode', 'IDE'),
+ 			icon: Codicon.vscodeInsiders,
+ 			precondition: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated()),
+ 			menu: [{

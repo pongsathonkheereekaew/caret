@@ -1,0 +1,34 @@
+{
+  "scope": "S4 first slice for the Agents window: Cursor's composer copy, header entry-point label, sidebar New Chat action, and the pet easter egg off by default - plus a fresh read of what still differs",
+  "capturedAt": "2026-09-14T20:25:00+07:00",
+  "branch": "main",
+  "revision": "working tree on top of 174f1fb031c",
+  "method": "dev build from the desktop/ checkout (patch 0015 applied, node build/next/index.ts transpile) + --agents --remote-debugging-port + CDP Runtime.evaluate on the live DOM. No screenshots and no vision model: every claim below is a DOM/aria read from the running window.",
+  "externalReference": "cursor.com/docs confirms Cursor ships two windows: the Agents Window (agent-first; opened from the editor via Cmd+Shift+P -> Open Agents Window) and the classic IDE (Cmd+Shift+P -> Open IDE), and states 'You can switch back to the editor anytime, or have both open simultaneously'. Source: https://cursor.com/docs/agent/agents-window (read 2026-09-14).",
+  "change": {
+    "desktopPatch": "patches/desktop/0015-caret-agents-cursor-parity-copy.patch - 7 files, all under src/vs/sessions/** so the IDE window cannot be affected",
+    "composerPlaceholder": "newChatInput.ts / newChatWidget.ts: the base's 15-string random placeholder pool collapses to Cursor's single composer copy",
+    "headerEntryPoint": "electron-browser/actions/vscodeActions.ts (the action this window actually registers) and browser/actions/vscodeActions.ts plus the titlebar widget hover: 'Open in Editor' / 'Open in VS Code Editor Window' -> 'IDE'",
+    "sidebarAction": "contrib/sessions/browser/sessionsActions.ts: the compact session pill label 'New' -> 'New Chat'",
+    "pet": "contrib/aquarium/browser/aquarium.contribution.ts: sessions.developerJoy.enabled default true -> false"
+  },
+  "verified": {
+    "composerPlaceholder": "PASS: body text contains 'Plan, Build, / for skills, @ for context'; the string 'Pitch your idea' is gone from the window.",
+    "headerLabel": "PASS: the window's text starts with 'IDE' followed by the sidebar; 'Open in VS Code' and 'Open in Editor' no longer appear.",
+    "newChatAction": "PASS: the sidebar row renders 'New Chat' with the resolved Cmd+N hint.",
+    "petHidden": "PASS (visible surface): the two pet elements are still in the DOM but hidden - chat-pet-button carries the 'hidden' class and agents-aquarium-toggle reports offsetWidth/offsetHeight 0. No pet button is visible in the window.",
+    "patchIntegrity": "PASS: git apply --reverse --check on the applied tree, git apply --check after reversal, then re-apply; bun scripts/prepare-desktop.ts reports 13 patches + 18 removals on the pinned base.",
+    "ideWindowIsolation": "PASS by construction and by bundle: every changed file lives under desktop/src/vs/sessions/**; grep of out/vs finds the new copy only in out/vs/sessions/contrib/chat/browser/*.js, never in the workbench bundle."
+  },
+  "stillOpen": [
+    "S3 is NOT done, and this run re-confirmed why it matters: the Agents window still mounts the legacy Caret webview shell - body text ends with 'window.caret-shell' and the CDP target list shows an extension webview (caret.caret) inside the Agents window. SSOT gate section 8.3 still fails.",
+    "Sidebar vocabulary: still 'Sessions' / 'Workspace' / 'Customize' instead of Cursor's New Chat / Search (Cmd+K) / Automations / Customize / Projects / Repositories; no Getting Started card and no per-row Dismiss.",
+    "Editor-group column still mounted in the Agents window (section 3 forbids editor tabs and editor title actions).",
+    "Composer still lacks the project popup / branch combo / 'This Mac' environment row, the reasoning popup and voice input.",
+    "Empty-state recommendation rows with per-row Dismiss are absent.",
+    "Right-side panels Changes / Files / Browser / Terminal are absent (the shell column occupies that space).",
+    "Geometry: the sidebar measured 280px in this run against the 255px target in section 3.1; the 1710x1073 rig comparison is still not done.",
+    "Live prompt round-trip from the composer to OMP: still not fired (needs inference on the user's subscription)."
+  ],
+  "checks": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10; bun test -> passed (exit 0); desktop npm run typecheck-client -> 0 errors; node build/next/index.ts transpile -> done"
+}
