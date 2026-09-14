@@ -754,6 +754,12 @@ export class CaretTaskViewProvider {
 	}
 
 	private ensureAgentsPanel(): void {
+		// Caret: in the native Agents window the base sessions workbench owns the
+		// agent surface. Opening the legacy Caret webview shell here mounted a
+		// second agent surface inside the same window (the `window.caret-shell`
+		// column the parity sweep kept flagging), which the SSOT rule in the plan
+		// forbids. The shell stays reachable only outside that window.
+		if (this.inAgentsWindow()) return;
 		if (this.#panel) {
 			this.#panel.reveal(vscode.ViewColumn.One, false);
 			return;
@@ -930,7 +936,6 @@ export class CaretTaskViewProvider {
 		const uri = vscode.Uri.joinPath(dir, CARET_AGENTS_WORKSPACE);
 		await vscode.workspace.fs.createDirectory(dir);
 		await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(serializeCaretAgentsWorkspace(dir.fsPath)));
-		await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(dir, "window.caret-shell"), new Uint8Array());
 		return uri;
 	}
 

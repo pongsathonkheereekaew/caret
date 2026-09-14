@@ -197,7 +197,7 @@ Cursor Agents (window)
 | `patches/desktop/0002` + context key `caret.agentsWindow` + การซ่อน chrome ตอนสลับโหมด | S1 | **เกษียณแล้ว** (แทนด้วย `0008`; ถอด context key ออกจาก extension) |
 | drift ของ `agentWorkbenchActions.ts` ที่แก้ในเช็คเอาต์แต่ไม่เป็น patch | S1 | **สะอาดแล้ว** (เหลือแต่ build output: แบรนด์/ไอคอน/`argv.json`) |
 | command `caret.openAgentsWindow` ของ fork ที่ยังเปิด webview `caretComposer` | S3 | ยัง live (เห็นได้จาก Command Palette) |
-| หน้าต่าง Agents เปิด Caret shell editor (`caret.agentsShell`) ในตัวมันเอง | S3 | ยัง live (หลักฐาน: element ที่ label เป็น `…/globalStorage/caret.caret/window.caret-shell` ในหน้าต่าง Agents) |
+| หน้าต่าง Agents เปิด Caret shell editor (`caret.agentsShell`) ในตัวมันเอง | S3 | **ไม่ mount แล้ว** (2026-09-14): `ensureAgentsPanel()` ไม่ทำงานในหน้าต่าง Agents และเลิกเขียน `window.caret-shell` — verified ด้วย CDP (ข้อความในหน้าต่างไม่มี `caret-shell` เลย) เหลือแค่การลบโมดูล `webview.ts` + contribution + เทสต์ที่ผูก shell |
 | `CARET-AGENTS-WINDOW-ARCHITECTURE-2026-09-14.th.md` | ทันที | เป็น redirect stub |
 | provider ของ Copilot ใน sessions workbench | 2026-09-14 | ถอดแล้วด้วย `patches/desktop/0005` |
 
