@@ -730,6 +730,10 @@ describe("ide-native workbench surface", () => {
 			`executeCommand<string[]>('caret.browser.suggest', term)`,
 			`function isSearchTerm(value: string): boolean {`,
 			`function searchUrlFor(term: string): string {`,
+			// The page this tab hosts is a native view above the window's DOM, so the list
+			// only becomes visible if the page's own bounds give it room.
+			`const overlayHeight = overlay && !overlay.hidden ? Math.round(overlay.getBoundingClientRect().height) : 0;`,
+			`height: Math.max(0, Math.round(rect.height) - overlayHeight),`,
 			`const input = this.browserViewService.getOrCreateLazy({ id: generateUuid() });`,
 			`void model.layout(bounds)`,
 			`await model.loadURL(url).catch(() => undefined);`,

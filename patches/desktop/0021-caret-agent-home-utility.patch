@@ -169,10 +169,10 @@ index 00000000000..60538efa597
 +registerAction2(ShowAppsAction);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts b/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts
 new file mode 100644
-index 00000000000..f91bfb0f0c7
+index 00000000000..51ad2b85a73
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts
-@@ -0,0 +1,645 @@
+@@ -0,0 +1,660 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -468,6 +468,11 @@ index 00000000000..f91bfb0f0c7
 +		urlInput.type = 'text';
 +		urlInput.spellcheck = false;
 +
++		// The page this tab hosts is a native view above the window's DOM, so the space the
++		// suggestion list takes has to come out of the page's bounds (see layoutBrowserTab).
++		const view = append(container, $('.caret-apps-browser-view'));
++		const relayoutBrowser = (): void => this.layoutBrowserTab(tab, view);
++
 +		// Suggestions: the bar searches, so it offers what the engine would suggest for
 +		// the term. This window is subject to CORS, so the extension host makes the
 +		// request (`caret.browser.suggest`); a failure is an empty list, never an error.
@@ -482,6 +487,7 @@ index 00000000000..f91bfb0f0c7
 +			activeSuggestion = -1;
 +			suggestionBox.hidden = true;
 +			clearNode(suggestionBox);
++			relayoutBrowser();
 +		};
 +		const renderSuggestions = (): void => {
 +			clearNode(suggestionBox);
@@ -500,6 +506,7 @@ index 00000000000..f91bfb0f0c7
 +					void tab.browser?.loadURL(searchUrlFor(term));
 +				}));
 +			});
++			relayoutBrowser();
 +		};
 +		const requestSuggestions = (term: string): void => {
 +			const request = ++suggestRequest;
@@ -582,7 +589,6 @@ index 00000000000..f91bfb0f0c7
 +			sync();
 +		}
 +
-+		const view = append(container, $('.caret-apps-browser-view'));
 +		return { button, labelElement, container, view, urlInput, disposables };
 +	}
 +
@@ -707,7 +713,7 @@ index 00000000000..f91bfb0f0c7
 +			return;
 +		}
 +		if (tab.browser) {
-+			this.layoutBrowserTab(tab, view);
++			this.layoutBrowserTab(tab, view.view);
 +			return;
 +		}
 +		const { clientWidth, clientHeight } = view.container;
@@ -721,30 +727,39 @@ index 00000000000..f91bfb0f0c7
 +	 * pane. A stale rect is what let the page spill outside the panel, so the bounds come
 +	 * from the tab's own view element on every layout.
 +	 */
-+	private layoutBrowserTab(tab: IAppsPanelTab, view: IAppsTabView): void {
++	/**
++	 * Lay the hosted browser out over the panel.
++	 *
++	 * The page is a native view above this window's DOM, so anything the panel draws over
++	 * it - the address bar's suggestion list - has to be given room by the page's own
++	 * bounds; a list drawn over the view is in the DOM but hidden behind the page.
++	 */
++	private layoutBrowserTab(tab: IAppsPanelTab, viewElement: HTMLElement): void {
 +		const model = tab.browser;
 +		if (!model) {
 +			return;
 +		}
-+		const rect = view.view.getBoundingClientRect();
++		const rect = viewElement.getBoundingClientRect();
 +		if (rect.width < 1 || rect.height < 1) {
 +			void model.setVisible(false);
 +			return;
 +		}
++		const overlay = viewElement.parentElement?.querySelector<HTMLElement>('.caret-apps-browser-suggest');
++		const overlayHeight = overlay && !overlay.hidden ? Math.round(overlay.getBoundingClientRect().height) : 0;
 +		const bounds = {
 +			windowId: this.group.windowId,
 +			x: Math.round(rect.left),
-+			y: Math.round(rect.top),
++			y: Math.round(rect.top) + overlayHeight,
 +			width: Math.round(rect.width),
-+			height: Math.round(rect.height),
++			height: Math.max(0, Math.round(rect.height) - overlayHeight),
 +			zoomFactor: getZoomFactor(mainWindow),
 +			cornerRadius: 0,
 +		};
 +		void model.layout(bounds).then(() => {
 +			// A view that is hidden keeps its bounds; the pane records what it pushed so a
 +			// receipt capture can read it back.
-+			view.view.dataset.appsBrowserBounds = JSON.stringify(bounds);
-+			view.view.dataset.appsBrowserVisible = String(model.visible);
++			viewElement.dataset.appsBrowserBounds = JSON.stringify(bounds);
++			viewElement.dataset.appsBrowserVisible = String(model.visible);
 +		});
 +	}
 +
@@ -759,7 +774,7 @@ index 00000000000..f91bfb0f0c7
 +			const showing = visible && id === this.activeTabId;
 +			void tab.browser.setVisible(showing);
 +			if (showing) {
-+				this.layoutBrowserTab(tab, view);
++				this.layoutBrowserTab(tab, view.view);
 +			}
 +		}
 +	}
