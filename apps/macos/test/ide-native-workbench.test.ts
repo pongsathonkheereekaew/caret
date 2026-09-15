@@ -719,6 +719,10 @@ describe("ide-native workbench surface", () => {
 			// immediately instead of depending on a dialog that can be dismissed.
 			`caret-apps-browser-url`,
 			`function normaliseUrl(value: string): string {`,
+			// The address bar searches: a scheme or a bare host is a URL, anything else
+			// goes to the engine. The placeholder promised this before the code did it.
+			`const SEARCH_ENDPOINT = 'https://www.google.com/search?q=';`,
+			`return \`${'${SEARCH_ENDPOINT}'}${'${encodeURIComponent(trimmed)}'}\`;`,
 			`const input = this.browserViewService.getOrCreateLazy({ id: generateUuid() });`,
 			`void model.layout(bounds)`,
 			`await model.loadURL(url).catch(() => undefined);`,

@@ -75,7 +75,7 @@
     },
     {
       "file": "0021-caret-agent-home-utility.patch",
-      "sha256": "672ceb89789da467115360b1dcc4aa69b230456a6cae9b0be0132a9117270614"
+      "sha256": "0349b6159e81f8898fdc940bd480d7442faf846e21ca7157ba3710853a819d0f"
     },
     {
       "file": "0022-caret-agent-home-chrome-navigation.patch",

@@ -1,0 +1,28 @@
+{
+  "slice": "The Apps panel's browser address bar searches, not just navigates",
+  "capturedAt": "2026-09-15T18:15:00+07:00",
+  "branch": "main",
+  "method": "desktop patch 0021 change + CDP on the running Agents window + bun test + bun run typecheck",
+  "problem": {
+    "symptom": "typing words into the Apps panel's browser box did nothing useful",
+    "detail": "normaliseUrl prefixed `https://` to anything without a scheme, so a search term became the host `https://cats and dogs` and the page failed to load - while the field's own placeholder already read 'Search or enter URL'"
+  },
+  "change": {
+    "rule": "a value with a scheme (https:, file:, mailto:) is used as typed; a single token that looks like a host - localhost, an IPv4 address, or a dotted name with a two-letter-or-longer suffix, each with an optional port and path - is opened over https; anything else goes to the search engine",
+    "engine": "https://www.google.com/search?q= (the search box's placeholder and the reference browser's engine), with the term percent-encoded"
+  },
+  "verified": {
+    "search": "CDP on the running window: opening the Apps panel's Browser tab and typing 'cats and dogs' then Enter produced a page target titled 'cats and dogs - ค้นหาด้วย Google' at https://www.google.com/search?q=cats%20and%20dogs",
+    "url": "typing 'example.com' then Enter produced the 'Example Domain' page at https://example.com/ - a bare host is still a URL, not a search",
+    "unitTests": "apps/macos/test/ide-native-workbench.test.ts pins the search endpoint and the encoded-term return in the 0021 patch text, alongside the address bar it belongs to",
+    "patchAgreement": "0021 regenerated for its own file only, digest updated, 24/24 patches apply from the pinned base and the produced tree equals the checkout",
+    "suites": "721 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host and apps/macos/test",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK"
+  },
+  "notVerified": [
+    "The engine's own rendering: the search page loaded and reported its title, but nothing beyond the navigation was inspected.",
+    "Which engine a user would prefer: Google is hard-coded here, matching the placeholder, with no setting to change it.",
+    "A host whose suffix is not a real TLD (e.g. 'readme.md') is treated as a URL and will fail to load rather than being searched; the rule is deliberately simple rather than carrying a TLD list."
+  ]
+}
