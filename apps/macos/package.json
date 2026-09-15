@@ -48,6 +48,36 @@
         "category": "Caret"
       },
       {
+        "command": "caret.project.setPinned",
+        "title": "Pin Project",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.project.rename",
+        "title": "Edit Project...",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.project.reveal",
+        "title": "Reveal in Finder",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.project.createWorktree",
+        "title": "Create Permanent Worktree",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.project.archiveChats",
+        "title": "Archive Chats",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.project.remove",
+        "title": "Remove Project",
+        "category": "Caret"
+      },
+      {
         "command": "caret.skipToTask",
         "title": "Skip to Task",
         "category": "Caret"

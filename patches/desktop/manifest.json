@@ -79,7 +79,7 @@
     },
     {
       "file": "0022-caret-agent-home-chrome-navigation.patch",
-      "sha256": "ef43d70fff5e548fb888d8c57ffe382cdafe1770b55df101809474d2ab98d767"
+      "sha256": "b44c977906ffa4b94966a682887be0cf71acba5e1f993987dcf3ec763d44ede9"
     },
     {
       "file": "0023-caret-agent-home-composer-starters.patch",

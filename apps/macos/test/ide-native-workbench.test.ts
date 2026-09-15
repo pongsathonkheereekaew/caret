@@ -832,6 +832,20 @@ describe("ide-native workbench surface", () => {
 			// Reference column shares instead of fixed widths.
 			`const REFERENCE_SIDEBAR_SHARE = 0.15625;`,
 			`const REFERENCE_UTILITY_SHARE = 0.2251;`,
+			// The project rows carry the reference's own right-click menu, in the
+			// reference's order. The entries reach the Caret extension's project
+			// commands, and a command that cannot run reports instead of doing nothing
+			// (apps/macos/test/agent-home-project-menu.test.ts pins the other half of
+			// that contract: every id here is a command the extension registers).
+			`const CARET_PROJECT_COMMANDS = {`,
+			`pin: 'caret.project.setPinned',`,
+			`remove: 'caret.project.remove',`,
+			`EventType.CONTEXT_MENU`,
+			`attachSessionsListMenu`,
+			`localize('caret.project.pin', "Pin Project")`,
+			`localize('caret.project.reveal', "Reveal in Finder")`,
+			`localize('caret.project.worktree', "Create Permanent Worktree")`,
+			`localize('caret.project.actionFailed'`,
 		]) {
 			expect(patchText).toContain(needle);
 		}

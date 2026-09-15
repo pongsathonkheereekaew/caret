@@ -1,9 +1,9 @@
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeNav.contribution.ts b/src/vs/sessions/contrib/home/browser/agentHomeNav.contribution.ts
 new file mode 100644
-index 00000000000..63155c1dd4a
+index 00000000000..1da8229215e
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeNav.contribution.ts
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,93 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -69,8 +69,12 @@ index 00000000000..63155c1dd4a
 +			return;
 +		}
 +
-+		this._register(this.instantiationService.createInstance(AgentHomeNav, content));
++		const nav = this._register(this.instantiationService.createInstance(AgentHomeNav, content));
 +		sidebar.classList.add('caret-agent-home-sidebar');
++		// The sessions list inside this sidebar draws its own project groups; the navigation
++		// attaches the project menu to those rows too, so the same right-click works wherever
++		// the project row comes from.
++		nav.attachSessionsListMenu(sidebar);
 +
 +		// The base sidebar header (a small "New Chat" pill plus filter and find icons)
 +		// and the detached "Customizations" footer are replaced by the navigation rows,
@@ -95,10 +99,10 @@ index 00000000000..63155c1dd4a
 +registerWorkbenchContribution2(AgentHomeNavContribution.ID, AgentHomeNavContribution, WorkbenchPhase.AfterRestored);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeNav.ts b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
 new file mode 100644
-index 00000000000..1925fcf4594
+index 00000000000..53401892ef5
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,323 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -106,20 +110,39 @@ index 00000000000..1925fcf4594
 +
 +import { $, addDisposableListener, append, clearNode, EventType } from '../../../../base/browser/dom.js';
 +import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
++import { Action, IAction } from '../../../../base/common/actions.js';
 +import { Codicon } from '../../../../base/common/codicons.js';
 +import { ThemeIcon } from '../../../../base/common/themables.js';
 +import { Disposable } from '../../../../base/common/lifecycle.js';
++import { URI } from '../../../../base/common/uri.js';
 +import { localize } from '../../../../nls.js';
 +import { ICommandService } from '../../../../platform/commands/common/commands.js';
++import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
++import { INotificationService } from '../../../../platform/notification/common/notification.js';
 +import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 +import { OPEN_CUSTOMIZATIONS_COMMAND_ID } from '../../../common/customizations.js';
 +import { ICustomViewService } from '../../../services/customView/browser/customViewService.js';
 +import { NEW_SESSION_ACTION_ID } from '../../chat/common/constants.js';
 +import { AUTOMATIONS_CUSTOM_VIEW_ID } from '../../sessions/browser/automationsConstants.js';
 +
-+/** Commands the Agent Home navigation uses. All of them already exist. */
++/** Workbench commands the Agent Home navigation uses. All of them already exist. */
 +const FIND_SESSIONS_COMMAND_ID = 'sessionsViewPane.find';
 +const OPEN_FOLDER_COMMAND_ID = 'workbench.action.files.openFolder';
++
++/**
++ * The Caret extension's project commands. A sidebar row is a workspace folder, while
++ * pin/rename/archive live on the host's project record, so every action carries the folder
++ * path and the extension resolves the project that owns it (`resolveHostProject` in
++ * apps/macos/src/extension.ts).
++ */
++const CARET_PROJECT_COMMANDS = {
++	pin: 'caret.project.setPinned',
++	edit: 'caret.project.rename',
++	reveal: 'caret.project.reveal',
++	worktree: 'caret.project.createWorktree',
++	archiveChats: 'caret.project.archiveChats',
++	remove: 'caret.project.remove',
++} as const;
 +
 +/**
 + * The Agent Home navigation of the reference sidebar.
@@ -144,6 +167,8 @@ index 00000000000..1925fcf4594
 +	constructor(
 +		parent: HTMLElement,
 +		@ICommandService private readonly commandService: ICommandService,
++		@IContextMenuService private readonly contextMenuService: IContextMenuService,
++		@INotificationService private readonly notificationService: INotificationService,
 +		@ICustomViewService private readonly customViewService: ICustomViewService,
 +		@IWorkspaceContextService private readonly workspaceService: IWorkspaceContextService,
 +	) {
@@ -177,7 +202,8 @@ index 00000000000..1925fcf4594
 +			this.renderEmpty(projects, localize('caret.nav.noProject', "No project open"));
 +		} else {
 +			for (const folder of folders) {
-+				this.renderEntry(projects, Codicon.project, folder.name);
++				const row = this.renderEntry(projects, Codicon.project, folder.name);
++				this.attachProjectMenu(row, folder.name, folder.uri);
 +			}
 +		}
 +
@@ -314,6 +340,82 @@ index 00000000000..1925fcf4594
 +	private renderEmpty(parent: HTMLElement, label: string): void {
 +		const empty = append(parent, $('.caret-agent-home-nav-empty'));
 +		empty.textContent = label;
++	}
++
++	/**
++	 * The reference's project menu, in its order: Pin, Edit, Reveal, Create permanent
++	 * worktree, Archive chats, Remove project.
++	 *
++	 * Every entry is a real operation. Pin / Edit / Archive chats / Remove project reach the
++	 * host's project record through the Caret extension (the only side that owns that
++	 * connection); Reveal runs the workbench's own reveal command; Create worktree starts a
++	 * worktree task, which is the real worktree Caret creates today.
++	 */
++	private attachProjectMenu(row: HTMLElement, name: string, uri: URI): void {
++		this._register(addDisposableListener(row, EventType.CONTEXT_MENU, (event: MouseEvent) => {
++			event.preventDefault();
++			event.stopPropagation();
++			const anchor = { x: event.clientX, y: event.clientY };
++			this.contextMenuService.showContextMenu({
++				getAnchor: () => anchor,
++				// The row knows the folder, so the path is what the action carries.
++				getActions: () => this.projectMenuActions(uri.fsPath),
++				getActionsContext: () => name,
++			});
++		}));
++	}
++
++	/**
++	 * The same menu on the sessions list's own project groups.
++	 *
++	 * Those rows are drawn by the sessions view, one per workspace, and the base section id
++	 * is the only project identity they carry here. The listener is delegated from the
++	 * sidebar container so it works for rows that are recycled as the list scrolls, and the
++	 * row's label travels as the hint: the extension matches a project by path first and by
++	 * a unique name second, and refuses to guess when two projects share a name.
++	 */
++	attachSessionsListMenu(sidebar: HTMLElement): void {
++		this._register(addDisposableListener(sidebar, EventType.CONTEXT_MENU, (event: MouseEvent) => {
++			const target = event.target as HTMLElement | null;
++			const section = target?.closest?.('.session-section');
++			if (!section) {
++				return;
++			}
++			const label = section.querySelector('.session-section-label')?.textContent?.trim();
++			if (!label) {
++				return;
++			}
++			// Automation and status sections are not projects.
++			if (!section.querySelector('.session-section-icon.codicon-folder')) {
++				return;
++			}
++			event.preventDefault();
++			event.stopPropagation();
++			const anchor = { x: event.clientX, y: event.clientY };
++			this.contextMenuService.showContextMenu({
++				getAnchor: () => anchor,
++				getActions: () => this.projectMenuActions(label),
++				getActionsContext: () => label,
++			});
++		}, true));
++	}
++
++	private projectMenuActions(hint: string): IAction[] {
++		// The Caret extension owns these commands, so a window without that extension would
++		// otherwise show a menu whose entries quietly do nothing.
++		const action = (commandId: string, label: string): IAction => new Action(commandId, label, undefined, true, () => {
++			void Promise.resolve(this.commandService.executeCommand(commandId, hint)).catch((error: unknown) => {
++				this.notificationService.warn(localize('caret.project.actionFailed', "Caret could not run '{0}': {1}", label, error instanceof Error ? error.message : String(error)));
++			});
++		});
++		return [
++			action(CARET_PROJECT_COMMANDS.pin, localize('caret.project.pin', "Pin Project")),
++			action(CARET_PROJECT_COMMANDS.edit, localize('caret.project.edit', "Edit Project...")),
++			action(CARET_PROJECT_COMMANDS.reveal, localize('caret.project.reveal', "Reveal in Finder")),
++			action(CARET_PROJECT_COMMANDS.worktree, localize('caret.project.worktree', "Create Permanent Worktree")),
++			action(CARET_PROJECT_COMMANDS.archiveChats, localize('caret.project.archiveChats', "Archive Chats")),
++			action(CARET_PROJECT_COMMANDS.remove, localize('caret.project.remove', "Remove Project")),
++		];
 +	}
 +
 +	private renderFilterEmpty(parent: HTMLElement, label: string): void {

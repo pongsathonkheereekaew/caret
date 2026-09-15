@@ -1077,6 +1077,142 @@ export class CaretTaskViewProvider {
 		return this.refresh();
 	}
 
+	/** Pin or unpin the project whose folder was right-clicked. */
+	setProjectPinned(folderPath: unknown): Promise<void> {
+		return this.withHostProject(folderPath, async (project, client) => {
+			const updated = await client.patchProject(project.id, { pinned: !project.pinned });
+			void vscode.window.showInformationMessage(updated.pinned ? `Pinned ${updated.name}` : `Unpinned ${updated.name}`);
+			await this.refresh();
+		});
+	}
+
+	/** Rename the project record; the folder on disk is never touched. */
+	renameProject(folderPath: unknown): Promise<void> {
+		return this.withHostProject(folderPath, async (project, client) => {
+			const name = await vscode.window.showInputBox({
+				prompt: "Project name",
+				value: project.name,
+				placeHolder: project.path,
+			});
+			const trimmed = name?.trim();
+			if (!trimmed || trimmed === project.name) {
+				return;
+			}
+			const updated = await client.patchProject(project.id, { name: trimmed });
+			void vscode.window.showInformationMessage(`Renamed to ${updated.name}`);
+			await this.refresh();
+		});
+	}
+
+	/**
+	 * Archive every chat of the project.
+	 *
+	 * Archiving is the host's own reversible operation: the transcripts stay on disk and
+	 * stay readable, which is why this does not delete them.
+	 */
+	archiveProjectChats(folderPath: unknown): Promise<void> {
+		return this.withHostProject(folderPath, async (project, client) => {
+			const sessions = await client.listSessions(project.id);
+			const open = sessions.filter(session => !session.archived);
+			for (const session of open) {
+				await client.patchSession(session.id, { archived: true });
+			}
+			void vscode.window.showInformationMessage(open.length === 0
+				? `No open chats in ${project.name}.`
+				: `Archived ${open.length} chat${open.length === 1 ? "" : "s"} in ${project.name}.`);
+			await this.refresh();
+		});
+	}
+
+	/**
+	 * Remove the project from Caret.
+	 *
+	 * This archives the project record: the folder and the transcripts stay on disk. Cursor
+	 * deletes its project entry; Caret's host has no delete, and inventing one here would
+	 * throw away transcripts the host owns.
+	 */
+	removeProject(folderPath: unknown): Promise<void> {
+		return this.withHostProject(folderPath, async (project, client) => {
+			const confirmed = await vscode.window.showWarningMessage(
+				`Remove ${project.name} from Caret? The folder and its chats stay on disk.`,
+				{ modal: true },
+				"Remove",
+			);
+			if (confirmed !== "Remove") {
+				return;
+			}
+			await client.patchProject(project.id, { archived: true });
+			void vscode.window.showInformationMessage(`Removed ${project.name} from Caret. Its folder and chats are untouched.`);
+			await this.refresh();
+		});
+	}
+
+	/**
+	 * Create a worktree for the project and start a task in it.
+	 *
+	 * Caret creates the worktree with the task and leaves it on disk when the task ends, so
+	 * this is the closest real equivalent of the reference's "create permanent worktree":
+	 * the difference is that the checkout belongs to a task rather than to the project row.
+	 */
+	createWorktreeForProject(folderPath: unknown): Promise<void> {
+		return this.withHostProject(folderPath, async (project, client) => {
+			const sessionValue = await client.createSession({ projectId: project.id, workspaceMode: "worktree" });
+			const created = normalizeSession(sessionValue);
+			if (!created) {
+				throw new Error("Caret host returned an invalid session");
+			}
+			void vscode.window.showInformationMessage(`Created a worktree task for ${project.name} at ${created.cwd}`);
+			await this.refresh();
+		});
+	}
+
+	/**
+	 * Resolve the host project that owns a folder.
+	 *
+	 * The sidebar's project rows are the open workspace folders, while pin/rename/archive
+	 * live on the host's project record. Matching by path joins the two, and it is the only
+	 * honest join available: two folders can share a name, and a folder the host was never
+	 * told about is not a project yet.
+	 */
+	private async resolveHostProject(hint: string, client: CaretHostClient): Promise<Project | undefined> {
+		const wanted = hint.replace(/\/+$/, "");
+		const projects = await client.listProjects();
+		const byPath = projects.find(project => project.path.replace(/\/+$/, "") === wanted);
+		if (byPath) {
+			return byPath;
+		}
+		// A row that carries no path (the sessions list groups rows by workspace name) is
+		// matched by name, and only when exactly one project matches: guessing between two
+		// folders that share a name would act on the wrong one.
+		const byName = projects.filter(project => project.name === hint);
+		return byName.length === 1 ? byName[0] : undefined;
+	}
+
+	private async withHostProject(hint: unknown, run: (project: Project, client: CaretHostClient) => Promise<void>): Promise<void> {
+		if (typeof hint !== "string" || hint.length === 0) {
+			void vscode.window.showWarningMessage("Caret needs the project folder for that action.");
+			return;
+		}
+		try {
+			const client = await this.ensureClient();
+			const project = await this.resolveHostProject(hint, client);
+			if (!project) {
+				void vscode.window.showWarningMessage(`Caret cannot tell which project "${hint}" is. Open the folder in Caret so the project is registered, or use its project row.`);
+				return;
+			}
+			await run(project, client);
+		} catch (error) {
+			void vscode.window.showWarningMessage(`Caret could not complete that project action: ${errorMessage(error)}`);
+		}
+	}
+
+	/** Reveal the project's folder in the OS file manager. */
+	revealProject(hint: unknown): Promise<void> {
+		return this.withHostProject(hint, async project => {
+			await vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(project.path));
+		});
+	}
+
 	prefill(text: string): void {
 		this.post({ type: "prefill", text });
 		this.focusComposer();
@@ -3722,6 +3858,14 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand("caret.showIde", () => provider.showIde()),
 		vscode.commands.registerCommand("caret.newTask", () => provider.newTaskFlow()),
 		vscode.commands.registerCommand("caret.openFolder", () => provider.openFolderFlow()),
+		// The sidebar's project rows call these with the folder they were right-clicked on:
+		// the row is a workspace folder, the operations are the host's project record.
+		vscode.commands.registerCommand("caret.project.setPinned", (folderPath?: string) => provider.setProjectPinned(folderPath)),
+		vscode.commands.registerCommand("caret.project.rename", (folderPath?: string) => provider.renameProject(folderPath)),
+		vscode.commands.registerCommand("caret.project.archiveChats", (folderPath?: string) => provider.archiveProjectChats(folderPath)),
+		vscode.commands.registerCommand("caret.project.remove", (folderPath?: string) => provider.removeProject(folderPath)),
+		vscode.commands.registerCommand("caret.project.createWorktree", (folderPath?: string) => provider.createWorktreeForProject(folderPath)),
+		vscode.commands.registerCommand("caret.project.reveal", (hint?: string) => provider.revealProject(hint)),
 		vscode.commands.registerCommand("caret.refresh", () => provider.refreshNow()),
 		vscode.commands.registerCommand("caret.openFiles", () => provider.nativeAction("files")),
 		vscode.commands.registerCommand("caret.showDiff", () => provider.nativeAction("diff")),
