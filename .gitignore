@@ -10,3 +10,8 @@ dist/
 
 # Code-OSS packaged app outputs
 VSCode-*/
+
+# macOS and local tooling noise.
+.DS_Store
+.vscode/
+.commandcode/

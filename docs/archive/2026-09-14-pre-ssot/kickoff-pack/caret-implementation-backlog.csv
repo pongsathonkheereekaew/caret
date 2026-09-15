@@ -1,0 +1,94 @@
+﻿ID,Phase,Surface,Feature,Priority,Dependencies,Acceptance Criteria
+ARC-001,0,Architecture,Freeze Code-OSS baseline,P0,None,"Exact upstream commit, build steps, and patch ledger are recorded."
+ARC-002,0,Architecture,Freeze Cursor reference build,P0,None,"Version, OS, theme, zoom, scale, and screenshots are recorded."
+ARC-003,0,Architecture,Define Caret protocol versioning,P0,None,Semver protocol and compatibility policy are documented.
+OMP-001,0,Runtime,Inventory OMP structured APIs/events,P0,ARC-003,Every required command and event has supported/unsupported status.
+OMP-002,0,Runtime,OMP bridge spike,P0,OMP-001,"Prompt, typed tool event, approval, completion, and stop work without TUI parsing."
+OMP-003,1,Runtime,Capability handshake,P0,OMP-002,UI receives version and capability matrix at connection.
+OMP-004,1,Runtime,Adapter contract tests,P0,OMP-003,Tests pass against oldest and newest supported OMP versions.
+DMD-001,1,Daemon,Create caret-agentd,P0,ARC-003,"Daemon launches, authenticates local clients, and shuts down cleanly."
+DMD-002,1,Daemon,SQLite event store,P0,DMD-001,Events append atomically and replay in sequence.
+DMD-003,1,Daemon,Session snapshots,P0,DMD-002,10k-event session opens from snapshot plus incremental replay.
+DMD-004,1,Daemon,Reconnect protocol,P0,DMD-002,Client resumes from last sequence without duplicates.
+DMD-005,1,Daemon,Runtime process supervisor,P0,OMP-003,"OMP process exit, crash, and reconnect states are surfaced."
+WIN-001,2,Desktop,Create Agents BrowserWindow,P0,DMD-001,Command opens a dedicated Agents Window.
+WIN-002,2,Desktop,Open IDE command,P0,WIN-001,Agents Window opens the current workspace in IDE.
+WIN-003,2,Desktop,Open Agents Window titlebar action,P0,WIN-001,IDE titlebar button opens/focuses the Agents Window.
+WIN-004,2,Desktop,Shared session selection,P0,"WIN-001,DMD-004",Both windows select the same session without duplicate runtime.
+WIN-005,2,Desktop,Window view-state persistence,P0,WIN-001,"Bounds, pane widths, selected surface, and focus restore."
+BRD-001,2,Branding,Replace product name and icons,P0,ARC-001,No Cursor or Microsoft product identity remains in normal UI.
+BRD-002,2,Branding,Replace app IDs and URI scheme,P0,BRD-001,caret:// deep links open the correct window and session.
+NAV-001,2,Agents Window,Left navigation shell,P0,WIN-001,"New Chat, Search, Automations, Customize, Projects, Repositories render."
+NAV-002,2,Agents Window,Project/repository tree,P0,NAV-001,"Rows support selection, context menus, rename, pin, and unavailable states."
+HOME-001,2,Agents Window,Agent Home layout,P0,NAV-001,Composer and source/runtime controls match reference geometry.
+CMP-001,3,Composer,Rich prompt editor,P0,HOME-001,"Multiline, undo, IME, paste, drag/drop, and draft persistence pass."
+CMP-002,3,Composer,Context chips,P0,CMP-001,"Files, folders, images, selection, Git, terminal, and browser context attach."
+CMP-003,3,Composer,@ context menu,P0,CMP-002,"Grouped search, keyboard navigation, loading, no-result, and invalid states work."
+CMP-004,3,Composer,Slash-command menu,P0,CMP-001,"Built-ins, skills, and custom commands are registry-driven."
+CMP-005,3,Composer,Model/mode/effort menus,P0,OMP-003,Menus reflect OMP capabilities and auth/unavailable states.
+CMP-006,3,Composer,Runtime selector,P0,OMP-003,Local/worktree/SSH/self-hosted/cloud descriptors are capability-driven.
+CMP-007,3,Composer,Queue,P0,OMP-003,"Add, reorder, edit, delete, restore, and send-next work."
+CMP-008,3,Composer,Steering,P0,OMP-003,Immediate follow-up is delivered at a safe runtime boundary.
+CMP-009,3,Composer,Voice input,P1,CMP-001,Recording/transcription states and permission errors render.
+SES-001,3,Session,Virtualized timeline,P0,DMD-003,10k mixed events scroll smoothly and maintain anchor.
+SES-002,3,Session,Assistant streaming,P0,SES-001,Delta batching avoids full transcript rerender and scroll jump.
+SES-003,3,Session,Typed tool blocks,P0,"SES-001,OMP-003",Queued/running/approval/success/failure/cancel states render.
+SES-004,3,Session,Questions,P0,SES-001,"Single, multi, text, submit, invalidation, and keyboard flows work."
+SES-005,3,Session,Approvals,P0,SES-001,Once/session/workspace decisions round-trip and are audited.
+SES-006,3,Session,Completion summary,P0,SES-001,"Files, tests, warnings, artifacts, review, and follow-up actions show."
+SES-007,3,Session,Subagent visualization,P1,"SES-001,OMP-003","Child runs show status, result, correlation, and transcript."
+IDE-001,4,IDE,Agent auxiliary sidepane,P0,"WIN-004,SES-001",Same session timeline and composer render compactly.
+IDE-002,4,IDE,Context bridge,P0,IDE-001,"Selection, file, diagnostics, terminal, Git, test, and debug context attach."
+IDE-003,4,IDE,Open file/diff/terminal commands,P0,IDE-001,Timeline links open native workbench surfaces.
+IDE-004,4,IDE,Inline Edit,P0,"IDE-002,OMP-003",Cmd/Ctrl+K streams a reviewable Monaco inline diff.
+IDE-005,4,IDE,Inline completion provider API,P0,ARC-003,Provider can supply/accept/reject suggestions independently of Agent.
+IDE-006,4,IDE,Caret welcome screen,P0,BRD-001,"Open, clone, SSH, recent projects, and Agents Window actions work."
+IDE-007,4,IDE,Status bar metrics,P1,IDE-005,"Caret Tab, Tab Stats, Agent Stats, runtime, and Git state render."
+GIT-001,5,Git,Repository registry,P0,DMD-001,"Local repositories track root, remotes, branch, dirty state, and availability."
+GIT-002,5,Git,Worktree manager,P0,GIT-001,Create/setup/launch/review/retain/delete lifecycle is safe.
+GIT-003,5,Git,Parallel-session isolation,P0,GIT-002,Two sessions on one repo never share a writable checkout.
+DIF-001,5,Changes,Changed-files tree,P0,GIT-001,Added/modified/deleted/renamed/conflict/binary states render.
+DIF-002,5,Changes,Monaco diff surface,P0,DIF-001,"Unified and side-by-side modes, navigation, and large-diff handling work."
+DIF-003,5,Changes,Stage/unstage/discard,P0,DIF-001,Actions update Git state with confirmations and external-change detection.
+CHK-001,5,Session,Checkpoint creation,P0,"DMD-002,GIT-001",Significant mutation batches create local snapshots.
+CHK-002,5,Session,Checkpoint restore,P0,CHK-001,Preview and restore files without deleting conversation.
+REV-001,5,Review,Quick/Deep Agent Review,P1,"DIF-002,OMP-003",Review produces structured findings with severity and ranges.
+REV-002,5,Review,Finding actions,P1,REV-001,"Fix, ask agent, dismiss, resolve, reopen, and stale states work."
+BRW-001,6,Browser,Browser session bridge,P1,DMD-001,One browser session is shared by UI and OMP tool bridge.
+BRW-002,6,Browser,Browser auxiliary pane,P1,BRW-001,"Navigation, address, viewport, console/network, screenshot work."
+BRW-003,6,Browser,Browser timeline events,P1,"BRW-001,SES-001","Actions, screenshots, console errors, and recordings render."
+DSN-001,6,Design,Element selection,P1,BRW-002,Hover/select/multi-select creates element context with screenshot.
+DSN-002,6,Design,Drawing and voice,P1,"DSN-001,CMP-009","Frozen-frame drawing, undo/redo/clear, and voice context work."
+PLN-001,6,Plan,Plan state machine,P1,SES-001,"Research, questions, draft, review, edit, build, superseded states work."
+PLN-002,6,Plan,Editable plan document,P1,PLN-001,Versioned plan can save to workspace and launch exact revision.
+DBG-001,6,Debug,Debug workflow state machine,P1,OMP-003,Hypotheses through cleanup are structured events.
+DBG-002,6,Debug,Instrumentation and logs UI,P1,DBG-001,"Diff, reproduction, live logs, root cause, verify, cleanup work."
+CUS-001,7,Customize,Customize hub,P1,NAV-001,"Plugins, rules, skills, commands, subagents, hooks, MCP are unified."
+CUS-002,7,Customize,Rules manager,P1,CUS-001,User/project/AGENTS.md scope and Always/Decides/Manual modes work.
+CUS-003,7,Customize,Skills/commands manager,P1,CUS-001,"Discovery, trust, invoke, update, scope, and diagnostics work."
+CUS-004,7,Customize,MCP manager,P1,CUS-001,Configure/auth/toggle/log/retry/failure isolation work.
+CUS-005,7,Customize,Hooks manager,P1,CUS-001,"Lifecycle, blocking, timeout, stderr, trust, and enable state work."
+SEA-001,7,Search,Session FTS index,P1,DMD-002,"Search titles, messages, files, findings, and artifacts."
+SEA-002,7,Search,Filtered result UI,P1,SEA-001,Project/status/date/runtime/model/file filters and event anchors work.
+NTF-001,7,Notifications,Needs You inbox,P1,DMD-002,"Approvals, questions, conflicts, failures, and review-ready group globally."
+NTF-002,7,Notifications,Desktop notifications,P1,NTF-001,Only meaningful events notify and deep-link correctly.
+AUT-001,7,Automations,Automation CRUD UI,P1,NAV-001,Create/edit/clone/pause/run/delete and history render.
+AUT-002,7,Automations,Local scheduler,P1,"AUT-001,DMD-001",Schedule launches policy-scoped OMP tasks and records runs.
+REM-001,9,Remote,SSH runtime,P2,OMP-003,"Discover, connect, launch, reconnect, and show remote identity."
+REM-002,9,Remote,Self-hosted worker,P2,OMP-003,"Register worker, capability handshake, update, revoke."
+MOB-001,9,Mobile,Secure PWA,P2,DMD-001,Private authenticated session supervision works over Tailscale.
+CLD-001,9,Cloud,Managed worker control plane,P2,REM-002,"Provision environment, launch task, stream events, terminate."
+AUT-003,9,Automations,External event triggers,P2,AUT-002,GitHub/GitLab/Slack/Linear/webhook triggers are verified and audited.
+QA-001,0,QA,Golden-state manifest,P0,ARC-002,At least 100 named states with deterministic fixtures are defined.
+QA-002,8,QA,Screenshot harness,P0,QA-001,macOS/Windows/Linux screenshot diffs run in CI.
+QA-003,8,QA,Keyboard and focus suite,P0,"CMP-001,IDE-001",Core flows pass without mouse and restore focus.
+QA-004,8,QA,Accessibility suite,P0,QA-003,"Roles, names, announcements, contrast, reduced motion pass."
+QA-005,8,QA,Performance fixtures,P0,SES-001,"10k events, 500 files, 50 queue items, 20 tools, 5MB logs pass."
+QA-006,8,QA,Crash/reconnect soak,P0,DMD-004,Long sessions survive daemon/renderer/network restarts.
+SEC-001,1,Security,Authenticated local IPC,P0,DMD-001,Unauthorized process cannot issue commands or read events.
+SEC-002,1,Security,Credential keychain,P0,DMD-001,"Secrets stay out of renderer, logs, events, and SQLite."
+SEC-003,3,Security,Approval policy engine,P0,SES-005,Command/path/runtime policies gate risky operations.
+SEC-004,7,Security,Plugin/MCP/hook trust,P1,CUS-001,Untrusted code requires explicit install/run permission.
+REL-001,8,Release,Updater and rollback,P0,BRD-002,Signed update installs and failed update can roll back.
+REL-002,8,Release,License/notices bundle,P0,ARC-001,"Code-OSS, OMP, extensions, and third-party notices are complete."
+REL-003,8,Release,Upstream rebase automation,P0,ARC-001,CI reports Caret seam conflicts against new Code-OSS revisions.

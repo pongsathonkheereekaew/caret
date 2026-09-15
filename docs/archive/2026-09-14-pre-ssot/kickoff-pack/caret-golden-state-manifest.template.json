@@ -1,0 +1,87 @@
+{
+  "$schema": "https://example.invalid/caret/golden-state-manifest.schema.json",
+  "manifestVersion": 1,
+  "reference": {
+    "product": "Cursor",
+    "version": "<exact-version>",
+    "build": "<exact-build>",
+    "capturedAt": "2026-09-14T00:00:00Z",
+    "operatingSystem": "macOS",
+    "operatingSystemVersion": "<version>",
+    "theme": "<exact-theme>",
+    "appZoom": 1.0,
+    "displayScale": 2.0,
+    "viewportCapturedPixels": [
+      2048,
+      1331
+    ],
+    "fixtureRepository": "caret-ui-fixture"
+  },
+  "state": {
+    "id": "agent-home-dark",
+    "windowKind": "agents",
+    "route": "new-chat",
+    "sessionStatus": "draft",
+    "selectedRepository": "caret",
+    "selectedBranch": "main",
+    "selectedRuntime": "local",
+    "selectedModel": "<model>",
+    "selectedMode": "agent",
+    "focusedElement": "composer",
+    "openPopovers": [],
+    "network": "online"
+  },
+  "geometry": {
+    "coordinateSpace": "captured-pixels",
+    "rects": {
+      "titlebar": [
+        0,
+        0,
+        2048,
+        47
+      ],
+      "navigationSidebar": [
+        0,
+        47,
+        320,
+        1284
+      ],
+      "centerSurface": [
+        320,
+        47,
+        1267,
+        1284
+      ],
+      "auxiliarySurface": [
+        1587,
+        47,
+        461,
+        1284
+      ]
+    }
+  },
+  "assertions": {
+    "requiredText": [
+      "New Chat",
+      "Search",
+      "Automations",
+      "Customize"
+    ],
+    "forbiddenText": [
+      "Cursor"
+    ],
+    "requiredAccessibleNames": [
+      "Open IDE",
+      "New task"
+    ],
+    "maxCriticalPixelDiffPercent": 0.15,
+    "maxFullScreenPixelDiffPercent": 0.5,
+    "geometryToleranceLogicalPixels": 1
+  },
+  "artifacts": {
+    "referenceImage": "references/agent-home-dark.png",
+    "candidateImage": "artifacts/agent-home-dark.png",
+    "diffImage": "artifacts/agent-home-dark.diff.png",
+    "interactionRecording": "references/agent-home-dark.webm"
+  }
+}

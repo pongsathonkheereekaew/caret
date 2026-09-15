@@ -1,0 +1,31 @@
+{
+  "scope": "S4 second slice for the Agents window (CARET-PLAN section 3): remove the sidebar title Cursor does not have, remove the Run title-bar action the reference header does not have, and stop the composer's model picker from naming Copilot. Plus a fresh read of what still differs.",
+  "capturedAt": "2026-09-14T22:10:00+07:00",
+  "branch": "main",
+  "revision": "working tree on top of 7a07935cab4 (S3 slice)",
+  "method": "dev build from the desktop/ checkout (patches 0001-0016 applied, `node build/next/index.ts transpile`) launched with `--agents --remote-debugging-port=9333` on a fresh profile, then CDP Runtime.evaluate against the live DOM. Every claim below is a DOM/aria read from the running window; no screenshots and no vision model were used. A second launch without `--agents` (port 9334) checked the IDE window still boots.",
+  "change": {
+    "desktopPatch": "patches/desktop/0016-caret-agents-window-cursor-chrome.patch - 3 files, all under src/vs/sessions/**, so the IDE window cannot be affected",
+    "sidebarTitle": "contrib/sessions/browser/views/sessionsView.ts: the sidebar pane label no longer renders the word \"Sessions\". The element is kept as the flex spacer the header actions and the find widget rely on; only the text is gone.",
+    "runAction": "contrib/chat/browser/runScriptAction.ts: the Run split button contribution to Menus.TitleBarCenterRight and the permanently disabled Run placeholder (`workbench.action.agentSessions.runScript.notAvailable`, tooltip \"Run Task is not available for this session type\") are both removed. The capability is unchanged: the primary command still registers with `f1: true` and on F5. The now-unused MenuRegistry and SessionsWelcomeVisibleContext imports were dropped with them.",
+    "modelPickerCopilotCopy": "contrib/chat/browser/modelPicker.ts: the Agents-window model picker delegate now reports `isSessionsWindow: true` from getPresentationOptions(). It never did, so the core picker's `_requiresSetup()` returned true and the chip advertised a Copilot sign-in."
+  },
+  "verified": {
+    "sidebarTitle": "PASS. Before: the sidebar innerText began `Sessions / New Chat / ⌘ N / Automations / ...`. After: it begins `New Chat / ⌘ N / Automations / ...` and `grep -rl sessionsHeader out/vs` returns nothing.",
+    "runAction": "PASS. Before, the title bar read (x, aria): Toggle Side Bar@78, Go Back@445, Go Forward@468, Show Sessions@494, `Run Task is not available for this session type`@946, `IDE (⇧⌘A)`@971. After, the Run entry is gone and IDE sits at@948. `grep -rl runScriptNotAvailableTooltip out/vs` returns nothing, and the IDE bundle never referenced the action (0 hits for `agentSessions.runScript.notAvailable` in out/vs/workbench/workbench.desktop.main.js).",
+    "modelPickerCopilotCopy": "PASS. Before: two elements carried aria-label `Models, sign in to use Copilot` (.action-label.model-picker-split and .model-picker-section.model-picker-name); the visible chip read `Models`. After: zero aria-labels anywhere in the window contain `Copilot`; the chip reads `Models, Auto` with the visible label `Auto`. The same flag also feeds the dropdown's item builder, so the picker's list copy path is fixed by the same line.",
+    "modelPickerStateUnchanged": "PASS by construction and by DOM: with no selectable model in this profile the chip element still carries the `disabled` class, so the visible `Auto` label is the core picker's own empty-catalog fallback rather than a claim that a model is ready. This matches the existing-session composer, which already passed `isSessionsWindow: true` (contrib/chat/browser/chatView.ts) and therefore already read `Auto`.",
+    "ideWindowIsolation": "PASS. Every changed file is under src/vs/sessions/**. The IDE bundles out/vs/workbench/workbench.desktop.main.js contain 0 occurrences of `agent-sessions-workbench`, `dock-detail-panel` and `session-section-label`. A second launch without `--agents` mounted title `Caret` with editor part, sidebar and activity bar, and no agents shell.",
+    "patchIntegrity": "PASS. `bun scripts/prepare-desktop.ts` reports 14 patches + 18 removals on the pinned base; the 0016 digest in manifest.json matches the file.",
+    "checks": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10; bun test -> pass; bun run check:cursor-parity -> OK (340 keys, 0 mismatches); bun run typecheck -> clean; desktop `npm run typecheck-client` -> exit 0."
+  },
+  "stillOpen": [
+    "The third column is still an empty editor group, not Cursor's panel: the live DOM shows `.part.editor` at 858..1436 with an `.editor-group-watermark`, a `Close Editor Area` button and an `Add Tab` button, while `.part.auxiliarybar` is 0x0. Section 3 forbids editor tabs and editor title actions in this window and section 3.2 says the right side is one panel with Changes/Browser/Terminal/File tabs ~608px wide. This is the largest remaining S4 gap and needs a layout decision, not a copy fix.",
+    "Sidebar vocabulary is still incomplete against section 3: `Search ⌘K`, `Customize`, `Projects (+ New Project)`, `Repositories (+ Customize Sidebar / Open Workspace)` and the Getting Started card are absent, and the `New Chat` row is still right-aligned inside the header row instead of being a full-width first row. Adding these needs a real command behind each row (section 5 forbids fake controls), so it is a separate slice.",
+    "The header still carries `Sign in to your account`, which section 3 does not list; the reference has an `Account menu` with the signed-in name instead.",
+    "The composer still lacks the project popup / branch combo / `This Mac` environment row, the reasoning popup and the voice input that section 3.2 lists; the window still shows `Workspace` and `Customize` chips at y=390 in their place.",
+    "The five idea rows with per-row Dismiss from section 3.2 are absent, and the pet elements remain in the DOM (hidden) rather than being unregistered.",
+    "Geometry: the sidebar measured 280px in this run against the 255px target in section 3.1; the 1710x1073 rig comparison is still not done, and this run used a 1440x900 dev window.",
+    "Live prompt round-trip from the composer to OMP still has not been fired (needs inference on the user's subscription)."
+  ]
+}

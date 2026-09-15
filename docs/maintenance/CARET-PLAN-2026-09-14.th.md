@@ -83,6 +83,36 @@
 | `CARET-AGENTS-WINDOW-ARCHITECTURE-2026-09-14.th.md` | ทันที | เป็น redirect stub |
 | provider ของ Copilot ใน sessions workbench | 2026-09-14 | ถอดแล้วด้วย `patches/desktop/0005` |
 
+### 6.2 Audit ของค้างและ dead code (2026-09-15)
+
+สแกนทั้ง tree (ยกเว้น `desktop/` ซึ่งเป็น build output ของ base) แล้วได้สถานะนี้:
+
+| กลุ่ม | สถานะ | หลักฐาน/สิ่งที่ต้องทำ |
+|---|---|---|
+| **webview shell ของ Caret** — `apps/macos/src/webview.ts` (2,836 บรรทัด), `TASK_WEBVIEW_CSS`, view `caretComposer`/`caretComposerDock`, custom editor `caret.agentsShell`, restricted-mode stub, `scripts/shell-render-fixture.ts` และเทสต์ที่ผูก shell ~8 ไฟล์ | **ยัง live และเป็น dead code เท่านั้น** (หน้าต่าง Agents ไม่ mount แล้วตั้งแต่ 2026-09-14) | ลบทั้งชุดพร้อมกันเท่านั้น เพราะ `scripts/cursor-parity-check.ts` (320 keys) และ `apps/macos/src/caret-theme.ts` อ่าน token จาก CSS ของ shell ⇒ ต้องย้ายแหล่ง token ไป `caret-theme.ts` ก่อน แล้ว `rg "webview.ts\|TASK_WEBVIEW_CSS"` จึงจะเหลือ 0 — **นี่คือ slice ถัดไป** |
+| เอกสาร kickoff pack 4 ไฟล์ (parity spec 2.0, backlog CSV, golden-state template, kickoff prompt) | **ย้ายเข้า archive แล้ว** (2026-09-15) | `docs/archive/2026-09-14-pre-ssot/kickoff-pack/` + แถวใน `docs/archive/README.md`; `docs/caret-ui-reference-baseline.json` ยังอยู่เพราะแผนอ้างค่าจากไฟล์นั้น |
+| งานแบรนด์/ไอคอนที่ค้างใน working tree (`assets/brand/**`, ไอคอน iOS, `scripts/lib/app-icon.ts`, `scripts/build-caret.ts`) | **ยังไม่ commit** (มาจากอีก session) | `scripts/build-caret.ts` ใน working tree import `scripts/lib/app-icon.ts` ที่ยัง untracked — ถ้าจะเก็บงานนี้ต้อง commit ทั้งชุดพร้อมกัน ไม่งั้น HEAD กับ tree ไม่ตรงกัน |
+| `.DS_Store` (tracked 2 ไฟล์ + untracked) | **ล้างแล้ว** (2026-09-15) | ลบไฟล์และเพิ่ม `.DS_Store`, `.vscode/`, `.commandcode/` ใน `.gitignore` |
+| `patches/desktop/0002` + `0004` | เกษียณแล้ว | ไม่มีไฟล์ patch เหลือใน `patches/desktop/` และ manifest ไม่มี entry (บันทึกใน `patches/desktop/README.md`) |
+| provider ของ Copilot/Claude/Codex ใน desktop | ถอดแล้ว | `patches/desktop/0005`–`0007` + `removals` 18 รายการใน manifest |
+
+### 6.3 ลำดับถัดไป (เป้าหมาย: OMP ต่อครบวง)
+
+เรียงตามสิ่งที่ยัง **block "OMP ต่อครบวง"** มากที่สุดก่อน:
+
+1. **S2 ก้อนสุดท้าย — composer ส่งงานถึง OMP** (สูงสุด): ส่ง prompt จาก composer →
+   host → stream กลับเข้า transcript ของหน้าต่าง Agents (อ้าง §7 S2 "ยังขาด") และผูก
+   model picker ให้อ่าน catalog จาก OMP จริง · ปิดช่องนี้แล้วหน้าต่าง Agents จะเป็น
+   surface ที่ใช้งานได้จริง ไม่ใช่แค่แสดง session
+2. **S3 — ถอด webview shell** ตาม inventory ใน §6.2 (ย้าย token 320 keys ไป
+   `caret-theme.ts` ก่อน แล้วลบ shell/CSS/contribution/เทสต์) · exit gate คือ
+   `rg "webview.ts|TASK_WEBVIEW_CSS"` = 0 และ suite ผ่าน
+3. **S4 — parity ที่เหลือของ Apps panel + sidebar**: `Review`/`File` ยังเปิดเป็นแท็บ
+   editor ของ group (ยังไม่ host ใน pane) และ sidebar ยังขาด Projects/Repositories/Search
+   ตาม §3 · ใบเสร็จล่าสุดของ Apps panel: `evidence/agent-home-apps-panel-2026-09-15/`
+4. **S5 — mobile continuity**: iPhone เป็น projection ของ session เดียวกัน
+   (relay/approval/replay) — ยังไม่เริ่ม
+
 ความคืบหน้า S1 (2026-09-14): **S1a เสร็จ + verified ที่ runtime แล้ว**
 
 - `patches/desktop/0003` — product.json: allowlist `chatSessionsProvider`, ถอด

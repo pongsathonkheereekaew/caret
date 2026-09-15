@@ -8,6 +8,12 @@
 | [2026-09-12](2026-09-12/) | ประเมินก่อนทิศทางล่าสุด | architecture plan, handoff 12 กันยายน, UI reuse, relay, Paseo×OMP audit |
 | [2026-09-14-pre-ssot](2026-09-14-pre-ssot/) | ก่อนรวมเป็นแผนฉบับเดียว | handoff 13 กันยายน, implementation direction G1–G5, UI interaction spec, detailed design D00–D20, UI coverage/validation, acceptance P01–P20, OMP coverage/inventory, workspace workflow, slice notes G0/G1, ledger, และสเปก 14 กันยายน (spec + measured Cursor inventory) ที่ถูก merge เข้าแผน |
 
+`2026-09-14-pre-ssot/kickoff-pack/` คือชุดเอกสารที่ใช้ **เริ่มงานรอบแรก** (parity spec
+2.0, implementation backlog CSV, golden-state manifest template, kickoff prompt) ซึ่งถูก
+`CARET-PLAN-2026-09-14.th.md` แทนที่ทั้งหมดเมื่อรวมเป็น SSOT ฉบับเดียว — เก็บไว้เป็น
+หลักฐานว่าขอบเขตงานตั้งต้นถูกตีความอย่างไร **ห้ามหยิบกลับมาเป็นข้อกำหนดใหม่**
+(`caret-ui-reference-baseline.json` ที่โฟลเดอร์ `docs/` ยังมีอำนาจ เพราะแผนอ้างค่าจากไฟล์นั้น)
+
 อย่าคัดลอกข้อเลือก Synara / multi-harness / สาม checkout จากที่นี่มาทับทิศทางปัจจุบัน
 
 ตั้งแต่ 2026-09-14 แผน/สเปกที่มีอำนาจคือ [maintenance/CARET-PLAN-2026-09-14.th.md](../maintenance/CARET-PLAN-2026-09-14.th.md)
