@@ -723,6 +723,13 @@ describe("ide-native workbench surface", () => {
 			// goes to the engine. The placeholder promised this before the code did it.
 			`const SEARCH_ENDPOINT = 'https://www.google.com/search?q=';`,
 			`return \`${'${SEARCH_ENDPOINT}'}${'${encodeURIComponent(trimmed)}'}\`;`,
+			// The bar completes what is typed: the list is filled from the engine through
+			// the extension host (this window is subject to CORS), and a chosen row is
+			// always a search rather than a host to open.
+			`caret-apps-browser-suggest-row`,
+			`executeCommand<string[]>('caret.browser.suggest', term)`,
+			`function isSearchTerm(value: string): boolean {`,
+			`function searchUrlFor(term: string): string {`,
 			`const input = this.browserViewService.getOrCreateLazy({ id: generateUuid() });`,
 			`void model.layout(bounds)`,
 			`await model.loadURL(url).catch(() => undefined);`,

@@ -41,6 +41,7 @@ import { downloadArtifact } from "./artifact-transfer.ts";
 import { applySessionFilters, DEFAULT_SIDEBAR_FILTERS, filterChips, filterEmptyCopy, markAllAsReadScope, normalizeSidebarFilters, type SidebarFilters } from "./sidebar-filters.ts";
 import { caretWindowTitle, FORK_NO_PARENT_REASON, moreMenuActions, NEED_MORE_SPACE_REASON, taskHeaderMeta, type MoreMenuActionId } from "./task-chrome.ts";
 import { MISSING_RECENT_REASON, projectAddPlan, projectsWelcomeModel } from "./projects-welcome.ts";
+import { parseSuggestionPayload, SUGGEST_ENDPOINT } from "./browser-search.ts";
 import { focusUserPtyPlan, newUserPtyPlan, userPtyRows } from "./user-pty.ts";
 import { activeLeaf, assignActive, canSplit, closeActive, createLayoutTree, focusView, layoutLeaves, maximizeActive, moveActive, openSessionInSplit, paneDraftKey, parseLayout, restoreLayout, serializeLayout, splitActive, visibleLeaves, type LayoutTree } from "./layout-tree.ts";
 import { layoutBoxes, layoutSashes, setSplitRatio } from "./layout-geometry.ts";
@@ -1912,6 +1913,28 @@ export class CaretTaskViewProvider {
 		const picked = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "Add folder as a Caret project" });
 		if (!picked?.[0]) return;
 		await this.addProjectAtPath(picked[0].fsPath);
+	}
+
+	/**
+	 * Complete a search term for the Apps panel's browser.
+	 *
+	 * The workbench's own fetch is subject to CORS, so the address bar cannot reach the
+	 * engine's suggest endpoint; the extension host runs on Node and can. A failure is an
+	 * empty list, never a thrown error the address bar would have to handle.
+	 */
+	async suggestSearchTerms(term: unknown): Promise<string[]> {
+		if (typeof term !== "string" || term.trim().length === 0) return [];
+		try {
+			const response = await fetch(`${SUGGEST_ENDPOINT}${encodeURIComponent(term.trim())}`, {
+				signal: AbortSignal.timeout(2000),
+				headers: { accept: "application/json" },
+			});
+			if (!response.ok) return [];
+			return parseSuggestionPayload(await response.text());
+		} catch (error) {
+			this.#log.debug(`search suggestions unavailable: ${errorMessage(error)}`);
+			return [];
+		}
 	}
 
 	private async addProjectAtPath(path: string): Promise<void> {
@@ -3954,6 +3977,10 @@ export function activate(context: vscode.ExtensionContext): void {
 		// The Agents sidebar's "New Project": registers the folder and gives it a task
 		// in this window, instead of opening the folder somewhere else.
 		vscode.commands.registerCommand("caret.project.add", () => provider.addProjectFlow()),
+		// Internal: the Apps panel's address bar asks for the engine's suggestions, which
+		// it cannot fetch itself (CORS). Not declared in the manifest - it has no
+		// standalone meaning in the command palette.
+		vscode.commands.registerCommand("caret.browser.suggest", (term?: string) => provider.suggestSearchTerms(term)),
 		vscode.commands.registerCommand("caret.refresh", () => provider.refreshNow()),
 		vscode.commands.registerCommand("caret.openFiles", () => provider.nativeAction("files")),
 		vscode.commands.registerCommand("caret.showDiff", () => provider.nativeAction("diff")),

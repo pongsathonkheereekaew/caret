@@ -169,10 +169,10 @@ index 00000000000..60538efa597
 +registerAction2(ShowAppsAction);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts b/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts
 new file mode 100644
-index 00000000000..e2ab5e3ce62
+index 00000000000..f91bfb0f0c7
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts
-@@ -0,0 +1,539 @@
+@@ -0,0 +1,645 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -180,7 +180,7 @@ index 00000000000..e2ab5e3ce62
 +
 +import './media/agentHomeUtility.css';
 +import { getZoomFactor } from '../../../../base/browser/browser.js';
-+import { $, addDisposableListener, append, Dimension, EventType } from '../../../../base/browser/dom.js';
++import { $, addDisposableListener, append, clearNode, Dimension, EventType } from '../../../../base/browser/dom.js';
 +import { mainWindow } from '../../../../base/browser/window.js';
 +import { Action } from '../../../../base/common/actions.js';
 +import { Codicon } from '../../../../base/common/codicons.js';
@@ -467,11 +467,102 @@ index 00000000000..e2ab5e3ce62
 +		urlInput.setAttribute('placeholder', localize('caret.agentHome.utility.browserUrlPlaceholder', "Search or enter URL"));
 +		urlInput.type = 'text';
 +		urlInput.spellcheck = false;
++
++		// Suggestions: the bar searches, so it offers what the engine would suggest for
++		// the term. This window is subject to CORS, so the extension host makes the
++		// request (`caret.browser.suggest`); a failure is an empty list, never an error.
++		const suggestionBox = append(bar, $('.caret-apps-browser-suggest'));
++		suggestionBox.hidden = true;
++		let suggestions: string[] = [];
++		let activeSuggestion = -1;
++		let suggestTimer: number | undefined;
++		let suggestRequest = 0;
++		const closeSuggestions = (): void => {
++			suggestions = [];
++			activeSuggestion = -1;
++			suggestionBox.hidden = true;
++			clearNode(suggestionBox);
++		};
++		const renderSuggestions = (): void => {
++			clearNode(suggestionBox);
++			suggestionBox.hidden = suggestions.length === 0;
++			suggestions.forEach((term, index) => {
++				const row = append(suggestionBox, $<HTMLButtonElement>('button.caret-apps-browser-suggest-row'));
++				row.type = 'button';
++				row.textContent = term;
++				row.classList.toggle('active', index === activeSuggestion);
++				disposables.add(addDisposableListener(row, EventType.MOUSE_DOWN, event => {
++					// Mouse down, not click: taking the value first keeps the input's blur
++					// from closing the list before the choice lands.
++					event.preventDefault();
++					urlInput.value = term;
++					closeSuggestions();
++					void tab.browser?.loadURL(searchUrlFor(term));
++				}));
++			});
++		};
++		const requestSuggestions = (term: string): void => {
++			const request = ++suggestRequest;
++			void Promise.resolve(this.commandService.executeCommand<string[]>('caret.browser.suggest', term))
++				.then(terms => {
++					// A late answer for an older term must not replace the current list.
++					if (request !== suggestRequest || urlInput.value.trim() !== term) {
++						return;
++					}
++					suggestions = Array.isArray(terms) ? terms.filter(item => typeof item === 'string') : [];
++					activeSuggestion = -1;
++					renderSuggestions();
++				})
++				.catch(() => undefined);
++		};
++		disposables.add({
++			dispose: () => {
++				if (suggestTimer !== undefined) {
++					clearTimeout(suggestTimer);
++				}
++			},
++		});
++		disposables.add(addDisposableListener(urlInput, EventType.INPUT, () => {
++			if (suggestTimer !== undefined) {
++				clearTimeout(suggestTimer);
++			}
++			const term = urlInput.value.trim();
++			if (!isSearchTerm(term)) {
++				suggestRequest++;
++				closeSuggestions();
++				return;
++			}
++			suggestTimer = mainWindow.setTimeout(() => requestSuggestions(term), 180);
++		}));
++		disposables.add(addDisposableListener(urlInput, EventType.BLUR, () => closeSuggestions()));
++
 +		disposables.add(addDisposableListener(urlInput, EventType.KEY_DOWN, event => {
++			if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
++				if (suggestions.length === 0) {
++					return;
++				}
++				event.preventDefault();
++				const step = event.key === 'ArrowDown' ? 1 : -1;
++				activeSuggestion = (activeSuggestion + step + suggestions.length) % suggestions.length;
++				renderSuggestions();
++				return;
++			}
++			if (event.key === 'Escape') {
++				closeSuggestions();
++				return;
++			}
 +			if (event.key !== 'Enter') {
 +				return;
 +			}
 +			event.preventDefault();
++			if (activeSuggestion >= 0 && suggestions[activeSuggestion]) {
++				const chosen = suggestions[activeSuggestion];
++				urlInput.value = chosen;
++				closeSuggestions();
++				void tab.browser?.loadURL(searchUrlFor(chosen));
++				return;
++			}
++			closeSuggestions();
 +			const value = urlInput.value.trim();
 +			if (value) {
 +				void tab.browser?.loadURL(normaliseUrl(value));
@@ -712,6 +803,21 @@ index 00000000000..e2ab5e3ce62
 +	if (!/\s/.test(trimmed) && HOST_LIKE.test(trimmed)) return `https://${trimmed}`;
 +	return `${SEARCH_ENDPOINT}${encodeURIComponent(trimmed)}`;
 +}
++
++/** Whether what is in the address bar is a search term, and so can be completed. */
++function isSearchTerm(value: string): boolean {
++	const trimmed = value.trim();
++	return trimmed.length > 1 && !HAS_SCHEME.test(trimmed) && (/\s/.test(trimmed) || !HOST_LIKE.test(trimmed));
++}
++
++/**
++ * The search URL a chosen suggestion opens. A suggestion is a term the engine offered
++ * for a search, so it is always searched, never treated as a host - unlike the typed
++ * text, which the rule above still opens as a URL when it looks like one.
++ */
++function searchUrlFor(term: string): string {
++	return `${SEARCH_ENDPOINT}${encodeURIComponent(term.trim())}`;
++}
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeUtilityInput.ts b/src/vs/sessions/contrib/home/browser/agentHomeUtilityInput.ts
 new file mode 100644
 index 00000000000..273770c32e2
@@ -939,10 +1045,10 @@ index 00000000000..05ee2fdc38f
 +registerSingleton(IAppsPanelModel, AppsPanelModel, InstantiationType.Delayed);
 diff --git a/src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css b/src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css
 new file mode 100644
-index 00000000000..97468a8b492
+index 00000000000..7bdba00d83b
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,385 @@
 +/* Caret: the Agent Home utility area - the reference's right-hand Apps panel.
 + *
 + * The reference panel is a strip of app entries above a body of four app tiles, and it
@@ -1156,6 +1262,7 @@ index 00000000000..97468a8b492
 +}
 +
 +.caret-apps-browser-bar {
++	position: relative;
 +	display: flex;
 +	align-items: center;
 +	flex: 0 0 auto;
@@ -1182,6 +1289,50 @@ index 00000000000..97468a8b492
 +.caret-apps-browser-url:focus {
 +	outline: 1px solid var(--vscode-focusBorder);
 +	outline-offset: -1px;
++}
++
++/* The engine's suggestions, anchored to the address bar and never wider than it. */
++.caret-apps-browser-suggest {
++	position: absolute;
++	top: 100%;
++	left: 0;
++	right: 0;
++	z-index: 20;
++	display: flex;
++	flex-direction: column;
++	margin: 0 6px;
++	padding: 4px 0;
++	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
++	border-radius: 6px;
++	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
++	box-shadow: 0 4px 12px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
++	overflow: hidden;
++}
++
++.caret-apps-browser-suggest[hidden] {
++	display: none !important;
++}
++
++.caret-apps-browser-suggest-row {
++	display: block;
++	width: 100%;
++	padding: 4px 10px;
++	border: none;
++	background: transparent;
++	color: var(--vscode-foreground);
++	font-family: inherit;
++	font-size: var(--vscode-fontSize-label1, 12px);
++	text-align: left;
++	white-space: nowrap;
++	overflow: hidden;
++	text-overflow: ellipsis;
++	cursor: pointer;
++}
++
++.caret-apps-browser-suggest-row:hover,
++.caret-apps-browser-suggest-row.active {
++	background: var(--vscode-list-activeSelectionBackground);
++	color: var(--vscode-list-activeSelectionForeground);
 +}
 +
 +.caret-apps-icon-button {

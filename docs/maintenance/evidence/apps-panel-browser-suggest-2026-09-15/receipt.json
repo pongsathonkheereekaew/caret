@@ -1,0 +1,30 @@
+{
+  "slice": "The Apps panel's address bar completes what is typed, from the search engine",
+  "capturedAt": "2026-09-15T18:40:00+07:00",
+  "branch": "main",
+  "method": "desktop patch 0021 + apps/macos extension command + CDP on the running Agents window + bun test + bun run typecheck",
+  "why": "the address bar searches, so a browser's own behaviour is to complete the term. The workbench renderer cannot: a fetch to suggestqueries.google.com from the window fails with 'Failed to fetch' (CORS), which was measured directly through CDP before writing this.",
+  "change": {
+    "extension": "caret.browser.suggest asks https://suggestqueries.google.com/complete/search?client=firefox&q= from the extension host, which runs on Node and is not subject to CORS, and returns at most eight terms. A failure, a timeout (2s) or a reply of the wrong shape returns an empty list instead of throwing. The Firefox client is used because it answers with JSON; the Chrome client answers with a callback.",
+    "parsing": "apps/macos/src/browser-search.ts holds parseSuggestionPayload and searchUrlFor, so the shape of the engine's reply is testable without the network.",
+    "desktop": "the address bar debounces 180ms while the term is a search term, asks for the list, and renders it under the bar: ArrowDown/ArrowUp move the highlight, Enter opens the highlighted suggestion, Escape closes it, and a row answers to mousedown so the input's blur cannot close the list first. A late answer for an older term never replaces the current list.",
+    "keyboard": "a chosen row is always a search (never a host to open) while typed text still follows the earlier rule - a scheme or a bare host is a URL, anything else is a search."
+  },
+  "verified": {
+    "live": "CDP on the running window: typing 'cats' in the Apps panel's Browser tab produced the engine's eight terms (cats, catster, catsolute, catsmile cafe, catster by kingdomoftigers, catsonic livehouse, cats แปลว่า, catsaur); ArrowDown highlighted 'cats' and Enter opened https://www.google.com/search?q=cats with the list closed and the bar reading 'cats'",
+    "unitTests": "apps/macos/test/browser-search.test.ts: the engine's reply shape, the endpoint's client parameter, unreadable replies (empty body, other JSON shapes, non-string entries), blanks/duplicates/cap, and the search URL encoding. ide-native-workbench.test.ts pins the address-bar wiring in the 0021 patch text.",
+    "patchAgreement": "0021 regenerated for its own two files only, digest updated, 24/24 patches apply from the pinned base and the produced tree equals the checkout",
+    "suites": "726 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host and apps/macos/test",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK; bun run check:cursor-parity -> OK"
+  },
+  "reference": {
+    "cursor": "this repository's measured Cursor reference covers the right panel as a tab group (Changes, Browser, Terminal, File) and its geometry; nothing captured describes the browser tab's address-bar behaviour, so a suggestion list is not something this work can claim parity with either way",
+    "codex": "the app this session runs in has an in-app browser for opening pages, and its web search is a tool the agent uses rather than an address-bar completion; that distinction is what this slice follows - Caret's bar completes terms because it is the browser's own address bar"
+  },
+  "notVerified": [
+    "The engine's suggestions for non-English scripts beyond the terms above, and how they render with very long terms (the rows ellipsize).",
+    "Suggestions behind a proxy or offline: the request falls back to an empty list, which was not exercised here.",
+    "Whether the idle-window rule of the host lifetime change interacts with suggestion traffic (suggestions go to the engine from the extension host, not to the Caret host)."
+  ]
+}
