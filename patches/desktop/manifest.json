@@ -31,7 +31,7 @@
     },
     {
       "file": "0010-caret-sessions-bridge.patch",
-      "sha256": "cb7c7ad9451fd3093beff4db9bfffde179d9c0a86fe45f50a960e81ee2429dd6"
+      "sha256": "297f7d484018acb8ab08c26f230d9bbbbd7ce666576b32a0b40f844f57b571bf"
     },
     {
       "file": "0011-caret-sessions-model-picker.patch",
@@ -39,7 +39,7 @@
     },
     {
       "file": "0012-caret-remove-copilot-status-entry.patch",
-      "sha256": "addd4342d7d2ec8b819e24dff4fb245bfbbc8696b48cfb2451477bb4300c8779"
+      "sha256": "0737eebc708446e560757fd11d527e32142063a4c8b8b1e465009d9fd7554970"
     },
     {
       "file": "0013-caret-sessions-option-key-bridge.patch",
@@ -75,11 +75,11 @@
     },
     {
       "file": "0021-caret-agent-home-utility.patch",
-      "sha256": "2a66cf720d626b4f622d431bda6dfc0f2dd95b4deaa1f288b7174029c196e103"
+      "sha256": "672ceb89789da467115360b1dcc4aa69b230456a6cae9b0be0132a9117270614"
     },
     {
       "file": "0022-caret-agent-home-chrome-navigation.patch",
-      "sha256": "b44c977906ffa4b94966a682887be0cf71acba5e1f993987dcf3ec763d44ede9"
+      "sha256": "41588c30076db1a9a621b847c8eb5619084f2fbf7fb6c408f156d715421116fd"
     },
     {
       "file": "0023-caret-agent-home-composer-starters.patch",

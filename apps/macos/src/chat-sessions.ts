@@ -204,10 +204,23 @@ async function snapshotForInputState(
 }
 
 /**
- * Register Caret as this window's chat session provider and return a disposable
+ * The registered provider plus the one thing callers need from it: a way to
+ * re-read the host's sessions after Caret changes them itself.
+ *
+ * Archiving a project's chats happens in the extension, and the Agents sidebar
+ * only moves a row between sections when the item collection is republished, so
+ * the caller that archived has to be able to ask for that republish.
+ */
+export interface CaretChatSessionsRegistration extends vscode.Disposable {
+	/** Re-read every session from the host and republish the item collection. */
+	refresh(): void;
+}
+
+/**
+ * Register Caret as this window's chat session provider and return a registration
  * that unregisters the participant, controller and content provider together.
  */
-export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.Disposable {
+export function registerCaretChatSessions(options: ChatSessionsOptions): CaretChatSessionsRegistration {
 	const { getClient, log } = options;
 	// The sessions API is proposed and only exists in hosts that ship it (and in
 	// the test doubles, not at all). Degrade to a no-op rather than failing the
@@ -215,7 +228,10 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 	const chat = vscode.chat as Partial<typeof vscode.chat> | undefined;
 	if (!chat?.createChatParticipant || !chat.createChatSessionItemController || !chat.registerChatSessionContentProvider) {
 		log("This host does not expose the chat sessions API; Caret sessions stay unavailable.");
-		return { dispose() { /* nothing was registered */ } };
+		return {
+			dispose() { /* nothing was registered */ },
+			refresh() { /* nothing to republish */ },
+		};
 	}
 	const disposables: vscode.Disposable[] = [];
 
@@ -229,13 +245,20 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 		item.status = chatSessionStatus(shape.state);
 		item.timing = shape.timing;
 		item.tooltip = session.cwd;
+		// The sidebar keeps archived rows in its Done section, and only the item
+		// says which rows those are: the host's own archived flag has to travel
+		// with the item or an archived chat stays in its workspace group forever.
+		item.archived = shape.archived;
 		// The Agents window groups rows by workspace, so the session's own
 		// working directory has to travel with the item; without it the row lands
 		// in an "Unknown" group even though the host knows exactly where it runs.
 		item.metadata = { workingDirectoryPath: session.cwd, repositoryPath: session.cwd };
 	};
 
-	const controller = chat.createChatSessionItemController(CARET_CHAT_SESSION_TYPE, async token => {
+	// One listing path serves the window's first load, its refresh requests and
+	// Caret's own project actions, so an archive started from Caret's menu reaches
+	// the sidebar through exactly the code the first load used.
+	const publishItems = async (token: vscode.CancellationToken): Promise<void> => {
 		try {
 			const client = await getClient();
 			const [projects, sessions] = await Promise.all([client.listProjects(), client.listSessions()]);
@@ -250,7 +273,9 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 			log(`Caret host sessions are unavailable: ${error instanceof Error ? error.message : String(error)}`);
 			controller.items.replace([]);
 		}
-	});
+	};
+
+	const controller = chat.createChatSessionItemController(CARET_CHAT_SESSION_TYPE, publishItems);
 	disposables.push(controller);
 
 	controller.newChatSessionItemHandler = async (context, token) => {
@@ -403,7 +428,14 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): vscode.
 	};
 
 	disposables.push(chat.registerChatSessionContentProvider(CARET_CHAT_SESSION_SCHEME, provider, participant, { supportsInterruptions: true }));
-	return vscode.Disposable.from(...disposables);
+	// One source for every refresh Caret asks for itself; it is only cancelled when
+	// the registration goes away.
+	const selfRefresh = new vscode.CancellationTokenSource();
+	disposables.push(selfRefresh);
+	return {
+		dispose: () => vscode.Disposable.from(...disposables).dispose(),
+		refresh: () => void publishItems(selfRefresh.token),
+	};
 }
 
 /** Convert a reduced transcript into the turns the native chat UI renders. */

@@ -1270,19 +1270,6 @@ diff --git a/src/vs/sessions/sessions.common.main.ts b/src/vs/sessions/sessions.
 index 5e17a99cfb3..df1403a895d 100644
 --- a/src/vs/sessions/sessions.common.main.ts
 +++ b/src/vs/sessions/sessions.common.main.ts
-@@ -470,10 +470,10 @@ import './contrib/chat/browser/btwSlashCommand.contribution.js';
- import './contrib/chat/browser/requestOriginProvider.contribution.js';
- import './contrib/chat/browser/sideChatProvider.contribution.js';
- import './contrib/providers/agentHost/browser/exportDebugLogsAction.js';
--import './contrib/providers/agentHost/browser/agentHostSessionConfigPicker.js';
- import './contrib/providers/agentHost/browser/agentHostForkActions.js';
- import './contrib/chat/browser/customizationsDebugLog.contribution.js';
--import './contrib/providers/copilotChatSessions/browser/copilotChatSessions.contribution.js';
-+// Caret: no Copilot. The Agents window is fed by Caret's own OMP-backed
-+// provider, so the Copilot chat session provider is not loaded here.
- import './contrib/sessions/browser/sessions.contribution.js';
- import './services/sessions/browser/sessionsListModelService.js';
- import './services/sessions/browser/sessionGroupsService.js';
 @@ -481,6 +481,7 @@ import './services/sessions/browser/sessionSectionOrderService.js';
  import './services/agentHostFilter/browser/agentHostFilterService.js';
  import './contrib/sessions/browser/customizationsToolbar.contribution.js';

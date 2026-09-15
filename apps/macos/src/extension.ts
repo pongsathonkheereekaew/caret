@@ -742,6 +742,24 @@ export class CaretTaskViewProvider {
 		};
 	}
 
+	/**
+	 * Let the chat session registration be refreshed from here.
+	 *
+	 * The project menu archives chats on the host, and the Agents sidebar only
+	 * moves a row out of its workspace group when the item collection is
+	 * republished - so the action that changed the host has to trigger the
+	 * listing. Activation wires this to the registration it created.
+	 */
+	setChatSessionsRefresh(refresh: () => void): void {
+		this.#chatSessionsRefresh = refresh;
+	}
+
+	#chatSessionsRefresh: (() => void) | undefined;
+
+	private refreshChatSessions(): void {
+		this.#chatSessionsRefresh?.();
+	}
+
 	showIde(): void {
 		void this.setWorkbenchMode("ide");
 	}
@@ -1120,6 +1138,9 @@ export class CaretTaskViewProvider {
 			void vscode.window.showInformationMessage(open.length === 0
 				? `No open chats in ${project.name}.`
 				: `Archived ${open.length} chat${open.length === 1 ? "" : "s"} in ${project.name}.`);
+			// The sidebar groups rows by workspace, so the rows only leave their
+			// group once the session list says they are archived.
+			this.refreshChatSessions();
 			await this.refresh();
 		});
 	}
@@ -1127,22 +1148,34 @@ export class CaretTaskViewProvider {
 	/**
 	 * Remove the project from Caret.
 	 *
-	 * This archives the project record: the folder and the transcripts stay on disk. Cursor
-	 * deletes its project entry; Caret's host has no delete, and inventing one here would
-	 * throw away transcripts the host owns.
+	 * The sidebar's project row is its chats' workspace group, so removing the project
+	 * means archiving the chats with it: the group disappears from the list because an
+	 * archived row leaves it, and the list keeps archived rows out of the way until a
+	 * filter asks for them. Everything stays reversible and on disk - the folder is
+	 * never touched, the transcripts stay, and the project record is archived rather
+	 * than deleted because the host has no delete and inventing one would throw away
+	 * what the host owns.
 	 */
 	removeProject(folderPath: unknown): Promise<void> {
 		return this.withHostProject(folderPath, async (project, client) => {
+			const sessions = await client.listSessions(project.id);
+			const open = sessions.filter(session => !session.archived);
 			const confirmed = await vscode.window.showWarningMessage(
-				`Remove ${project.name} from Caret? The folder and its chats stay on disk.`,
+				open.length === 0
+					? `Remove ${project.name} from Caret? The folder stays on disk.`
+					: `Remove ${project.name} from Caret? Its ${open.length === 1 ? "chat is" : `${open.length} chats are`} archived with it. The folder stays on disk.`,
 				{ modal: true },
 				"Remove",
 			);
 			if (confirmed !== "Remove") {
 				return;
 			}
+			for (const session of open) {
+				await client.patchSession(session.id, { archived: true });
+			}
 			await client.patchProject(project.id, { archived: true });
-			void vscode.window.showInformationMessage(`Removed ${project.name} from Caret. Its folder and chats are untouched.`);
+			void vscode.window.showInformationMessage(`Removed ${project.name} from Caret. Its chats are archived and its folder is untouched.`);
+			this.refreshChatSessions();
 			await this.refresh();
 		});
 	}
@@ -3832,11 +3865,15 @@ export function activate(context: vscode.ExtensionContext): void {
 		return;
 	}
 	const provider = new CaretTaskViewProvider(context);
+	// Caret is the only chat session provider in this window: the native
+	// Agents window renders these sessions instead of a Caret-drawn shell. The
+	// project menu's archive/remove actions change what those rows should say, so
+	// they republish through this same registration.
+	const chatSessions = registerCaretChatSessions(provider.chatSessionsConnection());
+	provider.setChatSessionsRefresh(() => chatSessions.refresh());
 	context.subscriptions.push(
 		provider,
-		// Caret is the only chat session provider in this window: the native
-		// Agents window renders these sessions instead of a Caret-drawn shell.
-		registerCaretChatSessions(provider.chatSessionsConnection()),
+		chatSessions,
 		vscode.window.registerCustomEditorProvider("caret.agentsShell", new CaretAgentsShellEditor(provider), {
 			webviewOptions: { retainContextWhenHidden: true },
 			supportsMultipleEditorsPerDocument: false,

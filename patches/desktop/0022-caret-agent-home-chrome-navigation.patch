@@ -670,40 +670,10 @@ diff --git a/src/vs/sessions/sessions.desktop.main.ts b/src/vs/sessions/sessions
 index 15b89578396..02a63a5e78a 100644
 --- a/src/vs/sessions/sessions.desktop.main.ts
 +++ b/src/vs/sessions/sessions.desktop.main.ts
-@@ -24,6 +24,7 @@ import '../workbench/electron-browser/desktop.contribution.js';
+@@ -24,5 +24,6 @@ import '../workbench/electron-browser/desktop.contribution.js';
  
  // Per-session layout controller (desktop / web desktop layout).
  import './contrib/layout/browser/sessions.layout.contribution.js';
 +import './contrib/home/browser/agentHomeNav.contribution.js';
  
  //#endregion
- 
-@@ -100,6 +101,7 @@ import '../workbench/services/process/electron-browser/processService.js';
- import '../workbench/services/power/electron-browser/powerService.js';
- import '../workbench/services/localTranscription/electron-browser/localTranscriptionService.js';
- import './contrib/automations/electron-browser/automationStorageService.js';
-+import './contrib/home/browser/agentHomeContextRow.contribution.js';
- 
- import { ILocalGitService } from '../platform/git/common/localGitService.js';
- import { InstantiationType, registerSingleton } from '../platform/instantiation/common/extensions.js';
-@@ -131,6 +133,9 @@ registerSharedProcessRemoteService(ILocalGitService, 'localGit');
- 
- //#region --- workbench contributions
- 
-+// Caret: the Agent Home starter rows (the reference's suggestion rows).
-+import './contrib/home/browser/agentHomePromptOptions.contribution.js';
-+
- // Logs
- import '../workbench/contrib/logs/electron-browser/logs.contribution.js';
- 
-@@ -250,6 +255,10 @@ import './contrib/chat/electron-browser/chat.contribution.js';
- 
- // Local Agent Host
- import './contrib/providers/agentHost/browser/localAgentHost.contribution.js';
-+// Caret: list chat sessions contributed by Caret's own extension (the public
-+// chatSessionsProvider API) in the Agents window, which otherwise only lists
-+// sessions from the agent-host providers.
-+import './contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.js';
- import './contrib/providers/agentHost/electron-browser/localAgentHostLifecycle.contribution.js';
- import './contrib/providers/agentHost/browser/agentSessionSettings.contribution.js';
- import './contrib/providers/agentHost/browser/agentHostSettings.contribution.js';

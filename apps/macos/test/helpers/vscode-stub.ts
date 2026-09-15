@@ -273,6 +273,20 @@ export function createVscodeStub(): unknown {
 				this.#listeners.clear();
 			}
 		},
+		// Caret owns a token source for the refreshes it asks for itself, and the
+		// two properties below are exactly what the code reads from a token.
+		CancellationTokenSource: class {
+			readonly token = {
+				isCancellationRequested: false,
+				onCancellationRequested: () => ({ dispose() {} }),
+			};
+			cancel(): void {
+				this.token.isCancellationRequested = true;
+			}
+			dispose(): void {
+				this.token.isCancellationRequested = true;
+			}
+		},
 		StatusBarAlignment: { Left: 1, Right: 2 },
 		ViewColumn: { One: 1, Two: 2, Active: -1 },
 		ConfigurationTarget: { Global: 1, Workspace: 2, WorkspaceFolder: 3 },

@@ -10,15 +10,6 @@ index cec9b29bf6c..9b98bf10022 100644
  import { ChatTipService, IChatTipService } from './chatTipService.js';
  import { ChatWindowNotifier } from './chatWindowNotifier.js';
  import { AgentPluginRecommendations } from './claudePluginRecommendations.js';
-@@ -2359,7 +2358,7 @@ configurationRegistry.registerConfiguration({
- 		[ChatAIDisabledSettingId]: {
- 			type: 'boolean',
- 			description: nls.localize('chat.disableAIFeatures', "Disable and hide built-in AI features provided by GitHub Copilot, including chat and inline suggestions."),
--			default: false,
-+			default: true, // Caret uses OMP; opt in explicitly to upstream AI surfaces.
- 			scope: ConfigurationScope.WINDOW,
- 		},
- 		[ChatConfiguration.TitleBarSignInEnabled]: {
 @@ -3259,7 +3258,10 @@ registerWorkbenchContribution2(ChatPromoNotificationContribution.ID, ChatPromoNo
  registerWorkbenchContribution2(ChatExpNotificationContribution.ID, ChatExpNotificationContribution, WorkbenchPhase.AfterRestored);
  registerWorkbenchContribution2(HasByokModelsContribution.ID, HasByokModelsContribution, WorkbenchPhase.BlockRestore);

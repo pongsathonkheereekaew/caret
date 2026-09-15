@@ -1,9 +1,9 @@
 diff --git a/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
 new file mode 100644
-index 00000000000..2308963b6c3
+index 00000000000..497cca6a394
 --- /dev/null
 +++ b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
-@@ -0,0 +1,444 @@
+@@ -0,0 +1,455 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret contributors. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -263,17 +263,28 @@ index 00000000000..2308963b6c3
 +		this.refreshing = true;
 +		try {
 +			const next: ExtensionSession[] = [];
++			const replaced: string[] = [];
 +			for await (const batch of this.chatSessionsService.getChatSessionItems(undefined, CancellationToken.None)) {
 +				for (const item of batch.items) {
 +					const existing = this.sessions.find(session => session.matches(item.resource));
++					// `isArchived` is fixed when a session is constructed, so a row whose
++					// archived state changed on the extension side has to be replaced
++					// rather than reused: reusing it would keep an archived chat in its
++					// workspace group and leave the group in the sidebar forever.
++					if (existing && existing.isArchived.get() !== (item.archived === true)) {
++						replaced.push(existing.sessionId);
++						next.push(new ExtensionSession(item, batch.chatSessionType, this.workspaceFor(item), this.iconFor(batch.chatSessionType)));
++						continue;
++					}
 +					next.push(existing ?? new ExtensionSession(item, batch.chatSessionType, this.workspaceFor(item), this.iconFor(batch.chatSessionType)));
 +				}
 +			}
 +			const added = next.filter(session => !this.sessions.some(current => current.sessionId === session.sessionId));
 +			const removed = this.sessions.filter(session => !next.some(candidate => candidate.sessionId === session.sessionId));
++			const changed = next.filter(session => replaced.includes(session.sessionId));
 +			this.sessions = next;
-+			if (added.length || removed.length) {
-+				this._onDidChangeSessions.fire({ added, removed, changed: [] });
++			if (added.length || removed.length || changed.length) {
++				this._onDidChangeSessions.fire({ added, removed, changed });
 +			}
 +		} catch (error) {
 +			this.logService.warn(`[extensionSessions] could not read contributed chat sessions: ${error instanceof Error ? error.message : String(error)}`);

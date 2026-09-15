@@ -33,6 +33,12 @@ export interface SessionItemShape {
 	readonly label: string;
 	readonly description: string | undefined;
 	readonly state: SessionState;
+	/**
+	 * The host's archived flag, carried so the native list can keep the row out of
+	 * its workspace group: the section a row lands in is the list's decision, and
+	 * the host's own flag is the only thing that can tell it.
+	 */
+	readonly archived: boolean;
 	readonly timing: { readonly created: number; readonly lastRequestStarted?: number; readonly lastRequestEnded?: number };
 }
 
@@ -80,6 +86,7 @@ export function sessionItemShape(session: Session, projectName?: string): Sessio
 		label: session.title,
 		description: projectName,
 		state: sessionState(session.status),
+		archived: session.archived === true,
 		timing: {
 			created: millis(session.createdAt),
 			lastRequestStarted: updated,

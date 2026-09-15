@@ -101,6 +101,11 @@ describe("sessionItemShape", () => {
 		expect(sessionItemShape(session()).description).toBeUndefined();
 	});
 
+	it("carries the host's archived flag, which is what moves a row to Done", () => {
+		expect(sessionItemShape(session()).archived).toBe(false);
+		expect(sessionItemShape(session({ archived: true })).archived).toBe(true);
+	});
+
 	it("resolves the project name from the host list", () => {
 		expect(projectNameFor([project(), project({ id: "p2", name: "caret-ios" })], session())).toBe("caret");
 		expect(projectNameFor([project({ id: "p2" })], session())).toBeUndefined();
