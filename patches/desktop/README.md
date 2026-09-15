@@ -20,6 +20,10 @@ is set by the Caret extension when the window shows the Agents shell
 window keeps the editor menus. `apps/macos/test/ide-native-workbench.test.ts`
 pins the key, the patch text, and the manifest digest together.
 
+**Retired.** The base Agents window registers its own menu set now, so hiding
+editor menus by context key is no longer needed: the patch file and its manifest
+entry are gone, and the context key it depended on was removed with it.
+
 `0003-caret-agents-window-proposals.patch` is Caret's product identity for the
 Agents window: it allows the built-in `caret.caret` extension to use the proposed
 `chatSessionsProvider` API, and it removes the Copilot product identity —
@@ -39,6 +43,9 @@ modification. Step S1 of `docs/maintenance/CARET-PLAN-2026-09-14.th.md` inverts
 this patch (route to `workbench.action.openAgentsWindow` and delete the comment
 that calls that window Copilot's) once the Copilot harness is gone and the Caret
 provider serves the window.
+
+**Retired.** Step S1 landed: `workbench.action.openAgentsWindow` is the route
+again, so the patch file and its manifest entry are gone.
 
 `0005-caret-remove-copilot-sessions.patch` stops the sessions workbench (the
 Agents window) from loading the Copilot chat session provider in both the desktop
