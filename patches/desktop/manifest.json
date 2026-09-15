@@ -92,6 +92,10 @@
     {
       "file": "0025-caret-agents-titlebar-regions.patch",
       "sha256": "9c305dbf41f73fcd102764f19370cbd2220bcd989acd7a64ce305c8ee67f0ff2"
+    },
+    {
+      "file": "0026-caret-agents-no-bottom-panel.patch",
+      "sha256": "4c7e1575442c015aa925fa0c7c3177e4f39d4d28c621a620b2de98ce0a6ebbae"
     }
   ],
   "removals": [

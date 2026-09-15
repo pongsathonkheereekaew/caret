@@ -962,6 +962,31 @@ describe("ide-native workbench surface", () => {
 		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
 	});
 
+	it("keeps the Agents window bottom-panel removal in agreement with the manifest", async () => {
+		// The window's terminal is a tab in the Apps panel on the right, so the bottom
+		// panel is leftover chrome: cmd+J could still open an empty strip. The patch
+		// keeps the part in the layout bookkeeping but makes it impossible to show.
+		const fileName = "0026-caret-agents-no-bottom-panel.patch";
+		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
+		for (const needle of [
+			`if (part === Parts.PANEL_PART) {`,
+			`private setPanelHidden(hidden: boolean): void {`,
+			`// Caret: this window has no bottom panel - the terminal is an Apps panel tab`,
+			`this.partVisibility.panel = false;`,
+		]) {
+			expect(patchText).toContain(needle);
+		}
+		// One file, inside the sessions workbench: the IDE window keeps its panel.
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(1);
+		expect(patchText).toContain("a/src/vs/sessions/");
+		expect(patchText).not.toContain("src/vs/workbench/");
+
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === fileName);
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
+
 	it("only enables proposed APIs that the pinned product.json allows", async () => {
 		// VS Code disables an extension outright when it declares a proposal the
 		// product does not allow, so the two declarations are pinned together.

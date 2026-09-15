@@ -1,0 +1,47 @@
+diff --git a/src/vs/sessions/browser/workbench.ts b/src/vs/sessions/browser/workbench.ts
+index b07fe047914..4d2a40a5eea 100644
+--- a/src/vs/sessions/browser/workbench.ts
++++ b/src/vs/sessions/browser/workbench.ts
+@@ -821,12 +821,9 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
+ 		this.partVisibility.editor = savedPartVisibility.editor ?? this.partVisibility.editor;
+ 		this.partVisibility.auxiliaryBar = savedPartVisibility.auxiliaryBar ?? this.partVisibility.auxiliaryBar;
+ 		this.partVisibility.sidebar = savedPartVisibility.sidebar ?? this.partVisibility.sidebar;
+-		// The single-pane layout governs the bottom panel at the workbench level
+-		// (like the side pane), so its visibility is restored here. The classic
+-		// layout remembers the panel per session and never persists it here.
+-		if (this.isSinglePaneLayoutEnabled) {
+-			this.partVisibility.panel = savedPartVisibility.panel ?? this.partVisibility.panel;
+-		}
++		// Caret: this window has no bottom panel, so a saved "visible" is not
++		// restored - see setPanelHidden for why it never comes back.
++		this.partVisibility.panel = false;
+ 	}
+ 
+ 	protected _savePartVisibility(): void {
+@@ -2145,6 +2142,12 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
+ 
+ 	/** Whether a part is actually rendered right now. */
+ 	protected _effectiveVisible(part: Parts): boolean {
++		// Caret: the Agents window has no bottom panel. Terminals are hosted by the
++		// Apps panel on the right, so the part can never be effective here even
++		// though the layout keeps tracking it.
++		if (part === Parts.PANEL_PART) {
++			return false;
++		}
+ 		return this._desiredVisible(part) && !this.partVisibility.customViewGrid;
+ 	}
+ 
+@@ -2454,6 +2457,13 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
+ 	}
+ 
+ 	private setPanelHidden(hidden: boolean): void {
++		// Caret: this window has no bottom panel - the terminal is an Apps panel tab
++		// on the right - so a request to show it is refused rather than opening an
++		// empty strip. Hiding stays a no-op too: the part is already never visible.
++		if (!hidden) {
++			this.partVisibility.panel = false;
++			return;
++		}
+ 		if (this.partVisibility.panel === !hidden) {
+ 			return;
+ 		}

@@ -215,6 +215,15 @@ decision, and the mount half had been sitting uncommitted in the desktop checkou
 no patch covering it - the only two uncovered files in a scan of all dirty sessions
 files - so this patch also makes the placement reproducible from the stack.
 
+`0026-caret-agents-no-bottom-panel.patch` removes the Agents window's bottom panel.
+The window's terminal is a tab in the Apps panel on the right, so the bottom part was
+leftover chrome that the panel toggle (cmd+J) could still open as an empty strip with
+Output and Terminal in it. The workbench keeps the part in its layout bookkeeping -
+every other call site still resolves - but `_effectiveVisible` never reports the panel
+as visible, `setPanelHidden` refuses to show it, and a saved "visible" is not restored
+on load. Building the window, opening a terminal from the Apps panel and pressing
+cmd+J all leave the panel at height 0.
+
 ## Removals
 
 `manifest.json` also carries a `removals` list: whole trees and files Caret does
