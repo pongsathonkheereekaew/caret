@@ -48,6 +48,11 @@
         "category": "Caret"
       },
       {
+        "command": "caret.project.add",
+        "title": "New Project",
+        "category": "Caret"
+      },
+      {
         "command": "caret.project.setPinned",
         "title": "Pin Project",
         "category": "Caret"

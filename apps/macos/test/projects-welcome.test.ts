@@ -5,6 +5,7 @@ import {
 	MISSING_RECENT_REASON,
 	NEW_TASK_WELCOME_LABEL,
 	OPEN_FOLDER_LABEL,
+	projectAddPlan,
 	projectsWelcomeModel,
 	recentDisplayName,
 } from "../src/projects-welcome.ts";
@@ -14,6 +15,28 @@ function modelText(model: ReturnType<typeof projectsWelcomeModel>): string {
 }
 
 describe("projectsWelcomeModel", () => {
+	describe("projectAddPlan", () => {
+		it("registers a folder the host has never seen and gives it a task", () => {
+			expect(projectAddPlan({ openSessions: 0 })).toEqual({ createProject: true, unarchive: false, createSession: true });
+		});
+
+		it("reuses a project the host already knows, and its open task", () => {
+			expect(projectAddPlan({ known: { archived: false }, openSessions: 2 }))
+				.toEqual({ createProject: false, unarchive: false, createSession: false });
+		});
+
+		it("un-archives a project Caret had removed instead of adding a second record", () => {
+			expect(projectAddPlan({ known: { archived: true }, openSessions: 1 }))
+				.toEqual({ createProject: false, unarchive: true, createSession: false });
+		});
+
+		it("gives a project with only archived tasks a visible one", () => {
+			// The sidebar lists a project as the workspace group of its open sessions,
+			// so a project whose tasks are all archived would be added invisibly.
+			expect(projectAddPlan({ known: { archived: true }, openSessions: 0 }).createSession).toBe(true);
+		});
+	});
+
 	it("disables clone by default and does not invent advertised=true", () => {
 		const model = projectsWelcomeModel();
 		expect(model.title).toBe("Projects");

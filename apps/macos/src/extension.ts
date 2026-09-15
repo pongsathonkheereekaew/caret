@@ -25,7 +25,7 @@ import { approvalCanSubmit, approvalDisplayStatus } from "./approval-view.ts";
 import type { ArtifactReceipt } from "./artifact-transfer.ts";
 import { ompSettingsCatalog, SETTINGS_SECTIONS } from "./capability-catalog.ts";
 import { composerAxesFromTask, resolveComposerControls } from "./composer-runtime.ts";
-import { caretThemeKindFor, caretWorkbenchColors, isCaretWorkbenchPalette } from "./caret-theme.ts";
+import { isCaretWorkbenchPalette } from "./caret-theme.ts";
 import { shouldDispatch, type FrozenEnvelope } from "./dispatch-guard.ts";
 import { recoveryBanner } from "./recovery-ui.ts";
 import { DISCARD_DRAFT_CONFIRM, discardDraftPlan } from "./discard-draft.ts";
@@ -40,7 +40,7 @@ import { canInlinePreviewBytes, inlinePreviewMime, mapArtifactsForWebview, type 
 import { downloadArtifact } from "./artifact-transfer.ts";
 import { applySessionFilters, DEFAULT_SIDEBAR_FILTERS, filterChips, filterEmptyCopy, markAllAsReadScope, normalizeSidebarFilters, type SidebarFilters } from "./sidebar-filters.ts";
 import { caretWindowTitle, FORK_NO_PARENT_REASON, moreMenuActions, NEED_MORE_SPACE_REASON, taskHeaderMeta, type MoreMenuActionId } from "./task-chrome.ts";
-import { MISSING_RECENT_REASON, projectsWelcomeModel } from "./projects-welcome.ts";
+import { MISSING_RECENT_REASON, projectAddPlan, projectsWelcomeModel } from "./projects-welcome.ts";
 import { focusUserPtyPlan, newUserPtyPlan, userPtyRows } from "./user-pty.ts";
 import { activeLeaf, assignActive, canSplit, closeActive, createLayoutTree, focusView, layoutLeaves, maximizeActive, moveActive, openSessionInSplit, paneDraftKey, parseLayout, restoreLayout, serializeLayout, splitActive, visibleLeaves, type LayoutTree } from "./layout-tree.ts";
 import { layoutBoxes, layoutSashes, setSplitRatio } from "./layout-geometry.ts";
@@ -875,31 +875,30 @@ export class CaretTaskViewProvider {
 				}
 			}
 		};
-		// Caret's own chrome palette, applied in both modes: the agent webview
-		// reads the same Code-OSS theme variables through its token layer, so
-		// this restyles the dock with the workbench. Applied as colour
-		// customisations so the pinned build's syntax colouring is inherited
-		// rather than reimplemented. A global value means the user picked
-		// their own colours, and Caret does not argue with that. The palette
-		// follows the active theme kind: Cursor ships light and dark chrome, so
-		// forcing the dark anchors over a light workbench was a parity gap.
+		// Caret no longer repaints the window with a palette of its own. The Agents
+		// window and the IDE are the same application, so the theme the user picked for
+		// the IDE is what both windows show - a second palette in one of them read as
+		// the editor changing colour when it switched modes. Colour customisations this
+		// extension wrote earlier are cleared, and only when they carry Caret's whole
+		// signature (see isCaretWorkbenchPalette): a user's own customisations, or a
+		// different theme, are never touched.
 		const chromeChoice = workbench.inspect?.<Record<string, unknown>>("colorCustomizations");
-		// `undefined` means the user has not chosen; a falsy value (an explicit
-		// `false`, or an empty object) is still a choice and must be respected.
-		// A global value that is one of Caret's own palettes is Caret's own
-		// footprint from a folderless window (see isCaretWorkbenchPalette), not
-		// a user choice, so it is refreshed rather than treated as a conflict.
-		const globalChrome = chromeChoice?.globalValue;
-		if (globalChrome === undefined || isCaretWorkbenchPalette(globalChrome)) {
-			// The reference's midnight and light-colorblind themes share their
-			// base theme's kind, so the theme name is needed to tell them apart.
-			const themeName = workbench.get<string>("colorTheme");
-			const kind = caretThemeKindFor(themeName, vscode.window.activeColorTheme?.kind ?? 2);
-			// chromeVisibility=true: the default Agents window can have no folder
-			// attached, where a workspace-scope write throws. Without the global
-			// fallback that first screen keeps the engine's colours instead of
-			// the reference's, which is exactly the surface the user sees first.
-			await apply(workbench, "colorCustomizations", { ...caretWorkbenchColors(kind) }, true);
+		const written = [
+			[vscode.ConfigurationTarget.Workspace, chromeChoice?.workspaceValue],
+			[vscode.ConfigurationTarget.Global, chromeChoice?.globalValue],
+		] as const;
+		for (const [scope, value] of written) {
+			if (!isCaretWorkbenchPalette(value)) {
+				continue;
+			}
+			// Removed at the scope that holds it: clearing a global palette through the
+			// workspace-first helper above would only shadow it, and the window would
+			// keep wearing the old colours.
+			try {
+				await workbench.update("colorCustomizations", undefined, scope);
+			} catch (error) {
+				this.#log.debug(`workbench appearance skipped for colorCustomizations: ${errorMessage(error)}`);
+			}
 		}
 		// Cursor's shipped configuration turns window.autoDetectColorScheme on,
 		// so its chrome follows the OS light/dark setting. Caret's palette is
@@ -1897,6 +1896,52 @@ export class CaretTaskViewProvider {
 		const picked = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "Use folder for Caret task" });
 		if (!picked?.[0]) return;
 		await this.openProjectAtPath(picked[0].fsPath);
+	}
+
+	/**
+	 * Add a project the way the Agents sidebar means it: pick a folder, register it
+	 * with the host, and make sure it has a task, because the sidebar lists a project
+	 * as the workspace group of its sessions - a project with no task would be added
+	 * and stay invisible. Nothing here leaves this window; handing the folder to the
+	 * workbench's own open-folder command is what opened an IDE window instead.
+	 */
+	async addProjectFlow(): Promise<void> {
+		const picked = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: "Add folder as a Caret project" });
+		if (!picked?.[0]) return;
+		await this.addProjectAtPath(picked[0].fsPath);
+	}
+
+	private async addProjectAtPath(path: string): Promise<void> {
+		if (!path) return;
+		if (!existsSync(path)) {
+			await vscode.window.showInformationMessage(MISSING_RECENT_REASON);
+			return;
+		}
+		const client = await this.ensureClient();
+		const projects = asArray<Project>(await client.listProjects(), "projects");
+		const existing = projects.find(project => project.path === path);
+		const sessions = await client.listSessions();
+		const plan = projectAddPlan({
+			...(existing ? { known: { archived: existing.archived === true } } : {}),
+			openSessions: sessions.filter(session => session.projectId === existing?.id && !session.archived).length,
+		});
+		const projectValue = plan.createProject
+			? await client.createProject(path, path.split(/[\\/]/).pop() || undefined)
+			: existing!;
+		const project = normalizeProject(projectValue);
+		if (!project) throw new Error("Caret host returned an invalid project");
+		if (plan.unarchive) {
+			await client.patchProject(project.id, { archived: false });
+		}
+		await this.rememberRecent(path);
+		if (plan.createSession) {
+			// No title: the host names a new task, the same way its own New Task does.
+			await client.createSession({ projectId: project.id });
+		}
+		// The sidebar only regroups rows when the extension republishes its items.
+		this.refreshChatSessions();
+		await this.refresh();
+		this.postSnapshot();
 	}
 
 	private welcomeModel(): ReturnType<typeof projectsWelcomeModel> {
@@ -3903,6 +3948,9 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand("caret.project.remove", (folderPath?: string) => provider.removeProject(folderPath)),
 		vscode.commands.registerCommand("caret.project.createWorktree", (folderPath?: string) => provider.createWorktreeForProject(folderPath)),
 		vscode.commands.registerCommand("caret.project.reveal", (hint?: string) => provider.revealProject(hint)),
+		// The Agents sidebar's "New Project": registers the folder and gives it a task
+		// in this window, instead of opening the folder somewhere else.
+		vscode.commands.registerCommand("caret.project.add", () => provider.addProjectFlow()),
 		vscode.commands.registerCommand("caret.refresh", () => provider.refreshNow()),
 		vscode.commands.registerCommand("caret.openFiles", () => provider.nativeAction("files")),
 		vscode.commands.registerCommand("caret.showDiff", () => provider.nativeAction("diff")),

@@ -1,5 +1,5 @@
 diff --git a/src/vs/sessions/browser/parts/media/titlebarpart.css b/src/vs/sessions/browser/parts/media/titlebarpart.css
-index d717e40..7553b61 100644
+index d717e4087a8..5445aaeb0cb 100644
 --- a/src/vs/sessions/browser/parts/media/titlebarpart.css
 +++ b/src/vs/sessions/browser/parts/media/titlebarpart.css
 @@ -47,20 +47,10 @@
@@ -35,7 +35,7 @@ index d717e40..7553b61 100644
  .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .titlebar-actions-container {
  	display: none;
  	flex-shrink: 0;
-@@ -83,14 +76,23 @@
+@@ -83,14 +76,33 @@
  	align-items: center;
  }
  
@@ -49,6 +49,16 @@ index d717e40..7553b61 100644
  	color: var(--vscode-icon-foreground);
  }
  
++/* Caret: the Agents window has no bottom panel - Terminal moved into the Apps panel
++ * on the right - so the panel toggle is a control with nothing behind it. Scoped to
++ * the sessions workbench, so the IDE window keeps its own toggle. The action-bar rule
++ * below this one selects the whole toolbar chain and outranks a plain `display: none`
++ * here, so the hidden state has to be declared important. */
++.agent-sessions-workbench.monaco-workbench .part.titlebar .action-item:has(> .action-label.codicon-layout-panel),
++.agent-sessions-workbench.monaco-workbench .part.titlebar .action-item:has(> .action-label.codicon-layout-panel-off) {
++	display: none !important;
++}
++
 +/* The left section grows to fill the row, so the navigation sits next to the window
 + * controls rather than floating in the middle. */
 +.agent-sessions-workbench.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left {
@@ -59,7 +69,7 @@ index d717e40..7553b61 100644
  /* Session Title Actions Container (before right toolbar) */
  .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-right > .titlebar-actions-container {
  	display: none;
-@@ -164,9 +166,30 @@
+@@ -164,9 +176,30 @@
  	z-index: 2500;
  	-webkit-app-region: no-drag;
  	height: 100%;

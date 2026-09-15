@@ -1,0 +1,29 @@
+{
+  "slice": "Agents window: no bottom panel, one IDE entry, a real New Project, and the user's own theme",
+  "capturedAt": "2026-09-15T16:20:00+07:00",
+  "branch": "main",
+  "method": "desktop patches 0015/0022/0025 (+ the 0026 panel patch already staged in this tree) + apps/macos extension + CDP checks on the running Agents window + bun test + bun run typecheck + node scripts/ci-validate.mjs",
+  "changes": {
+    "bottomPanel": "the Agents window's terminal is a tab in the Apps panel on the right, so the bottom panel is leftover chrome. 0026 (written by the parallel panel work in this tree) keeps the part invisible at the workbench level, and the title-bar toggle is hidden in 0025's stylesheet because the action is registered whether or not the part can open. The toggle needed !important: the action-bar rule below it selects the whole toolbar chain and outranked a plain display: none.",
+    "ideEntry": "the header's IDE entry (agents.openSessionInVSCode) handed the folder to the OS protocol with forceNewWindow, so every press opened another editor window and a user moving back and forth collected one per press. The editor is this app's other chrome, not a second window, so the action now runs the Caret extension's own caret.showIde when that command is registered and keeps the base behaviour otherwise.",
+    "newProject": "\"New Project\" ran the workbench's open-folder command, which is what put a folder in a separate window instead of adding it here. It now runs caret.project.add: pick a folder, register the project with the host, un-archive the record if Caret had removed it, and give it a task when it has none - the sidebar lists a project as the workspace group of its open sessions, so a project with no task would be added invisibly. The same command backs the Projects section action and Add Repository.",
+    "theme": "the Agents window wrote Caret's own 68-token palette over workbench.colorCustomizations in every mode, so the window wore colours the user never picked and the editor appeared to change colour when it switched modes. Caret no longer paints a palette; a palette it wrote earlier is removed at the scope that holds it, and only when it carries Caret's whole signature - a user's own customisations are never touched. The theme the user set for the IDE is what both windows show."
+  },
+  "verified": {
+    "panelToggle": "CDP: the title bar's visible actions are now sidebar, back, forward and side panel only; the 'Show Panel (cmd+J)' item computes display: none.",
+    "theme": "the dev profile's user settings held 68 Caret palette keys before the restart and 0 after; the window's --vscode-editor-background resolves to #ffffff (the profile's own light theme) instead of Caret's #181818.",
+    "ideEntry": "CDP element click on the header widget: window count stays 1 and the mode-switch proof reads from=agents to=ide sameWindow=true.",
+    "newProject": "CDP click on the sidebar's New Project row: window count stays 1 (the folder picker is the extension's own dialog), where the workbench command used to put the folder in a window of its own.",
+    "unitTests": "apps/macos/test/projects-welcome.test.ts - projectAddPlan: unknown folder registers and gets a task, a known project with an open task is reused, an archived record is un-archived rather than duplicated, and a project with only archived tasks gets a visible one. ide-native-workbench.test.ts - the palette tests now assert the user's theme survives, Caret's own palette is cleared at the scope that holds it, and a theme-kind change writes nothing.",
+    "suites": "714 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host and apps/macos/test",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK; bun run check:cursor-parity -> OK (340 keys, 0 mismatches)",
+    "patchSet": "24/24 mirrored patches apply in order from the pinned base and reverse-check against the checkout; apps/macos/test/desktop-patch-set.test.ts pins both."
+  },
+  "notVerified": [
+    "Completing the New Project picker: a native folder dialog cannot be driven from CDP, so the chosen-folder path (register project, create task, row appears) is covered by the unit test plus the same host calls the verified archive/remove flow uses, not by a live pick.",
+    "What the IDE mode of the Agents window looks like to the user: the mode switch is proven (sameWindow=true) but the dev window's chrome is the sessions chrome on both sides, so the visual difference is not verified here.",
+    "The packaged app: every live check used the dev Agents window with the built extension copied in.",
+    "patch 0026 and its README/manifest entry were staged by the parallel panel work in this tree; they are included in this commit so the manifest and its patch files stay consistent, and were not written by this slice."
+  ]
+}

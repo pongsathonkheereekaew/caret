@@ -51,7 +51,7 @@
     },
     {
       "file": "0015-caret-agents-cursor-parity-copy.patch",
-      "sha256": "a6a3d00372873d802cd8b8dc4a95877c1b78d1f77ef2a63f5b7edd845016c71b"
+      "sha256": "50bcbdebc48a0854c4b0d33edddc9474c7832a3f4a6e180e518565a2ddd2725a"
     },
     {
       "file": "0016-caret-agents-window-cursor-chrome.patch",
@@ -79,7 +79,7 @@
     },
     {
       "file": "0022-caret-agent-home-chrome-navigation.patch",
-      "sha256": "41588c30076db1a9a621b847c8eb5619084f2fbf7fb6c408f156d715421116fd"
+      "sha256": "9d54f4cc080ef175f29973c4d4e1377add989e2f058c6166fc653718348876dc"
     },
     {
       "file": "0023-caret-agent-home-composer-starters.patch",
@@ -91,7 +91,7 @@
     },
     {
       "file": "0025-caret-agents-titlebar-regions.patch",
-      "sha256": "9c305dbf41f73fcd102764f19370cbd2220bcd989acd7a64ce305c8ee67f0ff2"
+      "sha256": "b45b5930490131b48926f4cd77a7f5be886cea50256a9e550d198029d4018cb9"
     },
     {
       "file": "0026-caret-agents-no-bottom-panel.patch",

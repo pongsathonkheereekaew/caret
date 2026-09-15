@@ -108,10 +108,18 @@ index f998a726e0e..4e3ffec4eab 100644
  
  	protected override get onboardingTargetId(): string {
 diff --git a/src/vs/sessions/electron-browser/actions/vscodeActions.ts b/src/vs/sessions/electron-browser/actions/vscodeActions.ts
-index 188a45b48de..fa5885cffc9 100644
+index 188a45b48de..439c6ffc0cc 100644
 --- a/src/vs/sessions/electron-browser/actions/vscodeActions.ts
 +++ b/src/vs/sessions/electron-browser/actions/vscodeActions.ts
-@@ -38,7 +38,9 @@ export class OpenSessionInVSCodeAction extends Action2 {
+@@ -14,6 +14,7 @@ import { IRemoteAgentHostService } from '../../../platform/agentHost/common/remo
+ import { KeyCode, KeyMod } from '../../../base/common/keyCodes.js';
+ import { ContextKeyExpr } from '../../../platform/contextkey/common/contextkey.js';
+ import { KeybindingWeight } from '../../../platform/keybinding/common/keybindingsRegistry.js';
++import { CommandsRegistry, ICommandService } from '../../../platform/commands/common/commands.js';
+ import { ITelemetryService } from '../../../platform/telemetry/common/telemetry.js';
+ import { IsAuxiliaryWindowContext } from '../../../workbench/common/contextkeys.js';
+ import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../common/contextkeys.js';
+@@ -38,7 +39,9 @@ export class OpenSessionInVSCodeAction extends Action2 {
  	constructor() {
  		super({
  			id: OpenSessionInVSCodeAction.ID,
@@ -122,3 +130,20 @@ index 188a45b48de..fa5885cffc9 100644
  			icon: Codicon.vscodeInsiders,
  			precondition: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated()),
  			menu: [{
+@@ -54,6 +57,16 @@ export class OpenSessionInVSCodeAction extends Action2 {
+ 		const telemetryService = accessor.get(ITelemetryService);
+ 		logSessionsInteraction(telemetryService, 'openInVSCode');
+ 
++		// Caret: in this app the editor is the same window with its own chrome, not a
++		// second window, and the Caret extension owns that switch (`caret.showIde`).
++		// Handing the folder to the OS protocol instead opened a fresh window on every
++		// press, so a user who moved back and forth collected one editor window per
++		// press. A host without the command is a plain Code-OSS sessions window, where
++		// the base behaviour below is still the right one.
++		if (CommandsRegistry.getCommand('caret.showIde')) {
++			return accessor.get(ICommandService).executeCommand('caret.showIde');
++		}
++
+ 		const sessionsService = accessor.get(ISessionsService);
+ 		const sessionsProvidersService = accessor.get(ISessionsProvidersService);
+ 		const remoteAgentHostService = accessor.get(IRemoteAgentHostService);

@@ -2,6 +2,25 @@
 
 export const CLONE_UNAVAILABLE_REASON = "Clone stays unavailable until a Caret git-clone contract exists. Caret will not run git clone from this screen.";
 export const MISSING_RECENT_REASON = "This folder is missing. Caret will not invent a replacement project.";
+
+/**
+ * What adding a folder to Caret has to do, given what the host already holds.
+ *
+ * The Agents sidebar lists a project as the workspace group of its sessions, so a
+ * project that is registered but has no open task is added and stays invisible - the
+ * task is what makes the row. A folder the host already knows is reused rather than
+ * duplicated, and adding back a project Caret had removed un-archives its record.
+ */
+export function projectAddPlan(input: {
+	readonly known?: { readonly archived: boolean };
+	readonly openSessions: number;
+}): { readonly createProject: boolean; readonly unarchive: boolean; readonly createSession: boolean } {
+	return {
+		createProject: input.known === undefined,
+		unarchive: input.known?.archived === true,
+		createSession: input.openSessions === 0,
+	};
+}
 export const OPEN_FOLDER_LABEL = "Open folder";
 export const CLONE_LABEL = "Clone repository";
 export const NEW_TASK_WELCOME_LABEL = "New task";

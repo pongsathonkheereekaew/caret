@@ -255,19 +255,13 @@ describe("ide-native workbench surface", () => {
 		expect(stubState.config.get("workbench.statusBar.visible")).not.toBe(false);
 	});
 
-	it("paints the workbench with Caret's own chrome, not the engine's teal default", async () => {
+	it("keeps the user's own theme in the Agents window instead of painting its own", async () => {
+		// The editor and the agent window are the same application, so one theme is
+		// what a user expects in both. Caret's own palette here made the editor look
+		// like it changed colour when it switched modes.
 		await activateAndSettle();
-		const colors = stubState.config.get("workbench.colorCustomizations") as Record<string, string> | undefined;
-		expect(colors).toBeTruthy();
-		// Anchors read from the reference product's own dark theme.
-		expect(colors!["editor.background"]).toBe("#181818");
-		expect(colors!["sideBar.background"]).toBe("#141414");
-		expect(colors!["button.background"]).toBe("#81A1C1");
-		// The engine default this replaces: a near-black editor with lighter,
-		// teal-accented chrome. None of it may survive in the palette.
-		expect(Object.values(colors!)).not.toContain("#121314");
-		expect(Object.values(colors!)).not.toContain("#191A1B");
-		expect(Object.values(colors!)).not.toContain("#297AA0");
+		expect(stubState.config.get("workbench.colorCustomizations")).toBeUndefined();
+		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toBeUndefined();
 	});
 
 	it("leaves chrome colours alone when the user set their own", async () => {
@@ -280,53 +274,17 @@ describe("ide-native workbench surface", () => {
 		stubState.globalConfig.delete("workbench.colorCustomizations");
 	});
 
-	it("uses the reference's light chrome when the workbench theme is light", async () => {
-		// Cursor ships light and dark chrome. Forcing the dark anchors over a
-		// light workbench was the parity gap this covers.
-		await activateAndSettle(1);
-		const colors = stubState.config.get("workbench.colorCustomizations") as Record<string, string> | undefined;
-		expect(colors).toBeTruthy();
-		expect(colors!["editor.background"]).toBe("#FCFCFC");
-		expect(colors!["sideBar.background"]).toBe("#F3F3F3");
-		expect(colors!["button.background"]).toBe("#2778C1");
-	});
-
-	it("uses the reference's high contrast chrome for a high contrast theme", async () => {
-		// VS Code ships high-contrast themes, so this kind is reachable whenever
-		// "Increase contrast" is on; previously it got Caret's plain dark chrome.
-		await activateAndSettle(3);
-		const colors = stubState.config.get("workbench.colorCustomizations") as Record<string, string> | undefined;
-		expect(colors).toBeTruthy();
-		expect(colors!["editor.background"]).toBe("#0A0A0A");
-		expect(colors!["button.background"]).toBe("#434C5E");
-		expect(colors!["badge.foreground"]).toBe("#000000");
-	});
-
-	it("picks the variant palette by theme name when the kind is shared", async () => {
-		// Dark midnight is a dark theme and light colorblind a light one, so the
-		// active theme name is the only thing that tells them from the bases.
-		stubState.config.set("workbench.colorTheme", "Cursor Dark Midnight");
-		await activateAndSettle(2);
-		let colors = stubState.config.get("workbench.colorCustomizations") as Record<string, string>;
-		expect(colors["editor.background"]).toBe("#1e2127");
-		expect(colors["sideBar.background"]).toBe("#191c22");
-		stubState.config.set("workbench.colorTheme", "Cursor Light Colorblind (Beta)");
-		await activateAndSettle(1);
-		colors = stubState.config.get("workbench.colorCustomizations") as Record<string, string>;
-		expect(colors["editor.background"]).toBe("#FCFCFC");
-		expect(colors["button.background"]).toBe("#1F79C0");
-		stubState.config.delete("workbench.colorTheme");
-	});
-
-	it("repaints the chrome when the user switches theme kind", async () => {
+	it("leaves the theme alone when the theme kind changes", async () => {
+		// A theme switch repaints the workbench; Caret adds nothing on top of it, so
+		// the light/dark/high-contrast theme the user picked is the one that shows.
 		await activateAndSettle();
-		expect((stubState.config.get("workbench.colorCustomizations") as Record<string, string>)["sideBar.background"]).toBe("#141414");
 		fireActiveColorThemeChange(1);
 		await new Promise(resolve => setTimeout(resolve, 20));
-		expect((stubState.config.get("workbench.colorCustomizations") as Record<string, string>)["sideBar.background"]).toBe("#F3F3F3");
+		expect(stubState.config.get("workbench.colorCustomizations")).toBeUndefined();
 		fireActiveColorThemeChange(2);
 		await new Promise(resolve => setTimeout(resolve, 20));
-		expect((stubState.config.get("workbench.colorCustomizations") as Record<string, string>)["sideBar.background"]).toBe("#141414");
+		expect(stubState.config.get("workbench.colorCustomizations")).toBeUndefined();
+		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toBeUndefined();
 	});
 
 	it("follows the OS light/dark setting the way the reference does", async () => {
@@ -343,21 +301,21 @@ describe("ide-native workbench surface", () => {
 		stubState.globalConfig.delete("window.autoDetectColorScheme");
 	});
 
-	it("refreshes its own global palette instead of mistaking it for a user choice", async () => {
-		// A folderless Agents window can only write colours at global scope. That
-		// value is Caret's own footprint, so after the theme kind changes the
-		// chrome must still be repainted instead of the write being skipped.
-		stubState.globalConfig.set("workbench.colorCustomizations", { ...CARET_WORKBENCH_COLORS });
-		await activateAndSettle(1, true);
-		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toEqual({ ...CARET_LIGHT_WORKBENCH_COLORS });
-		stubState.globalConfig.delete("workbench.colorCustomizations");
+	it("clears the palette Caret itself wrote, at the scope it wrote it", async () => {
+		// Older builds wrote Caret's palette; leaving it behind would keep the window
+		// wearing colours the user never chose. The check is Caret's whole signature,
+		// so a user's own customisations are not mistaken for it.
+		stubState.config.set("workbench.colorCustomizations", { ...CARET_WORKBENCH_COLORS });
+		await activateAndSettle();
+		expect(stubState.config.get("workbench.colorCustomizations")).toBeUndefined();
 	});
 
-	it("themes the folderless Agents window, which is the first screen", async () => {
-		// Without the global fallback this window keeps the engine's colours,
-		// and no folder is attached on a first run.
+	it("clears Caret's own palette from a folderless window's global scope", async () => {
+		// This first screen can only write at global scope, which is where the
+		// footprint of an older build lives.
+		stubState.globalConfig.set("workbench.colorCustomizations", { ...CARET_WORKBENCH_COLORS });
 		await activateAndSettle(2, true);
-		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toEqual({ ...CARET_WORKBENCH_COLORS });
+		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toBeUndefined();
 	});
 
 	it("cites the real editor selection into the task draft", async () => {
@@ -810,7 +768,10 @@ describe("ide-native workbench surface", () => {
 			`this.renderRow('customize', Codicon.tools, localize('caret.nav.customize', "Customize"), false,`,
 			// Real commands behind the rows and the sections.
 			`const FIND_SESSIONS_COMMAND_ID = 'sessionsViewPane.find';`,
-			`const OPEN_FOLDER_COMMAND_ID = 'workbench.action.files.openFolder';`,
+			// "New Project" is Caret's own add-project command, not the workbench's
+			// open-folder one: the workbench command is what handed the folder to a
+			// separate window instead of adding it here.
+			`const ADD_PROJECT_COMMAND_ID = 'caret.project.add';`,
 			`AUTOMATIONS_CUSTOM_VIEW_ID`,
 			// The obsolete base controls are taken out of the DOM, not merely hidden.
 			`'.agent-sessions-header-row', '.agent-sessions-customizations-section'`,
@@ -1012,9 +973,9 @@ describe("ide-native workbench surface", () => {
 		// stub records separately from workspace-scope values.
 		expect(stubState.globalConfig.get("window.title")).toBe("New task — Caret");
 		expect(stubState.globalConfig.get("workbench.editor.editorActionsLocation")).toBe("hidden");
-		// The palette uses the same fallback, so a folderless first screen is
-		// not left with the engine's colours either.
-		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toBeTruthy();
+		// Colours are not part of that fallback any more: this screen wears the theme
+		// the user picked, the same one the IDE window wears.
+		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toBeUndefined();
 	});
 
 	it("cites the real terminal selection into the task draft", async () => {

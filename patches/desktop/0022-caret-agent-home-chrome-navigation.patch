@@ -99,10 +99,10 @@ index 00000000000..1da8229215e
 +registerWorkbenchContribution2(AgentHomeNavContribution.ID, AgentHomeNavContribution, WorkbenchPhase.AfterRestored);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeNav.ts b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
 new file mode 100644
-index 00000000000..53401892ef5
+index 00000000000..8acb4b12d68
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
-@@ -0,0 +1,323 @@
+@@ -0,0 +1,331 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -127,7 +127,15 @@ index 00000000000..53401892ef5
 +
 +/** Workbench commands the Agent Home navigation uses. All of them already exist. */
 +const FIND_SESSIONS_COMMAND_ID = 'sessionsViewPane.find';
-+const OPEN_FOLDER_COMMAND_ID = 'workbench.action.files.openFolder';
++
++/**
++ * Adding a project is Caret's own operation, not the workbench's open-folder command:
++ * the workbench command hands the folder to a window of its own (which is how the
++ * sidebar's "New Project" ended up opening the IDE), while the Caret command registers
++ * the project with the host and gives it a task here, which is what puts it in this
++ * sidebar.
++ */
++const ADD_PROJECT_COMMAND_ID = 'caret.project.add';
 +
 +/**
 + * The Caret extension's project commands. A sidebar row is a workspace folder, while
@@ -195,9 +203,9 @@ index 00000000000..53401892ef5
 +		// project rows. `New Project` is a row of its own the way the reference draws it,
 +		// and both the row and the header action run the same real folder command.
 +		const projectsSection = this.renderSection(localize('caret.nav.projects', "Projects"));
-+		this.renderSectionAction(projectsSection, localize('caret.nav.newProject', "New Project"), Codicon.add, () => void this.commandService.executeCommand(OPEN_FOLDER_COMMAND_ID));
++		this.renderSectionAction(projectsSection, localize('caret.nav.newProject', "New Project"), Codicon.add, () => void this.commandService.executeCommand(ADD_PROJECT_COMMAND_ID));
 +		const projects = this.renderSectionBody(projectsSection);
-+		this.renderEntry(projects, Codicon.newFolder, localize('caret.nav.newProject', "New Project"), () => void this.commandService.executeCommand(OPEN_FOLDER_COMMAND_ID));
++		this.renderEntry(projects, Codicon.newFolder, localize('caret.nav.newProject', "New Project"), () => void this.commandService.executeCommand(ADD_PROJECT_COMMAND_ID));
 +		if (folders.length === 0) {
 +			this.renderEmpty(projects, localize('caret.nav.noProject', "No project open"));
 +		} else {
@@ -212,7 +220,7 @@ index 00000000000..53401892ef5
 +		// rows rather than a decorative control.
 +		const repositoriesSection = this.renderSection(localize('caret.nav.repositories', "Repositories"));
 +		this.renderSectionFilter(repositoriesSection, localize('caret.nav.filterRepositories', "Filter Repositories"));
-+		this.renderSectionAction(repositoriesSection, localize('caret.nav.addRepository', "Add Repository"), Codicon.add, () => void this.commandService.executeCommand(OPEN_FOLDER_COMMAND_ID));
++		this.renderSectionAction(repositoriesSection, localize('caret.nav.addRepository', "Add Repository"), Codicon.add, () => void this.commandService.executeCommand(ADD_PROJECT_COMMAND_ID));
 +		const repositories = this.renderSectionBody(repositoriesSection);
 +		if (folders.length === 0) {
 +			this.renderEmpty(repositories, localize('caret.nav.noRepository', "No repository open"));
