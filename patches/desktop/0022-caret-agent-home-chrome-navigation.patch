@@ -99,10 +99,10 @@ index 00000000000..1da8229215e
 +registerWorkbenchContribution2(AgentHomeNavContribution.ID, AgentHomeNavContribution, WorkbenchPhase.AfterRestored);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeNav.ts b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
 new file mode 100644
-index 00000000000..8acb4b12d68
+index 00000000000..5c5f75f5a4c
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
-@@ -0,0 +1,331 @@
+@@ -0,0 +1,308 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -114,7 +114,6 @@ index 00000000000..8acb4b12d68
 +import { Codicon } from '../../../../base/common/codicons.js';
 +import { ThemeIcon } from '../../../../base/common/themables.js';
 +import { Disposable } from '../../../../base/common/lifecycle.js';
-+import { URI } from '../../../../base/common/uri.js';
 +import { localize } from '../../../../nls.js';
 +import { ICommandService } from '../../../../platform/commands/common/commands.js';
 +import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
@@ -198,22 +197,13 @@ index 00000000000..8acb4b12d68
 +
 +		const folders = this.workspaceService.getWorkspace().folders;
 +
-+		// Projects: the open workspace is the project Caret knows today, so the section
-+		// lists that real folder and offers the real folder action instead of invented
-+		// project rows. `New Project` is a row of its own the way the reference draws it,
-+		// and both the row and the header action run the same real folder command.
++		// Projects: the reference's Projects section is its header with the `+ New Project`
++		// action and nothing else - the projects themselves are the workspace groups the
++		// session list stacks below this navigation, which is why listing them here again
++		// (and listing the window's workspace folders under a project heading) was not the
++		// reference. Adding one is still the header action.
 +		const projectsSection = this.renderSection(localize('caret.nav.projects', "Projects"));
 +		this.renderSectionAction(projectsSection, localize('caret.nav.newProject', "New Project"), Codicon.add, () => void this.commandService.executeCommand(ADD_PROJECT_COMMAND_ID));
-+		const projects = this.renderSectionBody(projectsSection);
-+		this.renderEntry(projects, Codicon.newFolder, localize('caret.nav.newProject', "New Project"), () => void this.commandService.executeCommand(ADD_PROJECT_COMMAND_ID));
-+		if (folders.length === 0) {
-+			this.renderEmpty(projects, localize('caret.nav.noProject', "No project open"));
-+		} else {
-+			for (const folder of folders) {
-+				const row = this.renderEntry(projects, Codicon.project, folder.name);
-+				this.attachProjectMenu(row, folder.name, folder.uri);
-+			}
-+		}
 +
 +		// Repositories: the open workspace folders are the repositories this window can
 +		// actually see, so each row is real data, and the filter narrows exactly those
@@ -351,36 +341,23 @@ index 00000000000..8acb4b12d68
 +	}
 +
 +	/**
-+	 * The reference's project menu, in its order: Pin, Edit, Reveal, Create permanent
-+	 * worktree, Archive chats, Remove project.
++	 * The reference's project menu on the sessions list's project groups, in its order:
++	 * Pin, Edit, Reveal, Create permanent worktree, Archive chats, Remove project.
++	 *
++	 * These rows are the projects the reference stacks below the navigation, so this is
++	 * where the menu belongs; the navigation's Projects section is a header and its
++	 * action.
 +	 *
 +	 * Every entry is a real operation. Pin / Edit / Archive chats / Remove project reach the
 +	 * host's project record through the Caret extension (the only side that owns that
 +	 * connection); Reveal runs the workbench's own reveal command; Create worktree starts a
 +	 * worktree task, which is the real worktree Caret creates today.
-+	 */
-+	private attachProjectMenu(row: HTMLElement, name: string, uri: URI): void {
-+		this._register(addDisposableListener(row, EventType.CONTEXT_MENU, (event: MouseEvent) => {
-+			event.preventDefault();
-+			event.stopPropagation();
-+			const anchor = { x: event.clientX, y: event.clientY };
-+			this.contextMenuService.showContextMenu({
-+				getAnchor: () => anchor,
-+				// The row knows the folder, so the path is what the action carries.
-+				getActions: () => this.projectMenuActions(uri.fsPath),
-+				getActionsContext: () => name,
-+			});
-+		}));
-+	}
-+
-+	/**
-+	 * The same menu on the sessions list's own project groups.
 +	 *
-+	 * Those rows are drawn by the sessions view, one per workspace, and the base section id
-+	 * is the only project identity they carry here. The listener is delegated from the
-+	 * sidebar container so it works for rows that are recycled as the list scrolls, and the
-+	 * row's label travels as the hint: the extension matches a project by path first and by
-+	 * a unique name second, and refuses to guess when two projects share a name.
++	 * The rows are drawn by the sessions view, one per workspace, and the base section id is
++	 * the only project identity they carry here. The listener is delegated from the sidebar
++	 * container so it works for rows that are recycled as the list scrolls, and the row's
++	 * label travels as the hint: the extension matches a project by path first and by a
++	 * unique name second, and refuses to guess when two projects share a name.
 +	 */
 +	attachSessionsListMenu(sidebar: HTMLElement): void {
 +		this._register(addDisposableListener(sidebar, EventType.CONTEXT_MENU, (event: MouseEvent) => {

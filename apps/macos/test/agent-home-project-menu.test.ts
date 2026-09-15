@@ -63,11 +63,12 @@ describe("Agent Home project menu", () => {
 		}
 	});
 
-	it("binds right-click on both sources of project rows", () => {
-		// The navigation's own project rows, and the sessions list's rows, which are a
-		// separate renderer and would otherwise keep the browser menu.
+	it("binds right-click on the project groups the session list stacks", () => {
+		// The reference's Projects section is a header with its `+` action; the projects
+		// are the workspace groups the session list draws below it, so the delegated
+		// listener is the one that carries the menu.
 		const contextMenus = [...navSource.matchAll(/EventType\.CONTEXT_MENU/g)].length;
-		expect(contextMenus).toBe(2);
+		expect(contextMenus).toBe(1);
 		expect(navSource).toContain("attachSessionsListMenu");
 		expect(navSource).toContain("section-icon.codicon-folder");
 		// Without this the menu opens on top of the browser's own context menu.
