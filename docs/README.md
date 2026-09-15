@@ -2,7 +2,7 @@
 
 แผนและสเปกที่มีอำนาจมี **ไฟล์เดียว**: [maintenance/CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md)
 
-Checkout คือ `/Users/pond/caret` บน branch `caret/g0-omp-foundation`
+Checkout คือ `/Users/pond/caret` บน branch `main`
 เขียนเมื่อ 2026-09-14 หลังรวมเอกสารทั้งหมดเป็นฉบับเดียวและย้ายของเก่าเข้า archive
 
 ## ต้นทางปัจจุบัน

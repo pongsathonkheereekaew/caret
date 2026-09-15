@@ -4,17 +4,16 @@ The AI-native code editor you own. OMP runs on your Mac; Caret provides the
 workspace and a planned iPhone client. External model providers and optional
 remote transport handle data according to the configuration you choose.
 
-Current work: **G1 OMP UI and host side channels**, on `caret/g0-omp-foundation`. Read the
-[implementation direction](docs/maintenance/CARET-IMPLEMENTATION-DIRECTION-2026-09-12.th.md)
-and [G1 status](docs/maintenance/CARET-G1-IMPLEMENTATION-2026-09-12.th.md).
-The feature list below describes the product target, not a release certification.
+Current work: the plan is a single authoritative document again -
+[CARET-PLAN-2026-09-14.th.md](docs/maintenance/CARET-PLAN-2026-09-14.th.md) holds the product
+definition, the Cursor parity contract, the SSOT rules and steps S1-S5. The feature list below
+describes the product target, not a release certification.
 
 > This repository is private. Caret is in active personal development for macOS and is not publicly distributed yet.
 
 ## Features
 
 - **Agent composer** - describe the change, review the diff, accept or steer mid-run.
-- **Predictive Tab** - fast single-line completions that never overwrite your edits.
 - **Inline edit** - select code, describe the change, apply it as one undo step.
 - **Review and worktrees** - every agent run is isolated. Bring changes back only when they are clean.
 - **Headless CLI** - drive sessions, approvals, and reviews from the terminal with JSON output.
@@ -61,7 +60,9 @@ bun run smoke:omp:g1
 The first two smoke commands use isolated temporary configurations and local
 extension commands without model turns. The G1 host smoke exercises actual OMP
 tool turns with deterministic completions from a temporary loopback server;
-it performs no external model inference. All require OMP 18.1.18.
+it performs no external model inference. All accept the pinned baseline OMP 18.1.18 and any
+later patch of the same 18.1 line (`OMP_BASELINE_VERSION` and `isSupportedOmpVersion` in
+`packages/omp-adapter/src/types.ts`); a different minor line moves the baseline.
 The Mac build uses the separately pinned
 Code-OSS checkout; see the G0 evidence for its exact status.
 

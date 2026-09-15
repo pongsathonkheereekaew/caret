@@ -1,8 +1,8 @@
 // Control-repo CI validator (no deps): requirement graph schema +
 // evidence linkage + upstream-lock shape. Fails loud on the breakage
 // classes seen in practice (format churn, dangling evidence refs).
-import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,8 +47,49 @@ for (const sha of shas) {
   check(/^[0-9a-f]{7,40}$/.test(sha), `upstream lock: non-hex rev ${sha}`);
 }
 
+// Documentation links: the README, HANDOFF and the plan are the first thing a
+// new session reads, and a link to a file that moved into archive sends it
+// nowhere. `docs/archive/**` is exempt on purpose - those snapshots were written
+// against other checkouts and docs/archive/README.md records that their dead
+// links are historical, not defects.
+const SKIP_DIRS = new Set(['.git', 'node_modules', 'desktop', 'upstream', 'dist', 'out', join('docs', 'archive')]);
+const walkDocs = (dir, out) => {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    const rel = relative(ROOT, full);
+    if (entry.isDirectory()) {
+      // Packaged application bundles hold third-party markdown whose links are not
+      // this repository's to keep working.
+      const packaged = entry.name.endsWith('.app') || entry.name === 'node_modules.asar.unpacked';
+      if (!packaged && !SKIP_DIRS.has(entry.name) && !SKIP_DIRS.has(rel)) walkDocs(full, out);
+    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      out.push(full);
+    }
+  }
+  return out;
+};
+const markdown = walkDocs(ROOT, []);
+let checkedLinks = 0;
+for (const file of markdown) {
+  for (const [, href] of readFileSync(file, 'utf8').matchAll(/\]\(([^)\s]+)\)/g)) {
+    if (/^(https?:|mailto:|#)/.test(href)) continue;
+    checkedLinks++;
+    const rawTarget = href.split('#')[0];
+    // A literal `%` in a path is not percent-encoding and must not throw here.
+    let decodedTarget = rawTarget;
+    try {
+      decodedTarget = decodeURIComponent(rawTarget);
+    } catch {
+      // keep the raw path
+    }
+    const target = resolve(dirname(file), decodedTarget);
+    check(existsSync(target), `${relative(ROOT, file)}: dead doc link ${href}`);
+  }
+}
+check(checkedLinks > 0, 'doc links: nothing checked');
+
 if (failures.length > 0) {
   console.error(`CI-FAIL ${failures.length}:\n${failures.map((f) => `- ${f}`).join('\n')}`);
   process.exit(1);
 }
-console.log(`CI-OK parents=198 ui=75 children=${seenChild.size} lock-shas=${shas.length}`);
+console.log(`CI-OK parents=198 ui=75 children=${seenChild.size} lock-shas=${shas.length} doc-links=${checkedLinks} md=${markdown.length}`);
