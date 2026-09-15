@@ -893,13 +893,14 @@ export class CaretTaskViewProvider {
 			await apply(window, "autoDetectColorScheme", true, true);
 		}
 		if (mode === "agents") {
-			await apply(editor, "showTabs", "none", true);
-			// `showTabs: none` moves the editor actions (Split Editor, Toggle
-			// Panel, Toggle Secondary Side Bar, More Actions) into the title
-			// bar, where they read as Code-OSS chrome around the Caret shell.
-			// The dedicated Agents workspace already hides them; the in-window
-			// mode switch must do the same or the same product shows two
-			// different agent windows.
+			// The reference right-hand Apps panel is a tab group (its strip lists
+			// the open apps and `Open new tab menu`), so the Agents window keeps
+			// editor tabs. Caret's own Apps panel hides this strip only while it is
+			// the group's sole tab, which is what leaves the empty home clean.
+			await apply(editor, "showTabs", "multiple", true);
+			// The editor actions (Split Editor, Toggle Panel, Toggle Secondary Side
+			// Bar, More Actions) are still Code-OSS chrome around the Caret shell, so
+			// they stay out of the title bar in this window.
 			await apply(editor, "editorActionsLocation", "hidden", true);
 			await apply(workbench, "statusBar.visible", false, true);
 			await apply(workbench, "activityBar.location", "hidden", true);

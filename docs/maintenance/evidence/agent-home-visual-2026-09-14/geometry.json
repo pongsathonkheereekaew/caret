@@ -1,0 +1,29 @@
+{
+  "captureSize": [2880, 1800],
+  "cssViewport": [1440, 900],
+  "devicePixelRatio": 2,
+  "referenceCaptureSize": [2048, 1331],
+  "note": "The two reference screenshots named in the sprint brief were not supplied as files (only the brief text was), so the acceptance baseline is the recorded reference measurement in docs/caret-ui-reference-baseline.json: left 15.6%, centre 61.9%, right utility 22.5%, titlebar bottom y=47 captured. Values below are CSS pixels measured from the running window through CDP; multiply by devicePixelRatio for captured pixels.",
+  "titlebarBottomY": 35,
+  "sidebarRightX": 255,
+  "utilityPaneLeftX": 1112,
+  "composerRect": [378, 424, 608, 86],
+  "workspacePickerRowRect": [378, 386, 608, 24],
+  "utilityGridRect": [1129, 338, 290, 290],
+  "changesCardRect": [1129, 338, 141, 141],
+  "browserCardRect": [1278, 338, 141, 141],
+  "terminalCardRect": [1129, 487, 141, 141],
+  "fileCardRect": [1278, 487, 141, 141],
+  "measuredRatios": {
+    "leftNavigation": 0.178,
+    "centerSurface": 0.594,
+    "rightUtility": 0.226
+  },
+  "referenceRatios": {
+    "leftNavigation": 0.15625,
+    "centerSurface": 0.61865,
+    "rightUtility": 0.2251
+  },
+  "capture": "caret-agent-home-after.png",
+  "previousCapture": "not supplied as a file (named in the brief as \"Screenshot 2569-09-14 at 23.33.27.png\")"
+}

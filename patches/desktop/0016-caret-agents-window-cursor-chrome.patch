@@ -1,0 +1,107 @@
+diff --git a/src/vs/sessions/contrib/chat/browser/modelPicker.ts b/src/vs/sessions/contrib/chat/browser/modelPicker.ts
+index 2d6f2937bd2..468bcea879f 100644
+--- a/src/vs/sessions/contrib/chat/browser/modelPicker.ts
++++ b/src/vs/sessions/contrib/chat/browser/modelPicker.ts
+@@ -79,6 +79,13 @@ export class ModelPicker extends Disposable {
+ 			getPresentationOptions: () => ({
+ 				...this._selectionModel.state.get().options,
+ 				showModelIcon: true,
++				// Caret: this picker lives in the Agents window, where models come from the
++				// session provider (OMP), never from a Copilot sign-in. The core picker uses
++				// this flag to suppress its "sign in to use Copilot" setup state, so without
++				// it an empty catalog was labelled as a Copilot gate (plan section 5:
++				// capabilities Caret does not have must read as honest, not as another
++				// product's sign-in).
++				isSessionsWindow: true,
+ 			}),
+ 			isCacheWarm: () => {
+ 				const session = this._sessionContext.session.get();
+diff --git a/src/vs/sessions/contrib/chat/browser/runScriptAction.ts b/src/vs/sessions/contrib/chat/browser/runScriptAction.ts
+index 6ca44d96bac..133c056d0b1 100644
+--- a/src/vs/sessions/contrib/chat/browser/runScriptAction.ts
++++ b/src/vs/sessions/contrib/chat/browser/runScriptAction.ts
+@@ -16,7 +16,7 @@ import { ThemeIcon } from '../../../../base/common/themables.js';
+ import { localize, localize2 } from '../../../../nls.js';
+ import { IActionViewItemService } from '../../../../platform/actions/browser/actionViewItemService.js';
+ import { ActionWidgetDropdownActionViewItem } from '../../../../platform/actions/browser/actionWidgetDropdownActionViewItem.js';
+-import { MenuId, registerAction2, Action2, MenuRegistry, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
++import { MenuId, registerAction2, Action2, SubmenuItemAction } from '../../../../platform/actions/common/actions.js';
+ import { IActionWidgetService } from '../../../../platform/actionWidget/browser/actionWidget.js';
+ import { IActionWidgetDropdownAction } from '../../../../platform/actionWidget/browser/actionWidgetDropdown.js';
+ import { ICommandService } from '../../../../platform/commands/common/commands.js';
+@@ -31,7 +31,7 @@ import { IWorkbenchLayoutService } from '../../../../workbench/services/layout/b
+ import { SessionsCategories } from '../../../common/categories.js';
+ import { ISessionsManagementService } from '../../../services/sessions/common/sessionsManagement.js';
+ import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
+-import { SessionWorkspaceIsVirtualContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
++import { SessionWorkspaceIsVirtualContext } from '../../../common/contextkeys.js';
+ import { ISession } from '../../../services/sessions/common/session.js';
+ import { IChatWidgetService } from '../../../../workbench/contrib/chat/browser/chat.js';
+ import { Menus } from '../../../browser/menus.js';
+@@ -840,40 +840,15 @@ class ChevronActionWidgetDropdown extends ActionWidgetDropdownActionViewItem {
+ 	}
+ }
+ 
+-// Register the Run split button submenu on the workbench title bar (background sessions only).
+-// Placed in the center-right toolbar, immediately before the "Open in VS Code" action (order 7).
+-MenuRegistry.appendMenuItem(Menus.TitleBarCenterRight, {
+-	submenu: RunScriptDropdownMenuId,
+-	isSplitButton: true,
+-	title: localize2('run', "Run"),
+-	icon: Codicon.play,
+-	group: 'navigation',
+-	order: 6,
+-	when: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated(), SessionWorkspaceIsVirtualContext.toNegated())
+-});
+-
+-// Disabled placeholder shown in the titlebar when the active session does not support running scripts
+-class RunScriptNotAvailableAction extends Action2 {
+-	constructor() {
+-		super({
+-			id: 'workbench.action.agentSessions.runScript.notAvailable',
+-			title: localize2('run', "Run"),
+-			tooltip: localize('runScriptNotAvailableTooltip', "Run Task is not available for this session type"),
+-			icon: Codicon.play,
+-			precondition: ContextKeyExpr.false(),
+-			menu: [{
+-				id: Menus.TitleBarCenterRight,
+-				group: 'navigation',
+-				order: 6,
+-				when: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated(), SessionWorkspaceIsVirtualContext)
+-			}]
+-		});
+-	}
+-
+-	override run(): void { }
+-}
+-
+-registerAction2(RunScriptNotAvailableAction);
++// Caret: the parity contract (docs/maintenance/CARET-PLAN-2026-09-14.th.md section 3)
++// pins this window's header to `IDE` plus the chat actions. The reference has no
++// Run button, so it is not contributed to the title bar here. The capability is
++// unchanged - the primary command stays in the command palette (it registers with
++// `f1: true` above) and on its F5 keybinding below.
++//
++// The old shape also contributed a permanently disabled `Run` placeholder whose
++// tooltip read "Run Task is not available for this session type"; that is the kind
++// of dead control section 3 forbids, so it is gone rather than restyled.
+ 
+ // Register F5 keybinding at module level to ensure it's in the registry
+ // before the keybinding resolver is cached. The command handler is
+diff --git a/src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts b/src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts
+index 751e9249f64..225c23ca1d9 100644
+--- a/src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts
++++ b/src/vs/sessions/contrib/sessions/browser/views/sessionsView.ts
+@@ -81,7 +81,11 @@ export function renderSessionsHeader(
+ 	let toolbar: MenuWorkbenchToolBar | undefined;
+ 
+ 	if (!phoneLayout) {
+-		label.textContent = localize('sessionsHeader', "Sessions");
++		// Caret: the parity contract (docs/maintenance/CARET-PLAN-2026-09-14.th.md section 3)
++		// has no "Sessions" title in this window - the reference sidebar starts at
++		// "New Chat". The element stays because it is the flex spacer that keeps the
++		// header actions right-aligned and the find widget toggles it; only the text goes.
++		label.textContent = '';
+ 		const scopedInstantiationService = disposables.add(instantiationService.createChild(new ServiceCollection([IContextKeyService, contextKeyService])));
+ 		toolbar = disposables.add(scopedInstantiationService.createInstance(MenuWorkbenchToolBar, actions, Menus.SidebarSessionsHeader, {
+ 			hiddenItemStrategy: HiddenItemStrategy.NoHide,

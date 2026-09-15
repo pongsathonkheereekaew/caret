@@ -1,0 +1,124 @@
+diff --git a/src/vs/sessions/browser/parts/media/titlebarpart.css b/src/vs/sessions/browser/parts/media/titlebarpart.css
+index d717e40..7553b61 100644
+--- a/src/vs/sessions/browser/parts/media/titlebarpart.css
++++ b/src/vs/sessions/browser/parts/media/titlebarpart.css
+@@ -47,20 +47,10 @@
+ 	min-width: 0;
+ }
+ 
+-.agent-sessions-workbench.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .titlebar-center-nav-container {
+-	grid-column: 1;
+-	justify-self: end;
+-}
+-
+ .agent-sessions-workbench.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .window-title {
+ 	grid-column: 2;
+ }
+ 
+-.agent-sessions-workbench.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .titlebar-center-actions-container {
+-	grid-column: 3;
+-	justify-self: start;
+-}
+-
+ .agent-sessions-workbench.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center .window-title {
+ 	margin: unset;
+ 	/* Match the VS Code window command center font size. */
+@@ -74,7 +64,10 @@
+ 	justify-content: flex-end;
+ }
+ 
+-/* Center navigation / actions toolbars that flank the command center box. */
++/* Navigation and action toolbars. The reference puts Back/Forward at the start of the
++ * left section and "Open in VS Code" at the start of the right section, so both the
++ * left and centre sections can host one. */
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left > .titlebar-actions-container,
+ .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .titlebar-actions-container {
+ 	display: none;
+ 	flex-shrink: 0;
+@@ -83,14 +76,23 @@
+ 	align-items: center;
+ }
+ 
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left > .titlebar-actions-container:not(.has-no-actions),
+ .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .titlebar-actions-container:not(.has-no-actions) {
+ 	display: flex;
+ }
+ 
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left > .titlebar-actions-container .monaco-action-bar .action-item:not(.disabled) .codicon,
+ .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-center > .titlebar-actions-container .monaco-action-bar .action-item:not(.disabled) .codicon {
+ 	color: var(--vscode-icon-foreground);
+ }
+ 
++/* The left section grows to fill the row, so the navigation sits next to the window
++ * controls rather than floating in the middle. */
++.agent-sessions-workbench.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left {
++	justify-content: flex-start;
++	gap: 6px;
++}
++
+ /* Session Title Actions Container (before right toolbar) */
+ .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-right > .titlebar-actions-container {
+ 	display: none;
+@@ -164,9 +166,30 @@
+ 	z-index: 2500;
+ 	-webkit-app-region: no-drag;
+ 	height: 100%;
++	order: 1;
++}
++
++/* Caret: the reference puts the sidebar toggle first in the left section and the
++ * session navigation after it, so the toggle keeps order 1 and Back/Forward take 2. */
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left > .titlebar-center-nav-container {
+ 	order: 2;
+ }
+ 
++/* Caret: the reference puts "Open in VS Code" at the start of the right section, ahead
++ * of the panel and layout toggles, so the right section orders its three groups
++ * explicitly instead of relying on prepend order. */
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-right > .titlebar-center-actions-container {
++	order: 1;
++}
++
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-right > .titlebar-session-actions-container {
++	order: 2;
++}
++
++.monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-right > .titlebar-right-layout-container {
++	order: 3;
++}
++
+ .monaco-workbench .part.titlebar > .sessions-titlebar-container > .titlebar-left > .left-toolbar-container:not(.has-no-actions) {
+ 	display: flex;
+ 	justify-content: center;
+diff --git a/src/vs/sessions/browser/parts/titlebarPart.ts b/src/vs/sessions/browser/parts/titlebarPart.ts
+index ed939b5..eb556f0 100644
+--- a/src/vs/sessions/browser/parts/titlebarPart.ts
++++ b/src/vs/sessions/browser/parts/titlebarPart.ts
+@@ -208,11 +208,12 @@ export class TitlebarPart extends Part implements ITitlebarPart {
+ 			toolbarOptions: { primaryGroup: () => true },
+ 		}));
+ 
+-		// Center section: [nav toolbar] [command center box] [actions toolbar]
+-		// All live inside .titlebar-center so the cluster is window-centered.
++		// Center section: the command center box. The reference keeps navigation on the
++		// left edge and "Open in VS Code" on the right edge, so those two toolbars are
++		// mounted into the left and right sections instead of flanking the centre.
+ 
+-		// Navigation toolbar (Back/Forward), rendered left of the command center.
+-		const centerNavContainer = append(this.centerContent, $('div.titlebar-actions-container.titlebar-center-nav-container'));
++		// Navigation toolbar (Back/Forward), rendered at the start of the left section.
++		const centerNavContainer = append(this.leftContent, $('div.titlebar-actions-container.titlebar-center-nav-container'));
+ 		const centerNavToolBar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, centerNavContainer, Menus.TitleBarCenterLeft, {
+ 			contextMenu: Menus.TitleBarContext,
+ 			hiddenItemStrategy: HiddenItemStrategy.NoHide,
+@@ -236,8 +237,8 @@ export class TitlebarPart extends Part implements ITitlebarPart {
+ 			}
+ 		}));
+ 
+-		// Actions toolbar (Open in VS Code), rendered right of the command center.
+-		const centerActionsContainer = append(this.centerContent, $('div.titlebar-actions-container.titlebar-center-actions-container'));
++		// Actions toolbar (Open in VS Code), rendered at the start of the right section.
++		const centerActionsContainer = prepend(this.rightContent, $('div.titlebar-actions-container.titlebar-center-actions-container'));
+ 		const centerActionsToolBar = this._register(this.instantiationService.createInstance(MenuWorkbenchToolBar, centerActionsContainer, Menus.TitleBarCenterRight, {
+ 			contextMenu: Menus.TitleBarContext,
+ 			hiddenItemStrategy: HiddenItemStrategy.NoHide,

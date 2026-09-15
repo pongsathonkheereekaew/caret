@@ -52,6 +52,46 @@
     {
       "file": "0015-caret-agents-cursor-parity-copy.patch",
       "sha256": "a6a3d00372873d802cd8b8dc4a95877c1b78d1f77ef2a63f5b7edd845016c71b"
+    },
+    {
+      "file": "0016-caret-agents-window-cursor-chrome.patch",
+      "sha256": "b4524f453e4b231612a1aa8345dccc78674ffaba525a0889808775fa7a277fc9"
+    },
+    {
+      "file": "0017-caret-agents-app-panel-chrome.patch",
+      "sha256": "d66c994f4e385d0752d3b10e0f27a7948c719f9fce530bf107102f0c6bad1300"
+    },
+    {
+      "file": "0018-caret-agents-composer-voice-copy.patch",
+      "sha256": "f3542fc7dd92bb9207015d09732d303a0b021080d7715a1fcb93397e250f5f9d"
+    },
+    {
+      "file": "0019-caret-customize-in-sidebar.patch",
+      "sha256": "c464e5c65e1cfd8f5790cbdb47af193f328daec7bbb8a024ee7d8aca1b7e4bfa"
+    },
+    {
+      "file": "0020-caret-agents-pet-unmounted.patch",
+      "sha256": "53f6ea2f96995ff8335ac5d3738c928dc021d0a2dd8b5b3b386f663bb3b40610"
+    },
+    {
+      "file": "0021-caret-agent-home-utility.patch",
+      "sha256": "2a66cf720d626b4f622d431bda6dfc0f2dd95b4deaa1f288b7174029c196e103"
+    },
+    {
+      "file": "0022-caret-agent-home-chrome-navigation.patch",
+      "sha256": "ef43d70fff5e548fb888d8c57ffe382cdafe1770b55df101809474d2ab98d767"
+    },
+    {
+      "file": "0023-caret-agent-home-composer-starters.patch",
+      "sha256": "02849c3be4daa67618080567195720bb73b4413d4a2e4147d60f705b32f0b8ab"
+    },
+    {
+      "file": "0024-caret-agent-home-context-row.patch",
+      "sha256": "64ae402719c59eaa6aa77a3de545b0b16895db0462f2d931f90119ff74ccf7e1"
+    },
+    {
+      "file": "0025-caret-agents-titlebar-regions.patch",
+      "sha256": "9c305dbf41f73fcd102764f19370cbd2220bcd989acd7a64ce305c8ee67f0ff2"
     }
   ],
   "removals": [

@@ -1,0 +1,158 @@
+{
+  "slice": "agent-home-apps-panel",
+  "date": "2026-09-15",
+  "reference": "Cursor 3.20.17 right-hand Apps panel (docs/maintenance/CARET-PLAN-2026-09-14.th.md section 3)",
+  "runtime": {
+    "window": "Agents",
+    "launch": "VSCODE_DEV=1 desktop/.build/electron/Caret.app/Contents/MacOS/Caret desktop --agents --remote-debugging-port=9341 --user-data-dir=<fresh> --password-store=Basic",
+    "driver": "CDP trusted input (Input.dispatchMouseEvent / Input.insertText) against the running window"
+  },
+  "what_changed": [
+    "A second tab strip appeared above the panel's own strip once a browser tab existed, so the browser tab sat one row above a terminal tab.",
+    "The panel now draws the pane's only strip: the host group's title strip is suppressed while the Caret panel is the editor that group shows.",
+    "The strip carries the reference entries (Review, Browser, Terminal, File), one tab per terminal instance, a new-instance control and a pinned-summary toggle.",
+    "Terminal instances are hosted by the panel itself (ITerminalService.createTerminal + ITerminalInstance.attachToElement), so a new instance is a new tab and the bottom panel is never revealed."
+  ],
+  "follow_up_same_strip": {
+    "ask": "everything in the one strip: `+` picks what to open, and the browser is an app tab that fits the pane instead of spilling past it",
+    "change": [
+      "`+` is now the reference's Open new tab menu: it asks Review / Browser / Terminal / File instead of assuming a terminal.",
+      "Browser is hosted by the panel as well: the pane resolves an IBrowserViewModel and pushes the overlay bounds from the tab's own container on every layout, so the page is fitted to the pane.",
+      "The browser tab asks once for an address (there is no URL bar in the hosted view yet), then loads it and follows in-page links and redirects."
+    ],
+    "measurements": {
+      "picker": { "placeHolder": "Open in Apps panel", "rows": ["Review", "Browser", "Terminal", "File"] },
+      "hostedBrowserTab": {
+        "stripTab": "Example Domain",
+        "containerRect": { "x": 1113, "y": 72, "width": 322, "height": 791 },
+        "paneRect": { "x": 1112, "width": 324 },
+        "note": "the container rect is the bounds pushed to the overlay, so the page covers the pane body and nothing outside it"
+      }
+    },
+    "verified": [
+      "`+` -> Browser -> example.com produced one tab labelled `Example Domain` inside the panel's own strip, with .caret-apps-panel still the shown editor (the group did not gain a separate Browser tab).",
+      "the same run left the bottom panel at 0 width."
+    ],
+    "entry_and_picker_share_one_path": {
+      "problem": "clicking the strip's Browser icon still ran the sessions browser command, which opens a real editor tab in the group - so Browser landed outside the panel's strip while Terminal landed inside it.",
+      "fix": "the entry and `+` now call the same runLauncher: entries this pane can host (Browser, Terminal) open here, one tab per instance.",
+      "measured": {
+        "stripRow": [
+          ["Review", 42, 24],
+          ["Browser", 42, 24],
+          ["Terminal", 42, 24],
+          ["File", 42, 24],
+          ["zsh", 42, 24],
+          ["Browser", 42, 24],
+          ["Open in Apps panel", 42, 24],
+          ["Toggle Pinned Summary", 42, 24]
+        ],
+        "note": "a terminal instance tab (zsh) and a hosted browser instance tab (Browser) sit on the same row as the four entries; the group still showed the single `Apps` tab and .part.panel stayed at 0 width",
+        "browserContainerRect": { "x": 1113, "y": 72, "width": 322, "height": 791 }
+      }
+    },
+    "gaps": [
+      "The hosted browser has no URL bar/toolbar yet; the address is asked once when the tab is created and in-page links work. Mounting BrowserUrlBarWidget in the pane is the next step if the user wants a full browser chrome in this strip.",
+      "The overlay's own pixels are drawn by the main process, so they cannot be read back from the renderer in this environment; the bounds above are what the pane pushes and what the tab container measures."
+    ]
+  },
+  "browser_render_check_and_menu": {
+    "reported": [
+      "browser is not working - only the tab shows",
+      "the `+` choices appear in the middle of the window instead of at the button"
+    ],
+    "diagnosis": [
+      "the `+` choices were an IQuickInputService pick, which is a centred overlay - hence 'up in the middle of the screen'",
+      "a browser tab whose address prompt was dismissed kept a tab with no URL, so the pane showed an empty area: the visible symptom 'only the tab'",
+      "the hosted view itself was fine: the renderer read back model.visible=true with bounds {windowId:1,x:1113,y:72,width:322,height:791} and the page title, and a composited window capture of the pane region shows the page's text"
+    ],
+    "fix": [
+      "`+` now shows a context menu anchored to the button (getAnchor from the button rect), with the same Review/Browser/Terminal/File actions",
+      "a dismissed or empty address disposes the view and creates no tab at all, so an empty browser tab can no longer exist"
+    ],
+    "pixel_evidence": {
+      "capture": "apps-panel-browser-rendering-pixels.png (screencapture -o -l <window>, so the overlay is composited in)",
+      "paneTopBand": { "region": "x 2230..2860 y 200..600", "dominant": "rgb(238,238,238) 235039 px", "textPixels": "rgb(48,48,48) 10806 px" },
+      "paneLower": { "region": "x 2230..2860 y 1000..1500", "dominant": "rgb(238,238,238) 316131 px" },
+      "reading": "the page's text sits in the pane's top band on the page background while the pane below it is uniform - the loaded page, not an empty container"
+    },
+    "menu_measurement": { "button": [1379, 42, 24, 24], "menu": [1241, 90, 162, 106], "items": ["Review", "Browser", "Terminal", "File"] }
+  },
+  "instances_outlive_the_pane": {
+    "reported": "`+` still could not open a browser",
+    "change": [
+      "the tab state and the instances moved into a window-scoped singleton (IAppsPanelModel, src/vs/sessions/contrib/home/browser/appsPanelModel.ts): the pane attaches their DOM while it is on screen and detaches it when it goes away, instead of owning and disposing them",
+      "a browser tab now carries its own address bar (back / forward / reload / address) so opening Browser is immediately usable - the address dialog is gone entirely",
+      "a newly created instance becomes the active tab, which is what makes its terminal open (a terminal that is never shown never opens its xterm)"
+    ],
+    "verified": [
+      "`+` -> Browser: a tab appears with an address bar straight away; typing example.com and pressing Enter loads the page (tab title becomes `Example Domain`)",
+      "the overlay bounds follow the address bar: view rect [1113, 105, 322, 758], supplied as {windowId:1,x:1113,y:105,width:322,height:758,zoomFactor:1} and model.visible=true",
+      "a terminal tab (zsh) and a browser tab (Example Domain) coexist on one row with the four entries, and the editor group still showed the single `Apps` tab",
+      "hiding the side pane (cmd+alt+b) collapsed the editor part to 0 width and revealed it again with the same tab and page still there"
+    ],
+    "pixel_evidence": {
+      "capture": "apps-panel-browser-address-bar.png",
+      "paneBand": { "region": "x 2240..2860 y 300..700", "dominant": "rgb(238,238,238) 227802 px", "textPixels": "rgb(48,48,48) 12469 px" },
+      "reading": "the loaded page's text renders inside the pane below the address bar"
+    },
+    "correction": [
+      "an earlier note in this receipt blamed the loss of tabs on the layout collapsing the editor area. The runs where tabs disappeared were the agent relaunching the dev build with a fresh --user-data-dir, not a spontaneous pane teardown. The singleton is still the right shape for the instances (it is what lets a browser tab keep its page while the pane is rebuilt), but it was not fixing an observed teardown."
+    ]
+  },
+  "measurements": {
+    "stripRow": {
+      "note": "Every strip control shares one row: top and height per control.",
+      "controls": {
+        "Review": { "top": 42, "height": 24 },
+        "Browser": { "top": 42, "height": 24 },
+        "Terminal": { "top": 42, "height": 24 },
+        "File": { "top": 42, "height": 24 },
+        "zsh (instance 1)": { "top": 42, "height": 24 },
+        "zsh (instance 2)": { "top": 42, "height": 24 },
+        "New Terminal": { "top": 42, "height": 24 },
+        "Toggle Pinned Summary": { "top": 42, "height": 24 }
+      },
+      "panelWidth": 322
+    },
+    "groupStrip": {
+      "note": "When a real editor tab is active the panel is not the shown editor, so the group strip is the only strip in the pane.",
+      "tabs": [{ "label": "Apps", "top": 36 }, { "label": "Browser", "top": 36 }]
+    },
+    "columns": { "sidebar": 225, "center": 883, "utility": 324, "window": 1436, "utilityShare": 0.226 },
+    "bottomPanelWidth": 0
+  },
+  "verification": [
+    {
+      "check": "one tab per terminal instance",
+      "evidence": "clicking the Terminal card then the strip's new-instance control produced two .caret-apps-tab entries (both labeled zsh) and two .xterm instances with exactly one active container (322x788)."
+    },
+    {
+      "check": "terminals are real and interactive",
+      "evidence": "the xterm buffer of the active instance read back `pond@CEDIA-M ~ % echo one-strip-ok` / `one-strip-ok` / `pond@CEDIA-M ~ %`; two /bin/zsh -il processes were running."
+    },
+    {
+      "check": "the bottom panel is never used for these terminals",
+      "evidence": ".part.panel measured 0 width throughout, including immediately after both instances were created."
+    },
+    {
+      "check": "the panel is not a dead end",
+      "evidence": "opening Browser put a real Browser tab in the right pane; selecting the Apps tab returned to the panel with both terminals still buffered and still accepting input (`echo one-strip-ok` ran in the second instance)."
+    },
+    {
+      "check": "pinned summary reads real state",
+      "evidence": "the toggle set .summary-pinned, aria-pressed=true and a 322x37 summary that reads `No active session` on the empty home (no session exists yet) from ISessionsService.activeSession."
+    },
+    {
+      "check": "checks",
+      "evidence": "bun test apps/macos/test -> 570 pass / 0 fail; node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10."
+    }
+  ],
+  "known_gaps": [
+    "The pane's instance tabs are pane-scoped: a window reload or a working-set apply on the group starts the panel empty again. The instances are disposed with the pane (verified: no /bin/zsh -il process survived), so nothing leaks, but the tabs are not restored. Moving the tab model into a contribution that owns the instances is the next slice.",
+    "The reference panel is wide enough for text labels on its four entries; this column is 322px, so the strip entries are icons with tooltips and the labelled form of the same entries is the tile grid in the empty body.",
+    "The reference's `Open new tab menu` is a menu of the four apps; Caret's new-instance control creates a terminal, and the four entries stay reachable in the strip.",
+    "The pinned summary shows the real active session; the empty home has no session, so it reports that instead of hiding."
+  ],
+  "screenshot": "apps-panel-tabs-pinned-summary.png"
+}

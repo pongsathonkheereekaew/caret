@@ -1,0 +1,15 @@
+diff --git a/src/vs/sessions/contrib/chat/browser/newChatInput.ts b/src/vs/sessions/contrib/chat/browser/newChatInput.ts
+--- a/src/vs/sessions/contrib/chat/browser/newChatInput.ts
++++ b/src/vs/sessions/contrib/chat/browser/newChatInput.ts
+@@ -1288,7 +1288,10 @@
+ 		const button = dom.append(container, dom.$('.sessions-chat-stt-button'));
+ 		button.tabIndex = 0;
+ 		button.role = 'button';
+-		const micLabel = localize('sessionsStt.dictate', "Dictate (Speech to Text)");
++		// Caret: the parity contract section 3.2 names this composer control
++		// "Start voice input". The id is unchanged so the dictation service wiring
++		// and the hover copy keep working.
++		const micLabel = localize('sessionsStt.dictate', "Start voice input");
+ 		const stopLabel = localize('sessionsStt.stop', "Stop Dictation");
+ 		this._register(this.hoverService.setupDelayedHover(button, () => ({
+ 			// While the model prepares, surface the download/connecting hover

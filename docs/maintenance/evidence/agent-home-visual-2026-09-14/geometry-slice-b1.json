@@ -1,0 +1,128 @@
+{
+  "slice": "B1 - Agents Window title bar cleanup, reference sidebar navigation, right utility-pane calibration, three-column geometry",
+
+  "method": {
+    "reference": "The user supplied the two reference screenshots this turn. They are native 3420x2224 PNG captures of a 1710x1112 CSS window at DPR 2 (confirmed by text metrics: the 'New Chat' label is 29 device px tall, i.e. ~14.5 CSS for a 13px UI font, which is only possible at DPR 2). They were measured without a vision model - the image tool answered HTTP 429 - using scripts/image-ocr.swift (on-device macOS Vision OCR, text plus bounding boxes) and scripts/png-pixel-probe.py driven by /tmp/geom-probe.py (run-length colour segments, then row/column profiles against each region's modal colour to find 1px borders).",
+    "caret": "dev build (VSCODE_DEV=1) of desktop/ with patches 0001-0022 applied, launched with --agents --remote-debugging-port=9341 on a fresh profile; viewport emulated inside one CDP session and read back with Runtime.evaluate, image captured with Page.captureScreenshot."
+  },
+  "referenceScreenshots": [
+    "reference-cursor-agents-1710x1112.png - the reference Agents window (OCR: menu bar 'Cursor File Edit View Window Help', then New Chat / Search / Automations / Customize, Projects +, New Project, Repositories, three repository rows, the composer row 'caret v Select branch v This Mac v', the four launch cards, and four suggestion rows)",
+    "reference-cursor-ide-1710x1112.png - the reference IDE window, in its welcome state (Open project / Clone repo / Connect via SSH / Recent projects), which is why it has no editor and no Agents chrome"
+  ],
+
+  "referenceNativeCapture": {
+    "captureSize": [3420, 2224],
+    "cssViewport": [1710, 1112],
+    "devicePixelRatio": 2,
+    "contains": "the macOS menu bar and the display notch, so absolute y values are offset from the window top by roughly one menu bar (~40 CSS); x values are not offset",
+    "dividers": {
+      "sidebarRightXCaptured": 534,
+      "sidebarRightXCss": 267,
+      "utilityPaneLeftXCaptured": 2650,
+      "utilityPaneLeftXCss": 1325,
+      "sidebarShare": 0.15614,
+      "utilityShare": 0.22515,
+      "centerShare": 0.61871
+    },
+    "launcherCards": {
+      "borderColumnsCaptured": [2780, 3022, 3048, 3290],
+      "borderRowsCaptured": [984, 1177, 1203, 1396],
+      "cardSizeCss": [121, 96.5],
+      "cardSizeCaptured": [242, 193],
+      "gapCss": 13,
+      "gapCaptured": 26,
+      "gridSizeCss": [255, 206],
+      "gridLeftCss": 1390,
+      "gridCenteredInPane": "grid 1390..1645, pane 1325..1710, both centres 1517.5",
+      "cardInteriorCss": "icon ink y 523.5..535, label ink y 550..559, label ink x 1425..1476"
+    },
+    "sidebarRows": {
+      "selectedNewChatRowCapturedY": [174, 233],
+      "selectedNewChatRowCssHeight": 30,
+      "rowOrder": ["New Chat", "Search", "Automations", "Customize", "Projects", "New Project", "Repositories", "repository rows", "composer"],
+      "headerIcons": "the Projects header band carries one icon's worth of dark ink (72 px above background) and the Repositories band about two (133 px), matching a single + on Projects and filter+add on Repositories",
+      "sidebarEndsAt": "the section list - the reference has no Getting Started card and no profile/settings row below it. The brief's sections 5.4 and 5.5 asked for both; the user chose the reference, so neither is rendered and the test pins their absence."
+    },
+    "titlebar": "control row (back/forward, IDE, +) centred at capture y about 52 CSS; the titlebar background continues each column's own colour, so there is no colour step to measure its bottom edge"
+  },
+
+  "caretCaptureAtReferenceSize": {
+    "cssViewport": [1710, 1112],
+    "devicePixelRatio": 2,
+    "captureSize": [3420, 2224],
+    "image": "caret-agent-home-1710x1112.png",
+    "titlebarRectCss": [0, 0, 1706, 35],
+    "sidebarRectCss": [0, 35, 267, 1073],
+    "utilityRectCss": [1321, 35, 385, 1073],
+    "changesCardRectCss": [1386, 452, 121, 96],
+    "browserCardRectCss": [1520, 452, 121, 96],
+    "terminalCardRectCss": [1386, 561, 121, 96],
+    "fileCardRectCss": [1520, 561, 121, 96],
+    "gridSizeCss": [255, 205],
+    "cardGapCss": 13,
+    "utilityHeaderPresent": false,
+    "commandCenterPresent": false
+  },
+
+  "comparison": {
+    "sidebarRightX": { "referenceCss": 267, "caretCss": 267, "deltaCss": 0 },
+    "utilityPaneLeftX": { "referenceCss": 1325, "caretCss": 1321, "deltaCss": -4 },
+    "cardSizeCss": { "referenceCss": [121, 96.5], "caretCss": [121, 96], "deltaCss": [0, -0.5] },
+    "cardGapCss": { "referenceCss": 13, "caretCss": 13, "deltaCss": 0 },
+    "gridSizeCss": { "referenceCss": [255, 206], "caretCss": [255, 205], "deltaCss": [0, -1] },
+    "gridLeftCss": { "referenceCss": 1390, "caretCss": 1386, "deltaCss": -4 },
+    "explanationOfTheFourPxDelta": "The workbench reserves a 4px gutter at the right of the window (the titlebar measures 1706 of 1710), so every part is 4px narrower and the right-hand pane sits 4px further left than the reference's. It is a base layout detail outside this patch's boundary, and it moves the divider by 0.23% of the window width."
+  },
+
+  "cardSizeCorrection": {
+    "whatChanged": "The cards were 75x60 CSS with a 7px gap (grid 156x127) and are now 121x96 CSS with a 13px gap (grid 255x205).",
+    "why": "The geometry brief quoted 'card width 146-150 captured px, height 118-122 captured px, gap 12-16 captured px' for a 2048x1331 capture. Those numbers describe the same window resized from 3420 to 2048 wide: 148 x 3420/2048 = 247 device px = 123.5 CSS, which is the 121 CSS measured on the native capture, and 12 x 3420/2048 = 20..26 device px = 10..13 CSS for the gap. Reading them as device pixels of a 2x capture gave 75x60 CSS, which is what shipped in the first pass of this slice.",
+    "evidence": "reference card borders on x 2780/3022 and 3048/3290 and y 984/1177 and 1203/1396 of the 3420-wide capture"
+  },
+
+  "referenceSizeCapture2048": {
+    "comment": "The shape the brief asked to validate against, kept for continuity: an emulated 1024x666 CSS viewport at DPR 2, which is the brief's 2048x1331 geometry in the same coordinate space.",
+    "cssViewport": [1024, 666],
+    "captureSize": [2048, 1332],
+    "layoutWidthCss": 1020,
+    "titlebarBottomY": 70,
+    "sidebarRightX": 340,
+    "utilityPaneLeftX": 1440,
+    "utilityHeaderPresent": false,
+    "commandCenterPresent": false,
+    "image": "caret-agent-home-slice-b1.png",
+    "honestReading": "At that width the reference shares are below the base part minimums (sidebar 170px, editor 300px, both in src/vs/workbench/**), so the measured dividers are 340 and 1440 instead of 320 and 1587. The shares are applied through the layout service and are exact at every width where the minimums do not bind - which includes the reference's own 1710 CSS width, where the sidebar lands on 267 exactly."
+  },
+
+  "utilityPane": {
+    "editorTitleDisplay": "none",
+    "editorTitleRectCss": [0, 0, 0, 0],
+    "appsLabelRendered": false,
+    "cardOrder": ["Changes", "Browser", "Terminal", "File"],
+    "note": "The editor group's title strip is still in the DOM because it hosts the Caret utility input, but it paints nothing and holds no pointer or focus target. The reference shows only the plain card grid, with no header, toolbar or divider."
+  },
+
+  "sidebar": {
+    "navigationRowsInOrder": ["newChat", "search", "automations", "customize"],
+    "sectionTitlesInOrder": ["Projects", "Repositories"],
+    "entriesInEmptyProfile": ["New Project"],
+    "gettingStartedPresent": false,
+    "profileRowPresent": false,
+    "detachedCustomizationsFooterPresent": false,
+    "oldNewChatPillPresent": false,
+    "repositoryFilterInputPresent": true,
+    "repositoryFilterBehaviourVerified": {
+      "before": { "ariaExpanded": "false", "inputHidden": true },
+      "opened": { "ariaExpanded": "true", "inputHidden": false, "inputFocused": true },
+      "closed": { "ariaExpanded": "false", "inputHidden": true, "valueReset": true }
+    },
+    "honestReading": "The tested profile has no workspace folder open, so Projects and Repositories render their empty rows plus the real New Project row; the reference screenshot has three repository rows because that machine has three repositories. The rows and the filter are wired to the open workspace folders but were not exercised with one open."
+  },
+
+  "titlebar": {
+    "titlebarHeightCss": 35,
+    "commandCenterRectCss": [510, 18, 0, 0],
+    "commandCenterVisible": false,
+    "note": "The reference titlebar is a flexible empty strip with back/forward on the left and IDE / overflow / + / window controls on the right, which is what the Agents window now shows; the command centre is still mounted but zero-width."
+  }
+}

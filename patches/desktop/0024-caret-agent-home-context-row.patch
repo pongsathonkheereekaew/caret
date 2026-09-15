@@ -1,0 +1,231 @@
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomeContextRow.contribution.ts b/src/vs/sessions/contrib/home/browser/agentHomeContextRow.contribution.ts
+new file mode 100644
+index 0000000..1692231
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomeContextRow.contribution.ts
+@@ -0,0 +1,36 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import './media/agentHomeContextRow.css';
++import { Disposable } from '../../../../base/common/lifecycle.js';
++import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
++import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
++import { registerWorkbenchContribution2, WorkbenchPhase, IWorkbenchContribution } from '../../../../workbench/common/contributions.js';
++import { IsSessionsWindowContext } from '../../../../workbench/common/contextkeys.js';
++import { AgentHomeContextRow } from './agentHomeContextRow.js';
++
++/**
++ * Mounts the Agent Home context-row chips in the Agents Window only; the IDE window
++ * and the in-session composer keep the picker row they already have.
++ */
++class AgentHomeContextRowContribution extends Disposable implements IWorkbenchContribution {
++
++	static readonly ID = 'workbench.contrib.caret.agentHomeContextRow';
++
++	constructor(
++		@IContextKeyService contextKeyService: IContextKeyService,
++		@IInstantiationService instantiationService: IInstantiationService,
++	) {
++		super();
++
++		if (!IsSessionsWindowContext.getValue(contextKeyService)) {
++			return;
++		}
++
++		this._register(instantiationService.createInstance(AgentHomeContextRow));
++	}
++}
++
++registerWorkbenchContribution2(AgentHomeContextRowContribution.ID, AgentHomeContextRowContribution, WorkbenchPhase.AfterRestored);
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomeContextRow.ts b/src/vs/sessions/contrib/home/browser/agentHomeContextRow.ts
+new file mode 100644
+index 0000000..bc29435
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomeContextRow.ts
+@@ -0,0 +1,111 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import { $, addDisposableListener, append, EventType } from '../../../../base/browser/dom.js';
++import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
++import { Codicon } from '../../../../base/common/codicons.js';
++import { Disposable, DisposableStore, MutableDisposable } from '../../../../base/common/lifecycle.js';
++import { autorun } from '../../../../base/common/observable.js';
++import { localize } from '../../../../nls.js';
++import { ICommandService } from '../../../../platform/commands/common/commands.js';
++import { IAgentHostConnectionsService } from '../../../../platform/agentHost/common/agentHostConnectionsService.js';
++import { LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../common/agentHostSessionsProvider.js';
++import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
++
++/** The base's own copy-branch command, which takes the session as its argument. */
++const COPY_SESSION_BRANCH_NAME_COMMAND_ID = 'sessionsViewPane.agentHost.copySessionBranchName';
++
++/**
++ * The two chips the reference puts beside the workspace picker: the branch the
++ * session is on, and where it runs.
++ *
++ * Both are read from real state rather than assumed. The branch is the selected
++ * workspace folder's git branch, the same value the base's own session actions read,
++ * and clicking the chip runs the base's copy-branch command for that session. The
++ * runtime chip reports where the session would run: it reads "This Mac" only while no
++ * remote agent host is connected, which is the one execution target Caret can offer
++ * today. Nothing is rendered when there is no branch, so neither chip can be a control
++ * with nothing behind it.
++ */
++export class AgentHomeContextRow extends Disposable {
++
++	private readonly _chips = this._register(new MutableDisposable<DisposableStore>());
++
++	private static readonly _rowSelector = '.new-session-workspace-picker-container .sessions-workspace-category-picker';
++
++	constructor(
++		@ISessionsService private readonly sessionsService: ISessionsService,
++		@IAgentHostConnectionsService private readonly connectionsService: IAgentHostConnectionsService,
++		@ICommandService private readonly commandService: ICommandService,
++	) {
++		super();
++
++		// The chips follow the session state...
++		this._register(autorun(() => this.render()));
++		this._register(this.connectionsService.onDidChangeConnections(() => this.render()));
++
++		// ...and the row they live in is rebuilt by the composer whenever its content
++		// changes, which can happen after this contribution's first pass. A cheap guard
++		// re-renders only while the row is present and Caret's chips are not, so the
++		// re-render cannot feed itself.
++		const observer = new MutationObserver(() => {
++			const row = document.querySelector(AgentHomeContextRow._rowSelector);
++			if (row && !row.querySelector('.caret-agent-home-context-chip')) {
++				this.render();
++			}
++		});
++		observer.observe(document.body, { childList: true, subtree: true });
++		this._register({ dispose: () => observer.disconnect() });
++	}
++
++	private render(): void {
++		const session = this.sessionsService.activeSession.get();
++		const branch = session?.workspace.get()?.folders[0]?.gitRepository?.branchName?.trim();
++		// The session owner is the local agent host whenever the window has no remote
++		// execution target connected; that is the truthful reading of "runs here".
++		const hasRemoteTarget = this.connectionsService.connections.some(connection => !connection.isAmbient && connection.connection !== undefined);
++		const runsLocally = !hasRemoteTarget && (session === undefined || session.providerId === LOCAL_AGENT_HOST_PROVIDER_ID);
++
++		const row = document.querySelector<HTMLElement>(AgentHomeContextRow._rowSelector);
++		if (!row) {
++			return;
++		}
++
++		// The composer rebuilds this row when its state changes, and this autorun re-runs
++		// for the same reasons, so the chips are rebuilt from scratch each pass.
++		const store = new DisposableStore();
++		this._chips.value = store;
++		for (const existing of row.querySelectorAll('.caret-agent-home-context-chip')) {
++			existing.remove();
++		}
++
++		if (branch && session) {
++			const chip = append(row, $<HTMLButtonElement>('button.caret-agent-home-context-chip.caret-agent-home-context-branch'));
++			chip.type = 'button';
++			const label = localize('caret.context.copyBranch', "Copy branch {0}", branch);
++			chip.title = label;
++			chip.setAttribute('aria-label', label);
++
++			const icon = append(chip, $('span.caret-agent-home-context-icon'));
++			icon.appendChild(renderIcon(Codicon.gitBranch));
++			icon.setAttribute('aria-hidden', 'true');
++			append(chip, $('span.caret-agent-home-context-label')).textContent = branch;
++
++			store.add(addDisposableListener(chip, EventType.CLICK, () => void this.commandService.executeCommand(COPY_SESSION_BRANCH_NAME_COMMAND_ID, session)));
++		}
++
++		if (runsLocally) {
++			const label = localize('caret.context.localRuntime', "Runs on this Mac");
++			const chip = append(row, $('span.caret-agent-home-context-chip.caret-agent-home-context-runtime'));
++			chip.title = label;
++			chip.setAttribute('aria-label', label);
++
++			const icon = append(chip, $('span.caret-agent-home-context-icon'));
++			icon.appendChild(renderIcon(Codicon.deviceDesktop));
++			icon.setAttribute('aria-hidden', 'true');
++			append(chip, $('span.caret-agent-home-context-label')).textContent = localize('caret.context.thisMac', "This Mac");
++		}
++	}
++}
+diff --git a/src/vs/sessions/contrib/home/browser/media/agentHomeContextRow.css b/src/vs/sessions/contrib/home/browser/media/agentHomeContextRow.css
+new file mode 100644
+index 0000000..17f9719
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/media/agentHomeContextRow.css
+@@ -0,0 +1,54 @@
++/* Caret: the branch and runtime chips beside the Agent Home workspace picker.
++ *
++ * The reference draws them as plain text chips on the surface - icon, label, no card
++ * fill - in a row that also holds the workspace picker. Only the chips Caret adds are
++ * styled here; the picker keeps its own base styling.
++ */
++
++.caret-agent-home-context-chip {
++	display: flex;
++	align-items: center;
++	gap: 4px;
++	flex: 0 1 auto;
++	min-width: 0;
++	height: 24px;
++	padding: 0 6px;
++	border: none;
++	border-radius: 4px;
++	background: transparent;
++	color: var(--vscode-descriptionForeground, var(--vscode-foreground));
++	font-family: inherit;
++	font-size: var(--vscode-fontSize-label1, 12px);
++	white-space: nowrap;
++	overflow: hidden;
++	text-overflow: ellipsis;
++}
++
++.caret-agent-home-context-icon {
++	display: flex;
++	align-items: center;
++	justify-content: center;
++	flex: 0 0 auto;
++	width: 16px;
++	height: 16px;
++	color: var(--vscode-icon-foreground);
++}
++
++.caret-agent-home-context-label {
++	overflow: hidden;
++	text-overflow: ellipsis;
++}
++
++button.caret-agent-home-context-branch {
++	cursor: pointer;
++}
++
++button.caret-agent-home-context-branch:hover {
++	background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
++	color: var(--vscode-foreground);
++}
++
++button.caret-agent-home-context-branch:focus-visible {
++	outline: 1px solid var(--vscode-focusBorder);
++	outline-offset: -1px;
++}
+diff --git a/src/vs/sessions/sessions.desktop.main.ts b/src/vs/sessions/sessions.desktop.main.ts
+index c11bd98..02a63a5 100644
+--- a/src/vs/sessions/sessions.desktop.main.ts
++++ b/src/vs/sessions/sessions.desktop.main.ts
+@@ -101,6 +101,7 @@ import '../workbench/services/process/electron-browser/processService.js';
+ import '../workbench/services/power/electron-browser/powerService.js';
+ import '../workbench/services/localTranscription/electron-browser/localTranscriptionService.js';
+ import './contrib/automations/electron-browser/automationStorageService.js';
++import './contrib/home/browser/agentHomeContextRow.contribution.js';
+ 
+ import { ILocalGitService } from '../platform/git/common/localGitService.js';
+ import { InstantiationType, registerSingleton } from '../platform/instantiation/common/extensions.js';

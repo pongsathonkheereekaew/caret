@@ -1,0 +1,607 @@
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomeNav.contribution.ts b/src/vs/sessions/contrib/home/browser/agentHomeNav.contribution.ts
+new file mode 100644
+index 00000000000..63155c1dd4a
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomeNav.contribution.ts
+@@ -0,0 +1,89 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import './media/agentHomeNav.css';
++import { mainWindow } from '../../../../base/browser/window.js';
++import { Disposable } from '../../../../base/common/lifecycle.js';
++import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
++import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
++import { registerWorkbenchContribution2, WorkbenchPhase, IWorkbenchContribution } from '../../../../workbench/common/contributions.js';
++import { IsSessionsWindowContext } from '../../../../workbench/common/contextkeys.js';
++import { IWorkbenchLayoutService, Parts } from '../../../../workbench/services/layout/browser/layoutService.js';
++import { AgentHomeNav } from './agentHomeNav.js';
++
++/**
++ * Shares of the reference Agent Home layout, measured from the reference capture
++ * (docs/caret-ui-reference-baseline.json): sidebar 15.625%, centre 61.865%, right
++ * utility 22.51%. Both outer columns are shares rather than fixed pixels so the
++ * window keeps the reference proportions at any width - the reference capture is a
++ * 2x capture of a 1024-wide window, where 15.625% lands on the measured 320 captured
++ * pixels for the sidebar divider and 22.51% puts the utility divider at the measured
++ * 1587. This runs after the utility contribution, so it also replaces that
++ * contribution's fixed 255px sidebar with the reference share.
++ */
++const REFERENCE_SIDEBAR_SHARE = 0.15625;
++const REFERENCE_UTILITY_SHARE = 0.2251;
++
++/**
++ * The Agent Home navigation and the reference three-column proportions.
++ *
++ * The sidebar of the Agents Window is a session tree with a small New Chat pill, so
++ * this contribution mounts the reference navigation above it and takes the obsolete
++ * controls out of the DOM. Everything is gated to the Sessions workbench, so the IDE
++ * sidebar and title bar keep their own behaviour.
++ */
++class AgentHomeNavContribution extends Disposable implements IWorkbenchContribution {
++
++	static readonly ID = 'workbench.contrib.caret.agentHomeNav';
++
++	constructor(
++		@IContextKeyService contextKeyService: IContextKeyService,
++		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
++		@IInstantiationService private readonly instantiationService: IInstantiationService,
++	) {
++		super();
++
++		if (!IsSessionsWindowContext.getValue(contextKeyService)) {
++			return;
++		}
++
++		this.mountNavigation();
++		this.applyReferenceProportions();
++	}
++
++	private mountNavigation(): void {
++		const sidebar = this.layoutService.getContainer(mainWindow, Parts.SIDEBAR_PART);
++		if (!sidebar) {
++			return;
++		}
++		const content = sidebar.querySelector<HTMLElement>(':scope > .content');
++		if (!content) {
++			return;
++		}
++
++		this._register(this.instantiationService.createInstance(AgentHomeNav, content));
++		sidebar.classList.add('caret-agent-home-sidebar');
++
++		// The base sidebar header (a small "New Chat" pill plus filter and find icons)
++		// and the detached "Customizations" footer are replaced by the navigation rows,
++		// so they are taken out of the DOM rather than left mounted behind the new
++		// navigation. Removing them also removes their focus targets and their entries
++		// in the accessibility tree.
++		for (const selector of ['.agent-sessions-header-row', '.agent-sessions-customizations-section']) {
++			sidebar.querySelector(selector)?.remove();
++		}
++	}
++
++	private applyReferenceProportions(): void {
++		const width = this.layoutService.getContainer(mainWindow).clientWidth;
++		if (width <= 0) {
++			return;
++		}
++		this.layoutService.setSize(Parts.SIDEBAR_PART, { width: Math.round(width * REFERENCE_SIDEBAR_SHARE), height: 0 });
++		this.layoutService.setSize(Parts.EDITOR_PART, { width: Math.round(width * REFERENCE_UTILITY_SHARE), height: 0 });
++	}
++}
++
++registerWorkbenchContribution2(AgentHomeNavContribution.ID, AgentHomeNavContribution, WorkbenchPhase.AfterRestored);
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomeNav.ts b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
+new file mode 100644
+index 00000000000..1925fcf4594
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomeNav.ts
+@@ -0,0 +1,225 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import { $, addDisposableListener, append, clearNode, EventType } from '../../../../base/browser/dom.js';
++import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
++import { Codicon } from '../../../../base/common/codicons.js';
++import { ThemeIcon } from '../../../../base/common/themables.js';
++import { Disposable } from '../../../../base/common/lifecycle.js';
++import { localize } from '../../../../nls.js';
++import { ICommandService } from '../../../../platform/commands/common/commands.js';
++import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
++import { OPEN_CUSTOMIZATIONS_COMMAND_ID } from '../../../common/customizations.js';
++import { ICustomViewService } from '../../../services/customView/browser/customViewService.js';
++import { NEW_SESSION_ACTION_ID } from '../../chat/common/constants.js';
++import { AUTOMATIONS_CUSTOM_VIEW_ID } from '../../sessions/browser/automationsConstants.js';
++
++/** Commands the Agent Home navigation uses. All of them already exist. */
++const FIND_SESSIONS_COMMAND_ID = 'sessionsViewPane.find';
++const OPEN_FOLDER_COMMAND_ID = 'workbench.action.files.openFolder';
++
++/**
++ * The Agent Home navigation of the reference sidebar.
++ *
++ * Four full-width rows, a Projects section and a Repositories section - the
++ * sidebar the reference capture shows and nothing more. Every row runs a command
++ * Caret already registers; nothing here is a placeholder. Repository and project
++ * rows come from the open workspace folders, never from names copied out of a
++ * screenshot.
++ *
++ * The reference sidebar has no Getting Started card and no profile/settings row
++ * below the sections, so neither is rendered here.
++ */
++export class AgentHomeNav extends Disposable {
++
++	readonly domNode: HTMLElement;
++
++	/** The rendered repository rows and the empty-filter notice, for the filter control. */
++	private repositoryRows: { element: HTMLElement; label: string }[] = [];
++	private filterEmpty: HTMLElement | undefined;
++
++	constructor(
++		parent: HTMLElement,
++		@ICommandService private readonly commandService: ICommandService,
++		@ICustomViewService private readonly customViewService: ICustomViewService,
++		@IWorkspaceContextService private readonly workspaceService: IWorkspaceContextService,
++	) {
++		super();
++
++		this.domNode = append(parent, $('.caret-agent-home-nav'));
++		this.render();
++	}
++
++	private render(): void {
++		clearNode(this.domNode);
++		this.repositoryRows = [];
++		this.filterEmpty = undefined;
++
++		this.renderRow('newChat', Codicon.commentDiscussion, localize('caret.nav.newChat', "New Chat"), true, () => void this.commandService.executeCommand(NEW_SESSION_ACTION_ID));
++		this.renderRow('search', Codicon.search, localize('caret.nav.search', "Search"), false, () => void this.commandService.executeCommand(FIND_SESSIONS_COMMAND_ID));
++		this.renderRow('automations', Codicon.clock, localize('caret.nav.automations', "Automations"), false, () => this.customViewService.showCustomView(AUTOMATIONS_CUSTOM_VIEW_ID));
++		this.renderRow('customize', Codicon.tools, localize('caret.nav.customize', "Customize"), false, () => void this.commandService.executeCommand(OPEN_CUSTOMIZATIONS_COMMAND_ID));
++
++		const folders = this.workspaceService.getWorkspace().folders;
++
++		// Projects: the open workspace is the project Caret knows today, so the section
++		// lists that real folder and offers the real folder action instead of invented
++		// project rows. `New Project` is a row of its own the way the reference draws it,
++		// and both the row and the header action run the same real folder command.
++		const projectsSection = this.renderSection(localize('caret.nav.projects', "Projects"));
++		this.renderSectionAction(projectsSection, localize('caret.nav.newProject', "New Project"), Codicon.add, () => void this.commandService.executeCommand(OPEN_FOLDER_COMMAND_ID));
++		const projects = this.renderSectionBody(projectsSection);
++		this.renderEntry(projects, Codicon.newFolder, localize('caret.nav.newProject', "New Project"), () => void this.commandService.executeCommand(OPEN_FOLDER_COMMAND_ID));
++		if (folders.length === 0) {
++			this.renderEmpty(projects, localize('caret.nav.noProject', "No project open"));
++		} else {
++			for (const folder of folders) {
++				this.renderEntry(projects, Codicon.project, folder.name);
++			}
++		}
++
++		// Repositories: the open workspace folders are the repositories this window can
++		// actually see, so each row is real data, and the filter narrows exactly those
++		// rows rather than a decorative control.
++		const repositoriesSection = this.renderSection(localize('caret.nav.repositories', "Repositories"));
++		this.renderSectionFilter(repositoriesSection, localize('caret.nav.filterRepositories', "Filter Repositories"));
++		this.renderSectionAction(repositoriesSection, localize('caret.nav.addRepository', "Add Repository"), Codicon.add, () => void this.commandService.executeCommand(OPEN_FOLDER_COMMAND_ID));
++		const repositories = this.renderSectionBody(repositoriesSection);
++		if (folders.length === 0) {
++			this.renderEmpty(repositories, localize('caret.nav.noRepository', "No repository open"));
++		} else {
++			for (const folder of folders) {
++				const row = this.renderEntry(repositories, Codicon.repo, folder.name);
++				this.repositoryRows.push({ element: row, label: folder.name });
++			}
++			this.renderFilterEmpty(repositories, localize('caret.nav.noRepositoryMatch', "No matching repository"));
++		}
++
++		append(this.domNode, $('.caret-agent-home-nav-spacer'));
++	}
++
++	private applyRepositoryFilter(query: string): void {
++		const needle = query.trim().toLowerCase();
++		let visible = 0;
++		for (const row of this.repositoryRows) {
++			const matches = needle.length === 0 || row.label.toLowerCase().includes(needle);
++			row.element.hidden = !matches;
++			if (matches) {
++				visible++;
++			}
++		}
++		if (this.filterEmpty) {
++			this.filterEmpty.hidden = !(needle.length > 0 && visible === 0);
++		}
++	}
++
++	private renderRow(id: string, icon: ThemeIcon, label: string, selected: boolean, run: () => void): void {
++		const row = append(this.domNode, $<HTMLButtonElement>('button.caret-agent-home-nav-row'));
++		row.type = 'button';
++		row.dataset.caretNavId = id;
++		row.classList.toggle('selected', selected);
++		row.setAttribute('aria-label', label);
++		if (selected) {
++			row.setAttribute('aria-current', 'page');
++		}
++
++		const iconElement = append(row, $('span.caret-agent-home-nav-icon'));
++		iconElement.appendChild(renderIcon(icon));
++		iconElement.setAttribute('aria-hidden', 'true');
++
++		const text = append(row, $('span.caret-agent-home-nav-label'));
++		text.textContent = label;
++
++		this._register(addDisposableListener(row, EventType.CLICK, () => run()));
++	}
++
++	private renderSection(title: string): HTMLElement {
++		const section = append(this.domNode, $('.caret-agent-home-nav-section'));
++		const header = append(section, $('.caret-agent-home-nav-section-header'));
++
++		const label = append(header, $('span.caret-agent-home-nav-section-title'));
++		label.textContent = title;
++
++		return section;
++	}
++
++	private renderSectionAction(section: HTMLElement, actionLabel: string, icon: ThemeIcon, run: () => void): void {
++		const header = section.querySelector<HTMLElement>(':scope > .caret-agent-home-nav-section-header');
++		if (!header) {
++			return;
++		}
++		const action = append(header, $<HTMLButtonElement>('button.caret-agent-home-nav-section-action'));
++		action.type = 'button';
++		action.setAttribute('aria-label', actionLabel);
++		action.title = actionLabel;
++		action.appendChild(renderIcon(icon));
++		this._register(addDisposableListener(action, EventType.CLICK, () => run()));
++	}
++
++	// The filter input and its toggle are real: the toggle reveals the input, and the
++	// input hides the repository rows that do not match what was typed.
++	private renderSectionFilter(section: HTMLElement, actionLabel: string): void {
++		const input = append(section, $<HTMLInputElement>('input.caret-agent-home-nav-filter'));
++		input.type = 'text';
++		input.hidden = true;
++		input.placeholder = localize('caret.nav.filterPlaceholder', "Filter repositories");
++		input.setAttribute('aria-label', actionLabel);
++
++		const header = section.querySelector<HTMLElement>(':scope > .caret-agent-home-nav-section-header');
++		if (header) {
++			const toggle = append(header, $<HTMLButtonElement>('button.caret-agent-home-nav-section-action'));
++			toggle.type = 'button';
++			toggle.setAttribute('aria-label', actionLabel);
++			toggle.title = actionLabel;
++			toggle.setAttribute('aria-expanded', 'false');
++			toggle.appendChild(renderIcon(Codicon.filter));
++			this._register(addDisposableListener(toggle, EventType.CLICK, () => {
++				input.hidden = !input.hidden;
++				toggle.setAttribute('aria-expanded', String(!input.hidden));
++				if (input.hidden) {
++					input.value = '';
++					this.applyRepositoryFilter('');
++				} else {
++					input.focus();
++				}
++			}));
++		}
++
++		this._register(addDisposableListener(input, EventType.INPUT, () => this.applyRepositoryFilter(input.value)));
++	}
++
++	private renderSectionBody(section: HTMLElement): HTMLElement {
++		return append(section, $('.caret-agent-home-nav-section-body'));
++	}
++
++	private renderEntry(parent: HTMLElement, icon: ThemeIcon, label: string, run?: () => void): HTMLElement {
++		const row: HTMLElement = append(parent, run
++			? $<HTMLButtonElement>('button.caret-agent-home-nav-entry.caret-agent-home-nav-entry-action')
++			: $('.caret-agent-home-nav-entry'));
++		if (run) {
++			(row as HTMLButtonElement).type = 'button';
++			this._register(addDisposableListener(row, EventType.CLICK, () => run()));
++		}
++		const iconElement = append(row, $('span.caret-agent-home-nav-icon'));
++		iconElement.appendChild(renderIcon(icon));
++		iconElement.setAttribute('aria-hidden', 'true');
++		const text = append(row, $('span.caret-agent-home-nav-label'));
++		text.textContent = label;
++		return row;
++	}
++
++	private renderEmpty(parent: HTMLElement, label: string): void {
++		const empty = append(parent, $('.caret-agent-home-nav-empty'));
++		empty.textContent = label;
++	}
++
++	private renderFilterEmpty(parent: HTMLElement, label: string): void {
++		const empty = append(parent, $('.caret-agent-home-nav-empty'));
++		empty.textContent = label;
++		empty.hidden = true;
++		this.filterEmpty = empty;
++	}
++
++}
+diff --git a/src/vs/sessions/contrib/home/browser/media/agentHomeNav.css b/src/vs/sessions/contrib/home/browser/media/agentHomeNav.css
+new file mode 100644
+index 00000000000..84b764c68ac
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/media/agentHomeNav.css
+@@ -0,0 +1,209 @@
++/* Caret: the Agent Home navigation, plus the reference geometry overrides for the
++ * utility pane introduced by the previous patch. All selectors carry the sessions
++ * workbench class, so the IDE window is never affected, and this file loads after
++ * the utility stylesheet so equal-specificity rules resolve to the reference values.
++ */
++
++.agent-sessions-workbench .part.sidebar.caret-agent-home-sidebar > .content {
++	display: flex;
++	flex-direction: column;
++}
++
++.agent-sessions-workbench .part.sidebar.caret-agent-home-sidebar > .content > .caret-agent-home-nav {
++	flex: 0 0 auto;
++	order: -1;
++}
++
++.agent-sessions-workbench .part.sidebar.caret-agent-home-sidebar > .content > .composite.viewlet {
++	flex: 1 1 auto;
++	min-height: 0;
++}
++
++.caret-agent-home-nav {
++	display: flex;
++	flex-direction: column;
++	padding: 4px 8px 8px;
++	gap: 2px;
++}
++
++/* Several rows below set `display`, which would otherwise beat the `hidden`
++ * attribute the repository filter and the no-match notice use to hide rows. */
++.caret-agent-home-nav [hidden] {
++	display: none !important;
++}
++
++.caret-agent-home-nav-row,
++.caret-agent-home-nav-entry,
++.caret-agent-home-nav-section-header {
++	display: flex;
++	align-items: center;
++	gap: 8px;
++	width: 100%;
++	min-height: 30px;
++	padding: 0 8px;
++	border: none;
++	border-radius: 6px;
++	background: transparent;
++	color: var(--vscode-foreground);
++	font-family: inherit;
++	font-size: var(--vscode-fontSize-label1, 12px);
++	text-align: left;
++	box-sizing: border-box;
++}
++
++.caret-agent-home-nav-row {
++	cursor: pointer;
++}
++
++.caret-agent-home-nav-row:hover,
++.caret-agent-home-nav-entry:hover {
++	background: var(--vscode-list-hoverBackground);
++}
++
++.caret-agent-home-nav-row:focus-visible,
++.caret-agent-home-nav-section-action:focus-visible,
++.caret-agent-home-nav-filter:focus-visible {
++	outline: 1px solid var(--vscode-focusBorder);
++	outline-offset: -1px;
++}
++
++.caret-agent-home-nav-row.selected {
++	background: var(--vscode-list-activeSelectionBackground, var(--vscode-list-inactiveSelectionBackground));
++	color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
++}
++
++.caret-agent-home-nav-icon {
++	display: flex;
++	align-items: center;
++	justify-content: center;
++	flex: 0 0 auto;
++	width: 16px;
++	height: 16px;
++	color: var(--vscode-icon-foreground);
++}
++
++.caret-agent-home-nav-label {
++	flex: 1 1 auto;
++	overflow: hidden;
++	text-overflow: ellipsis;
++	white-space: nowrap;
++}
++
++.caret-agent-home-nav-section {
++	display: flex;
++	flex-direction: column;
++	margin-top: 6px;
++}
++
++.caret-agent-home-nav-section-header {
++	color: var(--vscode-descriptionForeground, var(--vscode-foreground));
++	font-weight: 600;
++}
++
++.caret-agent-home-nav-section-title {
++	flex: 1 1 auto;
++	overflow: hidden;
++	text-overflow: ellipsis;
++	white-space: nowrap;
++}
++
++.caret-agent-home-nav-section-action {
++	display: flex;
++	align-items: center;
++	justify-content: center;
++	flex: 0 0 auto;
++	width: 22px;
++	height: 22px;
++	padding: 0;
++	border: none;
++	border-radius: 4px;
++	background: transparent;
++	color: var(--vscode-icon-foreground);
++	cursor: pointer;
++}
++
++.caret-agent-home-nav-section-action:hover {
++	background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
++}
++
++.caret-agent-home-nav-entry {
++	color: var(--vscode-foreground);
++}
++
++.caret-agent-home-nav-entry-action {
++	cursor: pointer;
++}
++
++.caret-agent-home-nav-filter {
++	display: block;
++	width: 100%;
++	box-sizing: border-box;
++	margin: 4px 0 2px;
++	padding: 3px 8px;
++	border: 1px solid var(--vscode-input-border, transparent);
++	border-radius: 4px;
++	background: var(--vscode-input-background);
++	color: var(--vscode-input-foreground, var(--vscode-foreground));
++	font-family: inherit;
++	font-size: var(--vscode-fontSize-label2, 11px);
++}
++
++.caret-agent-home-nav-filter:focus-visible {
++	outline: 1px solid var(--vscode-focusBorder);
++	outline-offset: -1px;
++}
++
++.caret-agent-home-nav-empty {
++	padding: 2px 8px 2px 32px;
++	color: var(--vscode-descriptionForeground, var(--vscode-foreground));
++	font-size: var(--vscode-fontSize-label2, 11px);
++}
++
++.caret-agent-home-nav-spacer {
++	flex: 1 1 auto;
++	min-height: 12px;
++}
++
++/* The reference utility area has no header of its own: the Caret panel draws the pane's
++ * only strip, so the host group's title strip is suppressed while the panel is the editor
++ * this group shows. Two strips put the group's tabs one row above the panel's tabs, which
++ * is the misalignment this replaces. `!important` because the workbench sets some of
++ * these inline. */
++.agent-sessions-workbench .part.editor .editor-group-container:has(> .editor-container .caret-apps-panel) > .title,
++.agent-sessions-workbench .part.editor .editor-group-container:has(> .editor-container .caret-apps-panel) > .title > .title-actions,
++.agent-sessions-workbench .part.editor .editor-group-container:has(> .editor-container .caret-apps-panel) > .title > .tabs-and-actions-container,
++.agent-sessions-workbench .part.editor .editor-group-container:has(> .editor-container .caret-apps-panel) > .title .monaco-toolbar {
++	display: none !important;
++}
++
++.agent-sessions-workbench .part.editor .editor-group-container:has(> .editor-container .caret-apps-panel) > .title {
++	border-bottom: none !important;
++	height: 0 !important;
++	min-height: 0 !important;
++}
++
++/* The reference cards are 121x96 CSS px with a 13px gap. Measured from the native
++ * 3420x2224 capture of the reference window (1710x1112 CSS at DPR 2): the card
++ * borders sit on x=2780/3022 (column 1) and 3048/3290 (column 2) and on
++ * y=984/1177 (row 1) and 1203/1396 (row 2), i.e. 242x193 device px per card and a
++ * 26 device px gap. The geometry brief quoted 148x120 captured with a 12-16px gap
++ * for the same window, which is that capture resized from 3420 to 2048 wide
++ * (148 x 3420/2048 = 247 device px), so the numbers here are the native ones. */
++.agent-sessions-workbench .caret-agent-home-utility-grid {
++	gap: 13px;
++	width: 255px;
++	max-width: none;
++	height: 205px;
++	aspect-ratio: auto;
++}
++
++.agent-sessions-workbench .caret-agent-home-utility-card {
++	gap: 8px;
++	padding: 4px;
++	border-radius: 4px;
++	font-size: var(--vscode-fontSize-label1, 12px);
++}
++
++.agent-sessions-workbench .caret-agent-home-utility-card-icon {
++	font-size: 16px;
++}
+diff --git a/src/vs/sessions/contrib/sessions/browser/sessions.contribution.ts b/src/vs/sessions/contrib/sessions/browser/sessions.contribution.ts
+index c223448b2c2..8434160f4d1 100644
+--- a/src/vs/sessions/contrib/sessions/browser/sessions.contribution.ts
++++ b/src/vs/sessions/contrib/sessions/browser/sessions.contribution.ts
+@@ -11,7 +11,6 @@ import { Codicon } from '../../../../base/common/codicons.js';
+ import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
+ import { ViewPaneContainer } from '../../../../workbench/browser/parts/views/viewPaneContainer.js';
+ import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
+-import { SessionsTitleBarContribution } from './sessionsTitleBarWidget.js';
+ import { SessionsTelemetryContribution } from './sessionsTelemetry.contribution.js';
+ import { NEW_SESSION_BUTTON_STYLE_SETTING, NEW_SESSION_BUTTON_STYLE_TREATMENT, NewSessionActionViewItemContribution, SessionConversationActionsContribution } from './sessionsActions.js';
+ import { SessionsView, SessionsViewId } from './views/sessionsView.js';
+@@ -100,7 +99,11 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
+ });
+ 
+ registerWorkbenchContribution2(AutomationsCustomViewContribution.ID, AutomationsCustomViewContribution, WorkbenchPhase.BlockRestore);
+-registerWorkbenchContribution2(SessionsTitleBarContribution.ID, SessionsTitleBarContribution, WorkbenchPhase.BlockRestore);
++// Caret: this contribution's only visible surface is the "Show Sessions" pill it
++// registers into Menus.CommandCenter, which put a wide control in the middle of the
++// Agents Window title bar. The parity contract's title bar has no such control, so
++// it is not mounted here. The file is only loaded by the Sessions workbench, so the
++// IDE window never had this widget and is unaffected.
+ registerWorkbenchContribution2(NewSessionActionViewItemContribution.ID, NewSessionActionViewItemContribution, WorkbenchPhase.BlockRestore);
+ registerWorkbenchContribution2(SessionsMouseNavigationContribution.ID, SessionsMouseNavigationContribution, WorkbenchPhase.BlockRestore);
+ registerWorkbenchContribution2(SessionsTelemetryContribution.ID, SessionsTelemetryContribution, WorkbenchPhase.AfterRestored);
+diff --git a/src/vs/sessions/sessions.desktop.main.ts b/src/vs/sessions/sessions.desktop.main.ts
+index 15b89578396..02a63a5e78a 100644
+--- a/src/vs/sessions/sessions.desktop.main.ts
++++ b/src/vs/sessions/sessions.desktop.main.ts
+@@ -24,6 +24,7 @@ import '../workbench/electron-browser/desktop.contribution.js';
+ 
+ // Per-session layout controller (desktop / web desktop layout).
+ import './contrib/layout/browser/sessions.layout.contribution.js';
++import './contrib/home/browser/agentHomeNav.contribution.js';
+ 
+ //#endregion
+ 
+@@ -100,6 +101,7 @@ import '../workbench/services/process/electron-browser/processService.js';
+ import '../workbench/services/power/electron-browser/powerService.js';
+ import '../workbench/services/localTranscription/electron-browser/localTranscriptionService.js';
+ import './contrib/automations/electron-browser/automationStorageService.js';
++import './contrib/home/browser/agentHomeContextRow.contribution.js';
+ 
+ import { ILocalGitService } from '../platform/git/common/localGitService.js';
+ import { InstantiationType, registerSingleton } from '../platform/instantiation/common/extensions.js';
+@@ -131,6 +133,9 @@ registerSharedProcessRemoteService(ILocalGitService, 'localGit');
+ 
+ //#region --- workbench contributions
+ 
++// Caret: the Agent Home starter rows (the reference's suggestion rows).
++import './contrib/home/browser/agentHomePromptOptions.contribution.js';
++
+ // Logs
+ import '../workbench/contrib/logs/electron-browser/logs.contribution.js';
+ 
+@@ -250,6 +255,10 @@ import './contrib/chat/electron-browser/chat.contribution.js';
+ 
+ // Local Agent Host
+ import './contrib/providers/agentHost/browser/localAgentHost.contribution.js';
++// Caret: list chat sessions contributed by Caret's own extension (the public
++// chatSessionsProvider API) in the Agents window, which otherwise only lists
++// sessions from the agent-host providers.
++import './contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.js';
+ import './contrib/providers/agentHost/electron-browser/localAgentHostLifecycle.contribution.js';
+ import './contrib/providers/agentHost/browser/agentSessionSettings.contribution.js';
+ import './contrib/providers/agentHost/browser/agentHostSettings.contribution.js';

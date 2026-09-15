@@ -1,0 +1,51 @@
+{
+  "scope": "Slice C2: the Agent Home composer context row - the branch and runtime chips the reference shows beside the workspace picker.",
+  "capturedAt": "2026-09-15T09:05:00+07:00",
+  "branch": "main",
+  "revision": "caret working tree on top of 7a07935cab4; desktop/ checkout at the pinned base ea1912fd6a05b80a56b2ad9b955075211deea521 with patches 0001-0024 applied",
+  "referenceScreenshot": "reference-cursor-agents-1710x1112.png - its context row is one line above the composer card (y 516 of a 3420x2224 capture) holding three chips: the workspace name, 'Select branch', and 'This Mac'",
+  "previousScreenshot": "caret-composer-starters-1710x1112.png (patches 0001-0023: the row held the workspace picker alone)",
+  "newScreenshot": "docs/maintenance/evidence/agent-home-visual-2026-09-14/caret-context-row-1710x1112.png",
+  "visionCheck": "NOT PERFORMED - the image tool answered HTTP 429. The chip state below is a live DOM measurement of the running window.",
+
+  "change": {
+    "desktopPatch": "patches/desktop/0024-caret-agent-home-context-row.patch - 4 files: 3 new (contrib/home/browser/agentHomeContextRow.ts, its contribution, media/agentHomeContextRow.css) and the entry import in sessions.desktop.main.ts, placed in the automations import region so it cannot disturb the hunks patches 0010, 0022 and 0023 already own in that file. Digest 64ae402719c59eaa6aa77a3de545b0b16895db0462f2d931f90119ff74ccf7e1.",
+    "branchChip": "Reads session.workspace.folders[0].gitRepository.branchName - exactly the value the base's own session actions read - and renders the branch name with a git-branch icon. Clicking runs the base's real command sessionsViewPane.agentHost.copySessionBranchName with that session, which copies the branch name. No chip is rendered when there is no branch, so it can never be a control with nothing behind it.",
+    "runtimeChip": "Renders 'This Mac' while the window has no connected remote agent host (IAgentHostConnectionsService.connections has no non-ambient entry with a live connection) and the session, when there is one, is owned by the local agent host. It is a labelled span, not a button, because Caret has no execution-target picker to open: it states where the session runs rather than pretending to change it.",
+    "rowLifecycle": "The composer rebuilds the picker row whenever its state changes, so the contribution renders from an autorun over the session state and re-renders from a guarded MutationObserver when the row is present without Caret's chips. The guard is what keeps the observer from re-triggering on its own insertions."
+  },
+
+  "liveState": {
+    "window": [1440, 900],
+    "workspacePickerRect": [389, 292, 608, 24],
+    "chips": [{ "text": "This Mac", "tag": "SPAN", "title": "Runs on this Mac", "rect": [542, 292, 83, 24] }],
+    "note": "The branch chip is absent in this profile because no workspace folder is open in the Agents Window, so there is no branch to report. The chip's source is the same observable the base's Copy Branch Name action reads."
+  },
+
+  "fixedVisibleDifferences": [
+    "The context row now carries a chip beside the workspace picker, where it previously held the picker alone.",
+    "The runtime chip tells the truth about the execution target instead of being absent."
+  ],
+
+  "remainingVisibleDifferences": [
+    "The branch chip could not be shown in this profile: the Agents Window cannot be given a folder from the command line (openAgentsWindow forwards a folder only from a protocol link) and the IDE-to-Agents handoff launch did not finish booting before this slice's time budget ran out, so the branch path is implemented and unit-pinned but not exercised live.",
+    "The reference's branch chip is a picker ('Select branch' opens a branch list). Caret has no branch selection for a new session, so ours shows the current branch and copies it; the label says Copy branch so nothing is implied that cannot happen.",
+    "The reference's 'High' effort chip is still missing: it belongs to the session provider's config toolbar, which the same S2 gap as the model picker covers.",
+    "The reference's quick-action chips ('Plan New Idea', 'Multitask') are still missing: no such concept exists in the tree.",
+    "Caret's chips render at 24px high on the picker's own 24px row, which matches the reference's row height, but the reference's chips are plain text with a chevron where ours carry an icon and no chevron."
+  ],
+
+  "commandsRun": [
+    "bun scripts/prepare-desktop.ts -> 'Caret desktop patches applied (22 patches, 18 removals)'",
+    "bun test apps/macos/test/ide-native-workbench.test.ts -> 54 pass, 0 fail, 322 expect() calls",
+    "cd desktop && npx tsc --project ./src/tsconfig.json --noEmit --skipLibCheck -> clean",
+    "cd desktop && node build/next/index.ts transpile",
+    "launch .build/electron/Caret.app with VSCODE_DEV=1, --agents, --remote-debugging-port=9341 on a fresh profile",
+    "CDP Runtime.evaluate -> picker 608x24 at y=292, the 'This Mac' chip 83x24 inside that row, composer card 608x104, 3 starter rows",
+    "CDP emulated 1710x1112 at DPR 2 + Page.captureScreenshot -> caret-context-row-1710x1112.png",
+    "cd desktop && git apply --reverse --check patches/desktop/0024-caret-agent-home-context-row.patch -> OK",
+    "attempted: launch the IDE window on /Users/pond/caret and hand off to the Agents Window to exercise the branch chip; the app did not expose its debug port within the time budget, so this route is recorded as not completed rather than as passing"
+  ],
+
+  "ideUnaffected": "All four files are under src/vs/sessions/**, the entry import sits in the automations import region away from every other patch's hunks, and the repo test asserts the patch contains a/src/vs/sessions/ and not src/vs/workbench/."
+}

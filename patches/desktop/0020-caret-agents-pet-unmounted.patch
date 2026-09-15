@@ -1,0 +1,118 @@
+diff --git a/src/vs/sessions/contrib/chat/browser/chatView.ts b/src/vs/sessions/contrib/chat/browser/chatView.ts
+--- a/src/vs/sessions/contrib/chat/browser/chatView.ts
++++ b/src/vs/sessions/contrib/chat/browser/chatView.ts
+@@ -9,9 +9,11 @@
+ import { StandardMouseEvent } from '../../../../base/browser/mouseEvent.js';
+ import { renderAsPlaintext } from '../../../../base/browser/markdownRenderer.js';
+ import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
++import { Event } from '../../../../base/common/event.js';
+ import { MutableDisposable, toDisposable } from '../../../../base/common/lifecycle.js';
+ import { autorun, derived, IObservable, observableFromEvent, observableValue } from '../../../../base/common/observable.js';
+ import { isEqual } from '../../../../base/common/resources.js';
++import { SESSIONS_DEVELOPER_JOY_ENABLED_SETTING } from '../../aquarium/browser/aquariumOverlay.js';
+ import { URI } from '../../../../base/common/uri.js';
+ import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+ import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
+@@ -92,12 +94,26 @@
+ 		isNewChatInSession: boolean,
+ 		options: INewChatViewOptions,
+ 		@IInstantiationService instantiationService: IInstantiationService,
++		@IConfigurationService configurationService: IConfigurationService,
+ 	) {
+ 		super();
+ 
+ 		this.element.classList.add('chat-view-new');
+ 		this.kind = isNewChatInSession ? 'newChatInSession' : 'newSession';
+-		const widgetOptions = { ...options, petHostPreferred: this._isVisibleObs };
++		// Caret: the chat pet is an easter egg that is off in the Agents window
++		// (`sessions.developerJoy.enabled`). Registering its host is what mounts the pet -
++		// its DOM, listeners, timers and accessibility nodes - so while the setting is off
++		// the pet must never be preferred. The IDE window does not go through this view,
++		// so its pet behaviour is unchanged.
++		const developerJoy = observableFromEvent(
++			this,
++			Event.filter(configurationService.onDidChangeConfiguration, e => e.affectsConfiguration(SESSIONS_DEVELOPER_JOY_ENABLED_SETTING)),
++			() => configurationService.getValue<boolean>(SESSIONS_DEVELOPER_JOY_ENABLED_SETTING) === true,
++		);
++		const widgetOptions = {
++			...options,
++			petHostPreferred: derived(this, reader => this._isVisibleObs.read(reader) && developerJoy.read(reader)),
++		};
+ 		this._widget = this._register(isNewChatInSession
+ 			? instantiationService.createInstance(NewChatInSessionWidget, widgetOptions)
+ 			: instantiationService.createInstance(NewChatWidget, widgetOptions));
+diff --git a/src/vs/sessions/contrib/chat/browser/newChatInput.ts b/src/vs/sessions/contrib/chat/browser/newChatInput.ts
+--- a/src/vs/sessions/contrib/chat/browser/newChatInput.ts
++++ b/src/vs/sessions/contrib/chat/browser/newChatInput.ts
+@@ -127,6 +127,7 @@
+ import { getChatPetPillPlatformTop, getChatPetStackPlatformTop } from '../../../../workbench/contrib/chat/browser/widget/chatPetWidget.js';
+ import { IVoiceModeOnboardingService } from '../../../../workbench/contrib/agentsVoice/browser/voiceModeOnboarding.js';
+ import { AGENTS_VOICE_ENABLED } from '../../../../workbench/contrib/agentsVoice/common/agentsVoice.js';
++import { SESSIONS_DEVELOPER_JOY_ENABLED_SETTING } from '../../aquarium/browser/aquariumOverlay.js';
+ import { animatePromptTyping, IPromptTypingAnimation } from './promptTypingAnimation.js';
+ import { PromptTemplatePlaceholderController } from './promptTemplatePlaceholder.js';
+ import { INewSessionComposer, INewSessionPromptOptionsController, NEW_SESSION_PROMPT_TYPING_DURATION_MS, NewSessionPromptOptionsState, NewSessionWorkspacePreselectionSource } from './newSessionComposerService.js';
+@@ -722,7 +723,25 @@
+ 
+ 		this._createEditor(inputArea, editorOverflowWidgetsDomNode);
+ 		const inputHasContent = observableFromEvent(this, this._editor.onDidChangeModelContent, () => this._editor.getValue().length > 0);
+-		this._register(this.chatPetWidgetService.register(this, {
++		// Caret: registering a pet host is what mounts the pet (DOM, listeners, timers and
++		// accessibility nodes), and unregistering only parks an already-created pet, so the
++		// pet must never be registered while the Agents-window easter egg is off. The host is
++		// therefore registered from an autorun that tracks `sessions.developerJoy.enabled`.
++		const developerJoy = observableFromEvent(
++			this,
++			Event.filter(this.configurationService.onDidChangeConfiguration, e => e.affectsConfiguration(SESSIONS_DEVELOPER_JOY_ENABLED_SETTING)),
++			() => this.configurationService.getValue<boolean>(SESSIONS_DEVELOPER_JOY_ENABLED_SETTING) === true,
++		);
++		const petRegistration = this._register(new MutableDisposable());
++		this._register(autorun(reader => {
++			if (!developerJoy.read(reader)) {
++				petRegistration.clear();
++				return;
++			}
++			if (petRegistration.value) {
++				return;
++			}
++			petRegistration.value = this.chatPetWidgetService.register(this, {
+ 			parent: chatInputContainer,
+ 			dragBounds: inputArea,
+ 			movementBounds: root,
+@@ -749,7 +768,8 @@
+ 				this.options.onDidChangeChatPetPlatform ?? Event.None,
+ 				this.sessionTypePicker.onDidChangeChatPetPlatform,
+ 			),
+-		}, this.options.petHostPreferred, this.onDidFocus));
++			}, this.options.petHostPreferred, this.onDidFocus);
++		}));
+ 		this._createInputToolbar(inputArea);
+ 
+ 		const newChatBottomContainer = dom.append(parent, dom.$('.new-chat-bottom-container'));
+diff --git a/src/vs/sessions/contrib/chat/browser/newChatWidget.ts b/src/vs/sessions/contrib/chat/browser/newChatWidget.ts
+--- a/src/vs/sessions/contrib/chat/browser/newChatWidget.ts
++++ b/src/vs/sessions/contrib/chat/browser/newChatWidget.ts
+@@ -29,7 +29,7 @@
+ import { isAllowSignedOutWhenUsableEnabled, shouldShowGitHubWorkspaceGroupSignIn } from '../../../browser/sessionsAuthGate.js';
+ import { AGENTIC_SIGN_IN_COMMAND_ID } from '../../../common/sessionCommands.js';
+ import { isAgentHostProvider } from '../../../common/agentHostSessionsProvider.js';
+-import { IAquariumService, IMountedToggleHandle } from '../../aquarium/browser/aquariumOverlay.js';
++import { IAquariumService, IMountedToggleHandle, SESSIONS_DEVELOPER_JOY_ENABLED_SETTING } from '../../aquarium/browser/aquariumOverlay.js';
+ import { IWorkspacePickerNoWorkspaceOption, IWorkspacePickerTrigger, WorkspacePicker } from './sessionWorkspacePicker.js';
+ import { WebWorkspacePicker } from './webWorkspacePicker.js';
+ import { IPreferredSessionType } from './sessionTypePicker.js';
+@@ -404,7 +404,13 @@
+ 		const chatWidgetContainer = dom.append(element, dom.$('.new-chat-widget-container'));
+ 		const chatWidgetContent = dom.append(chatWidgetContainer, dom.$(`.new-chat-widget-content.${chatInputStackClass}`));
+ 
+-		this._aquariumToggle = this._register(this.aquariumService.mountToggle(element));
++		// Caret: the aquarium toggle is part of the easter egg, and the parity contract
++		// section 3 has no pet button in this window. Mounting the button and hiding it
++		// with CSS would still add a focusable button and an accessibility node, so the
++		// toggle is only mounted while `sessions.developerJoy.enabled` is on.
++		if (this.configurationService.getValue<boolean>(SESSIONS_DEVELOPER_JOY_ENABLED_SETTING) === true) {
++			this._aquariumToggle = this._register(this.aquariumService.mountToggle(element));
++		}
+ 		const aquariumAction = this._register(new Action(
+ 			'sessions.aquarium.showAction',
+ 			localize('aquariumAction', "Aquarium"),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { agentsWindowOpenMode, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode } from "../src/workbench-mode.ts";
+import { AGENTS_EDITOR_SHOW_TABS, agentsWindowOpenMode, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode } from "../src/workbench-mode.ts";
 import { createInitialTaskState, reduceTaskState } from "../src/state.ts";
 import { parseWebviewMessage } from "../src/messages.ts";
 import type { Project, Session } from "../../../packages/protocol/src/index.ts";
@@ -16,7 +16,10 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(isAgentsWindow("/Users/pond/caret")).toBe(false);
 		const workspace = JSON.parse(serializeCaretAgentsWorkspace("/tmp/caret-agents")) as { folders: Array<{ path: string }>; settings: Record<string, unknown> };
 		expect(workspace.folders[0]?.path).toBe("/tmp/caret-agents");
-		expect(workspace.settings["workbench.editor.showTabs"]).toBe("none");
+		// The reference right-hand Apps panel is a tab group, so the Agents window keeps
+		// editor tabs rather than collapsing them into one large label. Caret's own Apps
+		// panel hides that strip only while it is the group's only tab.
+		expect(workspace.settings["workbench.editor.showTabs"]).toBe("multiple");
 		expect(workspace.settings["workbench.activityBar.location"]).toBe(CARET_AGENTS_WINDOW_SETTINGS["workbench.activityBar.location"]);
 		expect(serializeCaretAgentsWorkspace()).not.toContain("agent-sessions");
 		expect(agentsWindowOpenMode({ inAgentsWindow: true, hasWorkspaceFolder: false })).toBe("shell");
@@ -173,7 +176,7 @@ describe("Agent ↔ IDE workbench mode", () => {
 			sidebarVisible: true,
 			auxiliaryBarVisible: false,
 			panelVisible: true,
-			showTabs: "none",
+			showTabs: AGENTS_EDITOR_SHOW_TABS,
 			statusBarVisible: false,
 			activityBarLocation: "hidden",
 		});
@@ -181,8 +184,8 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(polluted.statusBarVisible).toBe(true);
 		expect(polluted.activityBarLocation).toBe(DEFAULT_IDE_LAYOUT.activityBarLocation);
 		// A real user choice still survives.
-		const chosen = normalizeIdeLayout({ showTabs: "multiple", statusBarVisible: false, activityBarLocation: "top" }, { ...DEFAULT_IDE_LAYOUT, showTabs: "multiple" });
-		expect(chosen.showTabs).toBe("multiple");
+		const chosen = normalizeIdeLayout({ showTabs: "single", statusBarVisible: false, activityBarLocation: "top" }, { ...DEFAULT_IDE_LAYOUT, showTabs: "multiple" });
+		expect(chosen.showTabs).toBe("single");
 		expect(chosen.activityBarLocation).toBe("top");
 		// The status bar is only offered as visible/hidden by Caret, so a stored
 		// "false" is always Caret's own footprint and falls back to the snapshot.

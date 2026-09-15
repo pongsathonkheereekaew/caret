@@ -1,0 +1,78 @@
+diff --git a/src/vs/sessions/browser/media/workbench.css b/src/vs/sessions/browser/media/workbench.css
+index 30af118490c..670a7ad3532 100644
+--- a/src/vs/sessions/browser/media/workbench.css
++++ b/src/vs/sessions/browser/media/workbench.css
+@@ -370,6 +370,15 @@
+ 	}
+ }
+ 
++/* Caret: the reference app panel (contract section 3.2) is a tabbed surface with
++ * no editor watermark. The editor group still paints one when it has no editor, so
++ * this window suppresses it rather than showing the editor's empty-state logo on a
++ * panel that is not an editor. Only the watermark is hidden - the wrapper also
++ * hosts the panel's own toolbar, which section 3.2 keeps. */
++.agent-sessions-workbench .part.editor .editor-group-container > .editor-group-watermark-wrapper > .editor-group-watermark {
++	display: none !important;
++}
++
+ @media (prefers-reduced-motion: reduce) {
+ 
+ 	.agent-sessions-workbench .part.auxiliarybar,
+diff --git a/src/vs/sessions/contrib/editor/browser/editor.contribution.ts b/src/vs/sessions/contrib/editor/browser/editor.contribution.ts
+index 3ba19c76f29..92840b25273 100644
+--- a/src/vs/sessions/contrib/editor/browser/editor.contribution.ts
++++ b/src/vs/sessions/contrib/editor/browser/editor.contribution.ts
+@@ -99,7 +99,9 @@ class MaximizeMainEditorPartAction extends Action2 {
+ 	constructor() {
+ 		super({
+ 			id: MaximizeMainEditorPartAction.ID,
+-			title: localize2('maximizeMainEditorPart', "Maximize Editor Area"),
++			// Caret: the parity contract section 3.2 names this control "Enter Full
++			// Screen" on the right-hand app panel.
++			title: localize2('maximizeMainEditorPart', "Enter Full Screen"),
+ 			icon: Codicon.screenFull,
+ 			f1: false,
+ 			keybinding: {
+@@ -152,7 +154,8 @@ class RestoreMainEditorPartAction extends Action2 {
+ 	constructor() {
+ 		super({
+ 			id: RestoreMainEditorPartAction.ID,
+-			title: localize2('restoreMainEditorPart', "Restore Editor Area"),
++			// Caret: inverse of "Enter Full Screen" (section 3.2).
++			title: localize2('restoreMainEditorPart', "Exit Full Screen"),
+ 			icon: Codicon.screenNormal,
+ 			f1: false,
+ 			toggled: EditorMaximizedContext,
+@@ -264,7 +267,9 @@ class CloseMainEditorPartAction extends Action2 {
+ 	constructor() {
+ 		super({
+ 			id: CloseMainEditorPartAction.ID,
+-			title: localize2('closeMainEditorPart', "Close Editor Area"),
++			// Caret: section 3.2 names this control "Hide Apps"; it collapses the
++			// whole right-hand app panel back to the chat.
++			title: localize2('closeMainEditorPart', "Hide Apps"),
+ 			icon: Codicon.close,
+ 			f1: false,
+ 			menu: {
+diff --git a/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts b/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
+--- a/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
++++ b/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
+@@ -1760,13 +1760,16 @@
+ 	}
+ });
+ 
+-// -- Close Editor Area (Watermark Toolbar) --
++// -- Hide Apps (Watermark Toolbar) --
+ 
+ registerAction2(class CloseEditorAreaAction extends Action2 {
+ 	constructor() {
+ 		super({
+ 			id: 'sessions.closeEditorArea',
+-			title: localize2('closeEditorArea', "Close Editor Area"),
++			// Caret: the parity contract section 3.2 names the control that collapses
++			// the right-hand app panel back to the chat "Hide Apps". The id stays so
++			// keybindings and menu wiring keep resolving.
++			title: localize2('closeEditorArea', "Hide Apps"),
+ 			icon: Codicon.close,
+ 			category: SessionsCategories.Sessions,
+ 			menu: {

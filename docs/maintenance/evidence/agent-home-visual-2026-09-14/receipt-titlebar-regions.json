@@ -1,0 +1,49 @@
+{
+  "scope": "Slice C3: the Agents window title bar regions - session navigation after the sidebar toggle on the left, and the IDE button before the panel toggles on the right.",
+  "capturedAt": "2026-09-15T09:45:00+07:00",
+  "branch": "main",
+  "revision": "caret working tree on top of 7a07935cab4; desktop/ checkout at the pinned base ea1912fd6a05b80a56b2ad9b955075211deea521 with patches 0001-0025 applied",
+  "referenceScreenshot": "reference-cursor-agents-1710x1112.png - OCR places the reference's back/forward at x~214 CSS and 'IDE' with the '+' and window controls at x~1335 CSS, i.e. navigation on the left and the IDE entry point on the right",
+  "previousScreenshot": "caret-context-row-1710x1112.png (patches 0001-0024)",
+  "newScreenshot": "docs/maintenance/evidence/agent-home-visual-2026-09-14/caret-titlebar-regions-1710x1112.png",
+  "visionCheck": "NOT PERFORMED - the image tool answered HTTP 429; the positions below are live DOM measurements.",
+
+  "change": {
+    "desktopPatch": "patches/desktop/0025-caret-agents-titlebar-regions.patch - 2 files, both under src/vs/sessions/**: browser/parts/titlebarPart.ts mounts the navigation toolbar into the left section and the Open-in-VS-Code toolbar into the right section, and browser/parts/media/titlebarpart.css orders them (sidebar toggle order 1 then navigation order 2 in the left; IDE 1, session actions 2, right layout 3 in the right). Digest 9c305dbf41f73fcd102764f19370cbd2220bcd989acd7a64ce305c8ee67f0ff2.",
+    "whyItIsOnePatch": "Both files are the same decision seen twice: where each toolbar is mounted and how the sections order it. The mount half was already sitting uncommitted in the desktop checkout with no patch covering it - a scan of all 51 dirty sessions files found exactly these two uncovered - so this patch also closes that reproducibility gap. Running prepare-desktop on a clean checkout before this patch would have produced a title bar without the left/right placement."
+  },
+
+  "liveState": {
+    "window": [1436, 35],
+    "leftSectionOrder": ["Toggle Side Bar @84", "Go Back One Session @112", "Go Forward One Session @135"],
+    "rightSectionOrder": ["IDE @1337 (24 wide)", "Show Panel @1365", "Toggle Side Panel @1388"],
+    "before": {
+      "leftSectionOrder": ["Go Back One Session @76", "Go Forward One Session @99", "Toggle Side Bar @135"],
+      "rightSectionOrder": ["Show Panel @1335", "Toggle Side Panel @1358", "IDE @1406"]
+    }
+  },
+
+  "fixedVisibleDifferences": [
+    "Back and Forward now sit after the sidebar toggle in the left section, where they were before it.",
+    "The IDE button now sits before the panel and side-panel toggles in the right section, where it was the right-most control.",
+    "The patch stack now reproduces the title bar region placement on a clean checkout instead of relying on uncommitted files in the desktop checkout."
+  ],
+
+  "remainingVisibleDifferences": [
+    "The reference title bar shows no Show Panel / Toggle Side Panel controls at all; ours keeps them because the sessions window shares the layout actions with the IDE. Removing them is a separate decision about what the Agents window may hide.",
+    "Both sections still reserve the macOS traffic-light inset, so the left group starts at x=84 rather than hard against the window edge."
+  ],
+
+  "commandsRun": [
+    "bun scripts/prepare-desktop.ts -> 'Caret desktop patches applied (23 patches, 18 removals)'",
+    "bun test apps/macos/test/ide-native-workbench.test.ts -> 55 pass, 0 fail, 335 expect() calls",
+    "cd desktop && node build/next/index.ts transpile",
+    "launch .build/electron/Caret.app with VSCODE_DEV=1, --agents, --remote-debugging-port=9341 on a fresh profile",
+    "CDP Runtime.evaluate before and after the change for every position above",
+    "CDP emulated 1710x1112 at DPR 2 + Page.captureScreenshot -> caret-titlebar-regions-1710x1112.png",
+    "python3 drift scan: 51 dirty src/vs/sessions files, of which 2 were covered by no patch or removal - both are the files in this patch",
+    "cd desktop && git apply --reverse --check patches/desktop/0025-caret-agents-titlebar-regions.patch -> OK"
+  ],
+
+  "ideUnaffected": "Both files are the sessions workbench's own title bar part and stylesheet; the IDE window has its own titlebar part. The repo test pins the patch to a/src/vs/sessions/ and asserts it does not touch src/vs/workbench/."
+}

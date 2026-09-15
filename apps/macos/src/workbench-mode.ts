@@ -12,7 +12,7 @@ export const CARET_EXTENSION_ID = "caret.caret";
 export const CARET_AGENTS_WINDOW_SETTINGS = {
 	"workbench.activityBar.location": "hidden",
 	"workbench.statusBar.visible": false,
-	"workbench.editor.showTabs": "none",
+	"workbench.editor.showTabs": "multiple",
 	"workbench.editor.editorActionsLocation": "hidden",
 	"workbench.startupEditor": "none",
 	"window.commandCenter": false,
@@ -141,7 +141,7 @@ export const DEFAULT_IDE_LAYOUT: IdeLayoutSnapshot = {
 	statusBarVisible: true,
 };
 
-export const AGENTS_EDITOR_SHOW_TABS = "none";
+export const AGENTS_EDITOR_SHOW_TABS = "multiple";
 
 export function draftViewKey(projectId: string | undefined | null, sessionId: string | undefined | null): string {
 	return `${projectId?.trim() || "none"}/${sessionId?.trim() || "local-new"}`;

@@ -1,0 +1,287 @@
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomePromptOptions.contribution.ts b/src/vs/sessions/contrib/home/browser/agentHomePromptOptions.contribution.ts
+new file mode 100644
+index 0000000..5fefb7e
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomePromptOptions.contribution.ts
+@@ -0,0 +1,37 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import './media/agentHomeComposer.css';
++import { Disposable } from '../../../../base/common/lifecycle.js';
++import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
++import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
++import { registerWorkbenchContribution2, WorkbenchPhase, IWorkbenchContribution } from '../../../../workbench/common/contributions.js';
++import { IsSessionsWindowContext } from '../../../../workbench/common/contextkeys.js';
++import { AgentHomePromptOptions } from './agentHomePromptOptions.js';
++
++/**
++ * Mounts the Agent Home prompt starters and the reference composer sizing in the
++ * Agents Window only. The IDE window keeps its own composer, because this
++ * contribution is gated on the Sessions workbench.
++ */
++class AgentHomePromptOptionsContribution extends Disposable implements IWorkbenchContribution {
++
++	static readonly ID = 'workbench.contrib.caret.agentHomePromptOptions';
++
++	constructor(
++		@IContextKeyService contextKeyService: IContextKeyService,
++		@IInstantiationService instantiationService: IInstantiationService,
++	) {
++		super();
++
++		if (!IsSessionsWindowContext.getValue(contextKeyService)) {
++			return;
++		}
++
++		this._register(instantiationService.createInstance(AgentHomePromptOptions));
++	}
++}
++
++registerWorkbenchContribution2(AgentHomePromptOptionsContribution.ID, AgentHomePromptOptionsContribution, WorkbenchPhase.AfterRestored);
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomePromptOptions.ts b/src/vs/sessions/contrib/home/browser/agentHomePromptOptions.ts
+new file mode 100644
+index 0000000..3bad673
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomePromptOptions.ts
+@@ -0,0 +1,52 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import { CancellationToken } from '../../../../base/common/cancellation.js';
++import { Disposable } from '../../../../base/common/lifecycle.js';
++import { autorun } from '../../../../base/common/observable.js';
++import { INewSessionComposer, INewSessionComposerService, INewSessionPromptOptionsController, NewSessionPromptOptionsState } from '../../chat/browser/newSessionComposerService.js';
++import { createStandardPromptOptions } from '../../onboardingTours/browser/newSessionViewV3Prompt.js';
++
++/**
++ * The starter rows under the Agent Home composer.
++ *
++ * Caret already owns this surface: `INewSessionComposer` renders prompt options and
++ * inserts the chosen prompt into the input, with the placeholder selected so the user
++ * fills in the blank. In the base those rows only appear from the
++ * `sessions.onboarding.newSessionViewV3` tour, which is behind a Copilot experiment
++ * flag and a "no recent sessions" trigger, so the Agents window never showed them.
++ * Attaching the controller directly gives the empty home the base's own starters and
++ * their real insert behaviour, with no new copy and no placeholder UI.
++ */
++export class AgentHomePromptOptions extends Disposable {
++
++	private readonly _controller: INewSessionPromptOptionsController = {
++		resolve: async (): Promise<NewSessionPromptOptionsState> => ({ kind: 'resolved', options: createStandardPromptOptions() }),
++		// The composer inserts the prompt and reports the interaction; Caret has no
++		// telemetry sink for either, and the rows need no other side effect.
++		onDidSelectOption: () => { },
++		onDidClose: () => { },
++	};
++
++	constructor(
++		@INewSessionComposerService composerService: INewSessionComposerService,
++	) {
++		super();
++
++		// The active composer changes as the home is shown, hidden, or replaced, so the
++		// controller follows it rather than being attached once at construction.
++		this._register(autorun(reader => {
++			const composer = composerService.activeComposer.read(reader);
++			if (composer) {
++				this.attach(composer);
++			}
++		}));
++	}
++
++	private attach(composer: INewSessionComposer): void {
++		composer.setPromptOptionsController?.(this._controller);
++		void composer.refreshPromptOptions?.(CancellationToken.None);
++	}
++}
+diff --git a/src/vs/sessions/contrib/home/browser/media/agentHomeComposer.css b/src/vs/sessions/contrib/home/browser/media/agentHomeComposer.css
+new file mode 100644
+index 0000000..ccaf614
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/media/agentHomeComposer.css
+@@ -0,0 +1,68 @@
++/* Caret: the Agent Home composer in the reference shape.
++ *
++ * The reference composer card is 605.5 x 103.5 CSS px (its fill spans x=987..2198 and
++ * y=1091..1298 of the native 3420x2224 reference capture), i.e. taller than the base
++ * card, which leaves ~15px of padding under the toolbar row instead of hugging it.
++ * The starter rows below the card are the base's own prompt options, so they need no
++ * styling here beyond the reference's own spacing.
++ *
++ * Scoped to the sessions workbench and the new-session widget, so the IDE composer and
++ * the in-session composer keep their own sizing.
++ */
++
++/* The card body is taller than the base's: the reference leaves about 15px under the
++ * toolbar row, so the placeholder, the toolbar and the card's own padding sit in a
++ * 104px box instead of hugging the 86px the base ships. */
++.agent-sessions-workbench .new-chat-widget-content .new-chat-input-area-wrapper,
++.agent-sessions-workbench .new-chat-widget-content .new-chat-input-area {
++	min-height: 104px;
++}
++
++.agent-sessions-workbench .new-chat-widget-content .new-chat-input-area {
++	padding-bottom: 8px;
++}
++
++/* The stack is a plain block by default, so the standalone prompt-option slot renders
++ * before the input. The reference puts the starters below the composer card, so the
++ * stack becomes an explicit column and the two members are ordered. */
++.agent-sessions-workbench .new-chat-widget-content .chat-input-stack {
++	display: flex;
++	flex-direction: column;
++}
++
++.agent-sessions-workbench .new-chat-widget-content .chat-input-stack > .new-chat-input-area-wrapper {
++	order: 1;
++}
++
++.agent-sessions-workbench .new-chat-widget-content .chat-input-stack > .new-session-prompt-options {
++	order: 2;
++	margin-top: 12px;
++}
++
++.agent-sessions-workbench .new-chat-widget-content .new-session-prompt-options-list {
++	display: flex;
++	flex-direction: column;
++	gap: 4px;
++}
++
++/* The reference draws a starter as one line - icon, title, then the description in a
++ * dimmer weight beside it - where the base stacks the description under the title.
++ * Same three elements, one grid row, so the list reads as a list rather than as cards. */
++.agent-sessions-workbench .new-chat-widget-content .new-session-prompt-option {
++	grid-template-columns: var(--vscode-spacing-size160) minmax(0, auto) minmax(0, 1fr);
++	grid-template-rows: auto;
++	row-gap: 0;
++	padding: 4px 8px;
++}
++
++.agent-sessions-workbench .new-chat-widget-content .new-session-prompt-option-title {
++	grid-column: 2;
++	grid-row: 1;
++}
++
++.agent-sessions-workbench .new-chat-widget-content .new-session-prompt-option-description {
++	grid-column: 3;
++	grid-row: 1;
++	padding-left: 8px;
++	color: var(--vscode-descriptionForeground);
++}
+diff --git a/src/vs/sessions/contrib/onboardingTours/browser/newSessionViewV3Prompt.ts b/src/vs/sessions/contrib/onboardingTours/browser/newSessionViewV3Prompt.ts
+index c3ac9ac..7d2f20f 100644
+--- a/src/vs/sessions/contrib/onboardingTours/browser/newSessionViewV3Prompt.ts
++++ b/src/vs/sessions/contrib/onboardingTours/browser/newSessionViewV3Prompt.ts
+@@ -245,6 +245,45 @@ class GitHubLookupDiagnostics {
+ 	}
+ }
+ 
++/**
++ * The starters that do not depend on any repository lookup: implement a feature, fix
++ * a bug, fix CI. Caret's Agents home renders these directly (see
++ * contrib/home/browser/agentHomePromptOptions.ts), so they live in one place instead
++ * of being copied.
++ */
++export function createStandardPromptOptions(): readonly INewSessionPromptOption[] {
++	const implementFeaturePlaceholder = localize('sessions.onboarding.newSessionViewV3.options.implementFeature.placeholder', "[describe the feature]");
++	const fixBugPlaceholder = localize('sessions.onboarding.newSessionViewV3.options.fixBug.placeholder', "[describe the bug]");
++	const fixCiPlaceholder = localize('sessions.onboarding.newSessionViewV3.options.fixCi.placeholder', "[describe the CI failure or paste a link]");
++	return [
++		{
++			id: 'standard:implementFeature',
++			title: localize('sessions.onboarding.newSessionViewV3.options.implementFeature.title', "Implement a feature"),
++			description: localize('sessions.onboarding.newSessionViewV3.options.implementFeature.description', "Describe what you want to build"),
++			prompt: localize('sessions.onboarding.newSessionViewV3.options.implementFeature.prompt', "Help me implement {0} in this project. Ask me questions if anything is unclear regarding the intended behaviour.", implementFeaturePlaceholder),
++			placeholder: implementFeaturePlaceholder,
++			icon: Codicon.lightbulbSparkleAutofix,
++		},
++		{
++			id: 'standard:fixBug',
++			title: localize('sessions.onboarding.newSessionViewV3.options.fixBug.title', "Fix a bug"),
++			description: localize('sessions.onboarding.newSessionViewV3.options.fixBug.description', "Describe the unexpected behavior"),
++			prompt: localize('sessions.onboarding.newSessionViewV3.options.fixBug.prompt', "Help me fix {0} in this project. Ask me questions if anything is unclear regarding the bug or the intended behaviour.", fixBugPlaceholder),
++			placeholder: fixBugPlaceholder,
++			icon: Codicon.bug,
++		},
++		{
++			id: 'standard:fixCi',
++			title: localize('sessions.onboarding.newSessionViewV3.options.fixCi.title', "Fix CI"),
++			description: localize('sessions.onboarding.newSessionViewV3.options.fixCi.description', "Describe a failing check or paste a link"),
++			prompt: localize('sessions.onboarding.newSessionViewV3.options.fixCi.prompt', "Help me fix the failing CI for {0} in this project. Ask me questions if anything is unclear regarding the CI failure or how it should be fixed.", fixCiPlaceholder),
++			placeholder: fixCiPlaceholder,
++			icon: Codicon.runErrors,
++		},
++		];
++}
++
++
+ export class NewSessionViewV3PromptRunner {
+ 	private readonly _gitHubLookupTimeouts: IGitHubLookupTimeouts;
+ 
+@@ -1057,7 +1096,7 @@ export class NewSessionViewV3PromptRunner {
+ 	/** Fills the fixed number of prompt slots with the given GitHub candidates, padded with standard options. */
+ 	private _createPromptOptions(candidates: readonly INewSessionViewV3GitHubCandidate[]): readonly INewSessionPromptOption[] {
+ 		const gitHubOptions = candidates.slice(0, PROMPT_OPTION_COUNT).map(candidate => this._createGitHubPromptOption(candidate));
+-		const standardOptions = this._createStandardPromptOptions();
++		const standardOptions = createStandardPromptOptions();
+ 		return [...gitHubOptions, ...standardOptions.slice(0, PROMPT_OPTION_COUNT - gitHubOptions.length)];
+ 	}
+ 
+@@ -1088,38 +1127,6 @@ export class NewSessionViewV3PromptRunner {
+ 		};
+ 	}
+ 
+-	private _createStandardPromptOptions(): readonly INewSessionPromptOption[] {
+-		const implementFeaturePlaceholder = localize('sessions.onboarding.newSessionViewV3.options.implementFeature.placeholder', "[describe the feature]");
+-		const fixBugPlaceholder = localize('sessions.onboarding.newSessionViewV3.options.fixBug.placeholder', "[describe the bug]");
+-		const fixCiPlaceholder = localize('sessions.onboarding.newSessionViewV3.options.fixCi.placeholder', "[describe the CI failure or paste a link]");
+-		return [
+-			{
+-				id: 'standard:implementFeature',
+-				title: localize('sessions.onboarding.newSessionViewV3.options.implementFeature.title', "Implement a feature"),
+-				description: localize('sessions.onboarding.newSessionViewV3.options.implementFeature.description', "Describe what you want to build"),
+-				prompt: localize('sessions.onboarding.newSessionViewV3.options.implementFeature.prompt', "Help me implement {0} in this project. Ask me questions if anything is unclear regarding the intended behaviour.", implementFeaturePlaceholder),
+-				placeholder: implementFeaturePlaceholder,
+-				icon: Codicon.lightbulbSparkleAutofix,
+-			},
+-			{
+-				id: 'standard:fixBug',
+-				title: localize('sessions.onboarding.newSessionViewV3.options.fixBug.title', "Fix a bug"),
+-				description: localize('sessions.onboarding.newSessionViewV3.options.fixBug.description', "Describe the unexpected behavior"),
+-				prompt: localize('sessions.onboarding.newSessionViewV3.options.fixBug.prompt', "Help me fix {0} in this project. Ask me questions if anything is unclear regarding the bug or the intended behaviour.", fixBugPlaceholder),
+-				placeholder: fixBugPlaceholder,
+-				icon: Codicon.bug,
+-			},
+-			{
+-				id: 'standard:fixCi',
+-				title: localize('sessions.onboarding.newSessionViewV3.options.fixCi.title', "Fix CI"),
+-				description: localize('sessions.onboarding.newSessionViewV3.options.fixCi.description', "Describe a failing check or paste a link"),
+-				prompt: localize('sessions.onboarding.newSessionViewV3.options.fixCi.prompt', "Help me fix the failing CI for {0} in this project. Ask me questions if anything is unclear regarding the CI failure or how it should be fixed.", fixCiPlaceholder),
+-				placeholder: fixCiPlaceholder,
+-				icon: Codicon.runErrors,
+-			},
+-		];
+-	}
+-
+ 	private _createGitHubPrompt(candidate: INewSessionViewV3GitHubCandidate): INewSessionViewV3PromptPlan {
+ 		const prompt = candidate.strategy === 'githubMergeConflict'
+ 			? localize('sessions.onboarding.newSessionViewV3.githubPrompt.mergeConflict', "The following pull request has merge conflicts: \"{0}\" ({1}). Resolve the conflicts and update the pull request.", candidate.title, candidate.url)
+diff --git a/src/vs/sessions/sessions.desktop.main.ts b/src/vs/sessions/sessions.desktop.main.ts
+index 9ec808f..c11bd98 100644
+--- a/src/vs/sessions/sessions.desktop.main.ts
++++ b/src/vs/sessions/sessions.desktop.main.ts
+@@ -132,6 +132,9 @@ registerSharedProcessRemoteService(ILocalGitService, 'localGit');
+ 
+ //#region --- workbench contributions
+ 
++// Caret: the Agent Home starter rows (the reference's suggestion rows).
++import './contrib/home/browser/agentHomePromptOptions.contribution.js';
++
+ // Logs
+ import '../workbench/contrib/logs/electron-browser/logs.contribution.js';
+ 
