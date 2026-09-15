@@ -4,6 +4,7 @@ import { resolve, join, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { startHostServer } from "./server.ts";
+import { isProcessAlive, shouldStopHost } from "./host-lifetime.ts";
 import type { HostDescriptor } from "../../../packages/protocol/src/index.ts";
 
 const stateDir = resolve(process.env.CARET_STATE_DIR ?? join(homedir(), "Library", "Application Support", "Caret", "host"));
@@ -49,6 +50,21 @@ async function main(): Promise<void> {
   if (fatalDuringStartup) { await stop(1); return; }
   async function stop(code = 0) { if (stopping) return; stopping = true; try { await server?.close(); process.exitCode = code; } catch { process.exitCode = 1; } }
   process.once("SIGTERM", () => void stop()); process.once("SIGINT", () => void stop());
+  // A host the app started stops when that app is gone and nothing needs it any more.
+  // Without this the detached `serve` process outlived every run (PPID 1) and the app
+  // looked like it was still open.
+  const parentPid = Number(process.env.CARET_PARENT_PID ?? "") || undefined;
+  const idleMs = Number(process.env.CARET_HOST_IDLE_MS ?? "") || 60_000;
+  if (parentPid !== undefined) {
+    const watchdog = setInterval(() => {
+      const stats = server?.stats();
+      if (!stats) return;
+      if (shouldStopHost({ parentPid, parentAlive: isProcessAlive(parentPid), lastRequestAt: stats.lastRequestAt, now: Date.now(), idleMs, runningSessions: stats.runningSessions, remotePaired: stats.remotePaired })) {
+        void stop();
+      }
+    }, 5_000);
+    watchdog.unref();
+  }
   process.stdout.write("Caret host ready on authenticated loopback\n");
 }
 main().catch(error => { process.stderr.write(`${error instanceof Error ? error.message : "Caret host failed"}\n`); process.exitCode = 1; });

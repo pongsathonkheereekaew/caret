@@ -177,7 +177,10 @@ class ConfiguredHostProcess {
 		try {
 			child = spawn(nodePath, [scriptPath, "ensure"], {
 				cwd: workspacePath(),
-				env: { ...process.env, CARET_STATE_DIR: this.#stateDir },
+				// The host runs detached so it can outlive this launcher, so it also needs
+				// to know which process started it: its watchdog stops a host whose app is
+				// gone and which nothing else still needs (apps/host/src/host-lifetime.ts).
+				env: { ...process.env, CARET_STATE_DIR: this.#stateDir, CARET_PARENT_PID: String(process.pid) },
 				stdio: "ignore",
 				detached: true,
 			});

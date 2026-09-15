@@ -1,0 +1,32 @@
+{
+  "slice": "Caret stops when it is closed: the host no longer outlives the app",
+  "capturedAt": "2026-09-15T17:45:00+07:00",
+  "branch": "main",
+  "method": "process audit on the machine + apps/host lifetime rule + apps/macos parent linkage + end-to-end run in the dev Agents window",
+  "problem": {
+    "symptom": "closing Caret left Caret processes running",
+    "rootCause": "the host is started detached so it can outlive the short-lived launcher - apps/host/src/cli.ts spawns `serve` with { detached: true } and unref()s it, and apps/macos/src/api.ts does the same for `ensure` - and nothing ever stopped it: the extension's deactivate() is empty and the host had no parent, idle or ownership rule.",
+    "measured": "39 orphaned `host/cli.js serve` processes were live on this machine with PPID 1, started between 12 September 23:18 and 14 September 10:05, from three sources: the packaged app runtime (VSCode-darwin-arm64/Caret.app), the dev extension runtime (dist/mac-extension/runtime), and the smoke scripts (bun dist/host/cli.js). One of them was still the host the live state directory advertised.",
+    "also": "14 chrome_crashpad_handler processes belonging to retired test profiles (/tmp/caret-ide-*, /tmp/caret-menu-check) were left by runs that were killed rather than quit; those are Electron's own handler and are orphaned by the kill, not by Caret code."
+  },
+  "change": {
+    "lifetime": "apps/host/src/host-lifetime.ts states when a host stops: a host with no parent is a deliberate `serve` and is left alone; otherwise it stops when the parent is gone, no session is in flight, no phone/relay client is paired, and nothing has reached it for the idle window (default 60s, CARET_HOST_IDLE_MS).",
+    "watchdog": "cli.ts serve runs that rule every 5s when CARET_PARENT_PID is set, and stops the server through the same close path SIGTERM uses.",
+    "parentLink": "the extension passes CARET_PARENT_PID alongside CARET_STATE_DIR when it starts the host, so the host knows which window started it.",
+    "activity": "server.ts records the last request and reports it with the running-session count and the relay pairing state, which is what the watchdog reads."
+  },
+  "verified": {
+    "unitTests": "apps/host/test/host-lifetime.test.ts: orphan + quiet stops; a live parent, a session in flight, a paired client and a recent request all keep it; a manual `serve` is never stopped; isProcessAlive separates a live pid from a dead one. 7 tests.",
+    "endToEnd": "with the dev Agents window running, the host process carried CARET_PARENT_PID=<extension host pid> (ppid 1, as designed). After the app was stopped, the parent was gone and the host exited by itself: `pgrep -f 'host/cli.js serve'` returned nothing after the idle window, where before the fix 39 had accumulated.",
+    "cleanup": "the 39 pre-existing orphan hosts and the retired test-profile crashpad handlers were stopped; the live state directory now has no host running until an app starts one.",
+    "suites": "721 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host and apps/macos/test",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK"
+  },
+  "notVerified": [
+    "A graceful Cmd+Q: the end-to-end run stopped the app with a signal, which also removes the extension host and is the harsher case. A window close with the app still running leaves the extension host alive, so that host keeps running until the app quits - which is what the idle rule is for only once the app is gone.",
+    "Mobile continuity: a paired device keeps the host alive by design, and pairing itself was not exercised here (remote.json is disabled on this machine).",
+    "The packaged app: the end-to-end run used the dev Agents window.",
+    "Whether the idle window should be shorter than 60s: it is chosen to sit well above the app's request cadence, not measured against it."
+  ]
+}

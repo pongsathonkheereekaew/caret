@@ -15,6 +15,9 @@ export async function startHostServer(options: Omit<HostOptions, "store"> & { po
   const store = DurableStore.open({ stateDir: options.stateDir });
   let server: Server | undefined;
   let host: CaretHost | undefined;
+  // Activity record for the lifetime watchdog: the last time any client reached this
+  // host. A window that is still open keeps reaching it; a closed app stops.
+  let lastRequestAt = Date.now();
   try {
     const auth = new DeviceAuth(options.stateDir);
     const editors = new EditorConnections();
@@ -25,6 +28,7 @@ export async function startHostServer(options: Omit<HostOptions, "store"> & { po
     extras.remote = remote;
     void remote.restore().catch(() => {});
     server = createServer(async (request, response) => {
+      lastRequestAt = Date.now();
       response.setHeader("Content-Type", "application/json; charset=utf-8");
       response.setHeader("Cache-Control", "no-store");
       response.setHeader("X-Content-Type-Options", "nosniff");
@@ -72,7 +76,13 @@ export async function startHostServer(options: Omit<HostOptions, "store"> & { po
     writeFileSync(temporary, JSON.stringify(descriptor), { mode: 0o600 });
     renameSync(temporary, descriptorPath); chmodSync(descriptorPath, 0o600);
     let closing: Promise<void> | undefined;
-    return { host, auth, router, descriptor, editors, close(): Promise<void> {
+    return { host, auth, router, descriptor, editors, stats(): { lastRequestAt: number; runningSessions: number; remotePaired: boolean } {
+      return {
+        lastRequestAt,
+        runningSessions: store.listSessions(undefined, { includeArchived: true }).filter(session => session.status === "running").length,
+        remotePaired: remote.status().enabled === true,
+      };
+    }, close(): Promise<void> {
       return closing ??= (async () => {
         server!.closeAllConnections();
         await new Promise<void>(resolve => server!.close(() => resolve()));
