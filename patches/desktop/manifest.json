@@ -51,7 +51,7 @@
     },
     {
       "file": "0015-caret-agents-cursor-parity-copy.patch",
-      "sha256": "50bcbdebc48a0854c4b0d33edddc9474c7832a3f4a6e180e518565a2ddd2725a"
+      "sha256": "6b4c6f1688d893a91fdb733e4ae0a9bf1d032d4c9b2e166f5ca8d9a194b61102"
     },
     {
       "file": "0016-caret-agents-window-cursor-chrome.patch",

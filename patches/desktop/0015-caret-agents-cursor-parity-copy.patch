@@ -108,18 +108,10 @@ index f998a726e0e..4e3ffec4eab 100644
  
  	protected override get onboardingTargetId(): string {
 diff --git a/src/vs/sessions/electron-browser/actions/vscodeActions.ts b/src/vs/sessions/electron-browser/actions/vscodeActions.ts
-index 188a45b48de..439c6ffc0cc 100644
+index 188a45b48de..8c44cb604fa 100644
 --- a/src/vs/sessions/electron-browser/actions/vscodeActions.ts
 +++ b/src/vs/sessions/electron-browser/actions/vscodeActions.ts
-@@ -14,6 +14,7 @@ import { IRemoteAgentHostService } from '../../../platform/agentHost/common/remo
- import { KeyCode, KeyMod } from '../../../base/common/keyCodes.js';
- import { ContextKeyExpr } from '../../../platform/contextkey/common/contextkey.js';
- import { KeybindingWeight } from '../../../platform/keybinding/common/keybindingsRegistry.js';
-+import { CommandsRegistry, ICommandService } from '../../../platform/commands/common/commands.js';
- import { ITelemetryService } from '../../../platform/telemetry/common/telemetry.js';
- import { IsAuxiliaryWindowContext } from '../../../workbench/common/contextkeys.js';
- import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../common/contextkeys.js';
-@@ -38,7 +39,9 @@ export class OpenSessionInVSCodeAction extends Action2 {
+@@ -38,7 +38,9 @@ export class OpenSessionInVSCodeAction extends Action2 {
  	constructor() {
  		super({
  			id: OpenSessionInVSCodeAction.ID,
@@ -130,20 +122,24 @@ index 188a45b48de..439c6ffc0cc 100644
  			icon: Codicon.vscodeInsiders,
  			precondition: ContextKeyExpr.and(IsAuxiliaryWindowContext.toNegated(), SessionsWelcomeVisibleContext.toNegated()),
  			menu: [{
-@@ -54,6 +57,16 @@ export class OpenSessionInVSCodeAction extends Action2 {
- 		const telemetryService = accessor.get(ITelemetryService);
- 		logSessionsInteraction(telemetryService, 'openInVSCode');
+@@ -59,6 +61,20 @@ export class OpenSessionInVSCodeAction extends Action2 {
+ 		const remoteAgentHostService = accessor.get(IRemoteAgentHostService);
+ 		const nativeHostService = accessor.get(INativeHostService);
  
-+		// Caret: in this app the editor is the same window with its own chrome, not a
-+		// second window, and the Caret extension owns that switch (`caret.showIde`).
-+		// Handing the folder to the OS protocol instead opened a fresh window on every
-+		// press, so a user who moved back and forth collected one editor window per
-+		// press. A host without the command is a plain Code-OSS sessions window, where
-+		// the base behaviour below is still the right one.
-+		if (CommandsRegistry.getCommand('caret.showIde')) {
-+			return accessor.get(ICommandService).executeCommand('caret.showIde');
++		// Caret: the editor is a window of its own, and this entry point has to move the
++		// user to it rather than open another one. Pressing it with an editor window
++		// already open used to spawn a fresh window each time (the base call below asks
++		// for a new window unconditionally), which left a user who moved back and forth
++		// with one editor window per press. Caret's own chrome switch is not the answer
++		// either: inside this window it changes state without showing an editor, which
++		// is what "the IDE button does nothing" was.
++		const currentWindowId = getWindowId(mainWindow);
++		const otherWindow = (await nativeHostService.getWindows({ includeAuxiliaryWindows: false }))
++			.find(window => window.id !== currentWindowId);
++		if (otherWindow) {
++			return nativeHostService.focusWindow({ targetWindowId: otherWindow.id });
 +		}
 +
- 		const sessionsService = accessor.get(ISessionsService);
- 		const sessionsProvidersService = accessor.get(ISessionsProvidersService);
- 		const remoteAgentHostService = accessor.get(IRemoteAgentHostService);
+ 		const folderUri = this.getFolderUriToOpen(sessionsService, sessionsProvidersService, remoteAgentHostService);
+ 		if (!folderUri) {
+ 			return nativeHostService.openWindow();
