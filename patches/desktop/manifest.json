@@ -128,6 +128,10 @@
     {
       "file": "0034-caret-drop-agent-workbench-shell.patch",
       "sha256": "f69b399c4e2aee9280982d2f9f05f618a57a71227e297b62670a1335579b2e32"
+    },
+    {
+      "file": "0035-caret-sessions-nav-copy.patch",
+      "sha256": "585175b1279fb2560053e14f927e12ba39da7e809fc471942f444cc4473e3486"
     }
   ],
   "removals": [

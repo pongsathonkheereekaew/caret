@@ -1669,6 +1669,21 @@ in the tree, so a later session does not re-derive it:
 
 Receipt: [`evidence/dead-code-followup-decisions-2026-09-17/`](evidence/dead-code-followup-decisions-2026-09-17/).
 
+### Desktop parity: the sessions navigation says what the reference says (2026-09-17)
+
+The chrome comparison's four non-state differences included two that were only wording: the fork's
+sessions navigation carried `Go Back One Session` / `Go Forward One Session` as its tooltip - which
+is what the accessibility tree exposes as the control's name - where the reference's are `Go Back` /
+`Go Forward`. Patch `0035-caret-sessions-nav-copy.patch` sets both to the reference's words.
+
+Verified in a rebuilt app rather than by inspection, the first time this project has closed a
+desktop change that way: `npx gulp vscode-darwin-arm64-min` rebuilt the workbench and the app bundle
+(3.1 min), `CARET_HOST_NODE=... bun run package:mac` overlaid the Caret extension, runtime and icon
+and re-signed, and a fresh `capture` on the running window reads `shared 13, renamed 1, absent by
+decision 3` - the two labels are now exact matches. The toolchain traps that cost time are recorded
+in [`evidence/dead-code-followup-decisions-2026-09-17/first-live-capture.md`](evidence/dead-code-followup-decisions-2026-09-17/first-live-capture.md):
+`upstream/omp` was a stale worktree whose `/private/tmp` parent had been cleaned, so the packaging
+step could not resolve the pinned OMP source, and the packaging step needs `CARET_HOST_NODE`.
 ### Delete reaches the dock too (2026-09-17)
 
 §10 item 24 was the last asymmetry between the two agent surfaces: the Agents window's session list
@@ -1799,6 +1814,12 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
     state is unreachable in that window was probed too: `New Chat` is Caret's own Agent Home nav row
     and the window had adopted a read-only session from the host, so nothing in that state offers a
     fresh draft.
+    **Two of the four are fixed and verified in a rebuilt app** (same day): patch `0035` gives the
+    sessions navigation the reference's own words (`Go Back`, `Go Forward`), the workbench was
+    rebuilt (`npx gulp vscode-darwin-arm64-min`) and repackaged, and a fresh capture reads shared 13,
+    renamed 1, absent by decision 3 — the remaining "renamed" pair is the AX capture's own merge, not
+    a UI difference. Still open from this item: the two accessible names Caret does not set (the
+    splitters, the tab group), the empty-draft state, and a re-capture from the next packaged build.
 17. Vision-side verification is repeatedly unavailable (the image tool answers HTTP 429), so no
     pane's colour, type or spacing has ever been checked against a picture.
 

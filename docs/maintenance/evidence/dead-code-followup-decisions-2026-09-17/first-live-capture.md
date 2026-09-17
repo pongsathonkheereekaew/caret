@@ -116,6 +116,40 @@ Four are real differences, and they are now the concrete to-do list of this chec
 4. `New Project` appears twice in the reference tree (a group row and a button); only one matches.
    This one is a capture artefact on the reference side, kept visible rather than suppressed.
 
+## The first desktop fix, verified in a rebuilt app (same day)
+
+The comparison named four non-state differences. Two were wording, and the fork's own sessions
+navigation carried a longer tooltip than the reference: `Go Back One Session` /
+`Go Forward One Session` where Cursor's accessible names are `Go Back` / `Go Forward`. Patch
+`0035-caret-sessions-nav-copy.patch` sets both tooltips to the reference's words. It is a separate
+patch rather than a fold into `0015`, because `0015` and `0017` both already edit that file in other
+regions and folding would have broken `0017`'s reverse-check.
+
+This is the first desktop change in this project verified end to end in a *rebuilt* app:
+
+```
+cd desktop && npx gulp vscode-darwin-arm64-min        # 3.1 min: workbench bundle + app bundle
+CARET_HOST_NODE=$HOME/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun run package:mac
+open -n -a VSCode-darwin-arm64/Caret.app --args --agents --remote-debugging-port=9333
+bun scripts/agents-chrome-inventory.ts capture 9333 --write <file>
+```
+
+Result: `shared` rose from 11 to 13, `renamed` fell from 3 to 1, and the two navigation labels now
+match exactly (`chrome-report-after-nav-copy.txt`, `caret-agents-chrome-after-nav-copy.txt`). The one
+remaining "renamed" entry is the AX capture's own merge (`Projects New Project` against Caret's
+`New Project`), not a UI difference.
+
+Two toolchain facts cost real time here and belong in the record:
+
+- `upstream/omp` was a git **worktree** whose parent lived in `/private/tmp` and had been cleaned, so
+  `git rev-parse HEAD` failed and `bun run package:mac` could not start. Moving the stale checkout
+  aside lets `prepare-omp-runtime.ts` re-clone at the pinned revision; the clone is 4.5 GB and the
+  first package after it rebuilds the Rust native (`cargo build -p pi-natives`, ~10 min), after which
+  the built runtime is reused.
+- `bun run package:mac` needs `CARET_HOST_NODE` pointing at the Node 24 executable
+  (`~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node` here); without it the package step stops
+  after the runtime build.
+
 ## Why the state did not match
 
 Probing the live window over CDP (`/tmp` helper, not committed) showed why clicking `New Chat` did

@@ -1,0 +1,22 @@
+diff --git a/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts b/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
+index f998a726e0e..948ac0ced18 100644
+--- a/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
++++ b/src/vs/sessions/contrib/sessions/browser/sessionsActions.ts
+@@ -267,7 +267,7 @@ registerAction2(class GoBackAction extends Action2 {
+ 			},
+ 			f1: true,
+ 			icon: Codicon.arrowLeft,
+-			tooltip: localize('sessionsGoBackTooltip', "Go Back One Session"),
++			tooltip: localize('sessionsGoBackTooltip', "Go Back"),
+ 			category: SessionsCategories.Sessions,
+ 			precondition: CanGoBackContext,
+ 			keybinding: {
+@@ -309,7 +309,7 @@ registerAction2(class GoForwardAction extends Action2 {
+ 			},
+ 			f1: true,
+ 			icon: Codicon.arrowRight,
+-			tooltip: localize('sessionsGoForwardTooltip', "Go Forward One Session"),
++			tooltip: localize('sessionsGoForwardTooltip', "Go Forward"),
+ 			category: SessionsCategories.Sessions,
+ 			precondition: CanGoForwardContext,
+ 			keybinding: {
