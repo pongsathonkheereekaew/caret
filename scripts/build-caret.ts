@@ -1,7 +1,9 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve, join } from "node:path";
+import { applyDarwinAppIcon } from "./lib/app-icon.ts";
 import { personalCaretArgv } from "./lib/personal-argv.ts";
 
 const root = resolve(import.meta.dir, "..");
@@ -10,7 +12,65 @@ const HOST_TERMINAL_ENGINE = "@coder/libghostty-vt-node";
 const portable = process.argv.includes("--portable") || process.argv.includes("--package");
 if (portable) execFileSync(process.execPath, [join(root, "scripts/prepare-omp-runtime.ts"), "--standalone"], { cwd: root, stdio: "inherit" });
 if (process.argv.includes("--runtime")) execFileSync(process.execPath, [join(root, "scripts/prepare-omp-runtime.ts")], { cwd: root, stdio: "inherit" });
+/**
+ * Recompute the workbench checksums for the packaged app.
+ *
+ * The pinned packager writes upstream's `product.json` checksums, which do not describe the files
+ * this build actually ships, so every launch raises "Your Caret installation appears to be
+ * corrupt. Please reinstall." - a warning about tampering that is not true. A normal VS Code build
+ * regenerates these as its last step; this reproduces that for the personal app. It runs before
+ * signing, because `product.json` is inside what gets sealed.
+ */
+async function refreshPackagedChecksums(productJsonPath: string): Promise<void> {
+  const appResources = dirname(productJsonPath);
+  const product: { checksums?: Record<string, string> } = JSON.parse(await readFile(productJsonPath, "utf8"));
+  const checksums = product.checksums;
+  if (!checksums) return;
+  let refreshed = 0;
+  for (const key of Object.keys(checksums)) {
+    const file = join(appResources, "out", key);
+    try {
+      // `ChecksumService.checksum` resolves `hash.digest('base64').replace(/=+$/, '')`, so the
+      // padding has to go or every file compares as modified.
+      checksums[key] = createHash("sha256").update(await readFile(file)).digest("base64").replace(/=+$/, "");
+      refreshed++;
+    } catch {
+      // A file this build does not ship is left as it is rather than invented.
+    }
+  }
+  await writeFile(productJsonPath, JSON.stringify(product, null, "\t") + "\n");
+  console.log(`Refreshed ${refreshed} workbench checksums in ${productJsonPath}`);
+}
 
+/**
+ * Stamp the packaged `product.json` with the build identity the renderer keys on.
+ *
+ * The workbench loads the npm packages its bundles leave external (`@xterm/xterm`,
+ * `katex`, `vscode-oniguruma`, `vscode-textmate`, `jschardet`, `@vscode/iconv-lite-umd`)
+ * through a runtime helper that picks the layout by build identity: a product.json with a
+ * `commit` resolves `node_modules.asar`, a commit-less one resolves the plain `node_modules`
+ * directory. The pinned packager writes the archive plus a plain directory that only holds
+ * the files it had to duplicate (`@vscode/tree-sitter-wasm`, `zod`, ...), so a commit-less
+ * packaged app misses every other runtime import. The fetch fails (`ERR_FILE_NOT_FOUND`),
+ * `TerminalInstance` never gets its xterm, and the window reports "An unknown error
+ * occurred" with no terminal process anywhere - which is what the Apps panel's terminal
+ * shows as "terminal not working". Release Code-OSS builds always carry a commit, so
+ * upstream never hits this; stamping the pinned revision restores that.
+ */
+async function stampPackagedIdentity(productJsonPath: string): Promise<void> {
+  const product: { commit?: string; version?: string; date?: string } = JSON.parse(await readFile(productJsonPath, "utf8"));
+  if (product.commit) {
+    return; // A package that already carries an identity is not second-guessed.
+  }
+  const lock: { sources: { name?: string; revision: string }[] } = JSON.parse(await readFile(join(root, "upstream-lock.json"), "utf8"));
+  const pinned = lock.sources.find(source => source.name === "caret-native")?.revision;
+  const version = JSON.parse(await readFile(join(root, "desktop/package.json"), "utf8")).version;
+  product.commit = pinned;
+  product.version = version;
+  product.date = new Date().toISOString();
+  await writeFile(productJsonPath, JSON.stringify(product, null, "\t") + "\n");
+  console.log(`Stamped packaged product identity: ${version}+${String(pinned).slice(0, 12)}`);
+}
 
 const dist = join(root, "dist");
 await mkdir(dist, { recursive: true });
@@ -75,6 +135,11 @@ if (process.argv.includes("--desktop")) {
   await cp(extensionOutput, join(root, "desktop/extensions/caret"), { recursive: true });
   await cp(brandIcon, join(root, "desktop/resources/darwin/code.icns"));
   await writeFile(join(root, "desktop/argv.json"), JSON.stringify(personalCaretArgv(), null, 2) + "\n");
+  // `desktop/scripts/code.sh` launches `.build/electron/<nameShort>.app`, which
+  // keeps whatever icon the last `gulp electron` run baked in. Refresh it here
+  // so the dev window shows the Caret icon without a full Electron re-fetch.
+  const desktopName = JSON.parse(await readFile(join(root, "desktop/product.json"), "utf8")).nameShort;
+  await applyDarwinAppIcon(join(root, "desktop/.build/electron", `${desktopName}.app`), brandIcon);
 }
 if (process.argv.includes("--package")) {
   const app = join(root, `VSCode-darwin-${process.arch}`, "Caret.app");
@@ -95,6 +160,14 @@ if (process.argv.includes("--package")) {
   // Re-apply on every --package: the pinned Code-OSS packager restores it.
   await rm(join(appResources, "extensions/copilot"), { recursive: true, force: true });
   await writeFile(join(app, "Contents/Resources/app/argv.json"), JSON.stringify(personalCaretArgv(), null, 2) + "\n");
+  // Before the checksum pass: it rewrites this same file, so the identity has to be
+  // in place first or the next launch resolves its runtime imports from the wrong layout.
+  await stampPackagedIdentity(join(appResources, "product.json"));
+  await refreshPackagedChecksums(join(appResources, "product.json"));
+  // The packager bakes `desktop/resources/darwin/code.icns` into the bundle, so
+  // an app packaged before an icon change would keep the old artwork. Re-apply
+  // the brand icon before signing; anything written after this breaks the seal.
+  await applyDarwinAppIcon(app, brandIcon);
   execFileSync("codesign", ["--force", "--deep", "--sign", "-", app], { stdio: "inherit" });
   execFileSync("codesign", ["--verify", "--deep", "--strict", app], { stdio: "inherit" });
   console.log(`Prepared local ad-hoc signed app (not notarized): ${app}`);

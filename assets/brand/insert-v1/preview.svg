@@ -3,16 +3,16 @@
     <g id="mark" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
       <path d="M72 76 124 128 72 180"/><path d="M184 76v104"/>
     </g>
-    <g id="light"><rect width="256" height="256" rx="57" fill="#F5F2EB"/><use href="#mark" color="#292A2C"/></g>
-    <g id="dark"><rect width="256" height="256" rx="57" fill="#25272B"/><use href="#mark" color="#F5F2EB"/></g>
+    <g id="light"><rect width="256" height="256" rx="57" fill="#FFFFFF"/><use href="#mark" color="#000000"/></g>
+    <g id="dark"><rect width="256" height="256" rx="57" fill="#000000"/><use href="#mark" color="#FFFFFF"/></g>
   </defs>
-  <rect width="1400" height="900" fill="#E8E6E1"/>
+  <rect width="1400" height="900" fill="#ECEDEF"/>
   <rect x="700" width="700" height="900" fill="#16181B"/>
   <g font-family="Arial, sans-serif">
     <text x="72" y="80" fill="#292A2C" font-size="23" font-weight="bold" letter-spacing="4">CARET</text>
-    <text x="72" y="113" fill="#5A5B5D" font-size="15">INSERT / 02 — Refined vector study</text>
-    <text x="772" y="80" fill="#F5F2EB" font-size="23" font-weight="bold" letter-spacing="4">CARET</text>
-    <text x="772" y="113" fill="#B3B6BD" font-size="15">DARK / Same silhouette</text>
+    <text x="72" y="113" fill="#5A5B5D" font-size="15">INSERT / 02 — Monochrome white and black</text>
+    <text x="772" y="80" fill="#FFFFFF" font-size="23" font-weight="bold" letter-spacing="4">CARET</text>
+    <text x="772" y="113" fill="#B3B6BD" font-size="15">DARK / Inverted, same silhouette</text>
     <use href="#light" transform="translate(158 183) scale(1.5)"/>
     <use href="#dark" transform="translate(858 183) scale(1.5)"/>
     <text x="72" y="648" fill="#5A5B5D" font-size="13" letter-spacing="2">ACTUAL PIXEL SIZES</text>
@@ -33,7 +33,7 @@
     <g fill="#B3B6BD" font-size="13" text-anchor="middle">
       <text x="788" y="764">16</text><text x="886" y="764">24</text><text x="992" y="764">32</text><text x="1110" y="764">48</text><text x="1240" y="764">64</text>
     </g>
-    <text x="72" y="848" fill="#5A5B5D" font-size="14">Warm ivory · Graphite · Rounded terminals</text>
+    <text x="72" y="848" fill="#5A5B5D" font-size="14">White · Black · Rounded terminals</text>
     <text x="772" y="848" fill="#B3B6BD" font-size="14">Full-square exports · Platform mask applied separately</text>
   </g>
 </svg>
