@@ -125,3 +125,42 @@ part read `New task … This chat is read-only … Caret picked up this …`. So
 session that belongs to the host rather than opening a fresh draft, and no control in that state
 offers one. Reaching the fair state is therefore about how that window decides what to show, not
 about the comparison tool.
+
+## The empty draft is unreachable because `New Chat` is inert
+
+Clicking that nav row changes nothing at all, and this was measured rather than assumed: the control
+inventory before and after the click is byte-identical (`caret-agents-chrome-newchat-inert.txt` is
+the dump; `diff` against the post-click dump is empty), the window still holds one chat input, no
+starter card appears, and 43 visible elements still match `read-only`.
+
+The chain, read from the pinned fork:
+
+1. `agentHomeNav.ts:117` (patch `0022`) runs `workbench.action.sessions.newChat`.
+2. `NewChatInSessionsWindowAction.run` (`sessions/contrib/chat/browser/chat.contribution.ts:194`)
+   calls `openNewSession({ folderUri: activeSession.workspace.uri })`.
+3. `sessionsService._openNewSession` (`sessionsService.ts:1091`) takes the folder branch and calls
+   `sessionsManagementService.createNewSession(folderUri)`.
+4. `sessionsManagementService._resolveProviderForNewSession` (`sessionsManagementService.ts:875`)
+   walks the registered providers and needs `provider.resolveWorkspace(folderUri)` to return a
+   workspace **for one of this window's own folders**.
+5. Caret's provider resolves it that way on purpose —
+   `workspaceContextService.getWorkspace().folders.find(...)`
+   (`extensionSessionsProvider.contribution.ts:186`) — so a session whose workspace is a different
+   folder resolves to `undefined`. The other provider was the base agent host, which `0032` now
+   answers with the null client.
+6. Nothing resolves, `createNewSession` throws `No sessions provider can resolve folder '<uri>'`,
+   and `_openNewSession` catches it (`sessionsService.ts:1124`) and falls into the folder-less path
+   while `folderUri` is still set — which activates nothing.
+
+Two consequences worth naming:
+
+- The window shows a control that does nothing. Section 5's rule is that a missing capability is
+  *disabled with a reason*, so this is a violation of the plan's own contract, not just a gap.
+- It is what blocks the fair-state capture: the reference's empty draft is exactly what this control
+  is supposed to open.
+
+The fix is a session-creation slice, and it has three shapes: resolve a workspace from the session's
+folder as well as the window's (the provider change, patch `0010`), run Caret's own new-task flow
+from that nav row instead (patch `0022`), or disable the control with a reason until one of the
+first two lands. The first is the one that makes the base action work; the third is the honest stop
+gap.

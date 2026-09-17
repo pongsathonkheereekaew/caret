@@ -1678,6 +1678,20 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
 1. Tool calls, permissions, approvals, attachments, images, abort/steer and multi-turn have none
    of them been exercised on the Agents-window path. Close by running a turn that produces a tool
    call and a permission prompt from the on-screen composer, with a receipt.
+1a. **The Agents window's `New Chat` does nothing, and it is the reason the empty draft is
+    unreachable** (found 2026-09-17 by the chrome comparison). Chain: the nav row runs
+    `workbench.action.sessions.newChat` (`agentHomeNav.ts:117`, patch `0022`) →
+    `NewChatInSessionsWindowAction.run` passes `folderUri: activeSession.workspace.uri` →
+    `sessionsManagementService._resolveProviderForNewSession` needs a provider whose
+    `resolveWorkspace(folderUri)` accepts that folder → Caret's provider only resolves folders of the
+    *current window* (`extensionSessionsProvider.contribution.ts:186`) and the other provider is the
+    base agent host, null since `0032` → nothing resolves, `createNewSession` throws, and
+    `_openNewSession` catches it and activates nothing. Measured: the chrome inventory before and
+    after clicking the row is byte-identical. Closes with one of three: resolve a workspace from the
+    session's folder as well as the window's (the real fix, patch `0010`), run Caret's own new-task
+    flow from that nav row (patch `0022`), or — until either lands — disable the control with a
+    reason, which §5 requires of a missing capability. Receipt:
+    [`evidence/dead-code-followup-decisions-2026-09-17/first-live-capture.md`](evidence/dead-code-followup-decisions-2026-09-17/first-live-capture.md).
 2. The provider-level catalogue fetch at start can lose a race with a host refresh
    (`Caret could not list OMP models: Refresh the task before submitting this command`), leaving
    the option-group picker empty at boot. The language-model provider resolving later masks it, but
