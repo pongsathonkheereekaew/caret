@@ -5,6 +5,7 @@ import type {
   Json,
   Project,
   Session,
+  TerminalCheckpoint,
   UiResponseRequest,
 } from "../../../../packages/protocol/src/index.ts";
 import { isRecord, type LoginProviderOption, type ModelOption, type PendingUiRequest } from "./types.ts";
@@ -176,6 +177,18 @@ export class CaretApi {
 
   getReview(sessionId: string): Promise<HostReviewPayload> {
     return this.request<unknown>("GET", `/v1/sessions/${encoded(sessionId)}/review`).then(body => parseHostReview(body));
+  }
+
+  /**
+   * The host's headless screen per virtual terminal.
+   *
+   * Used when the app's bounded chunk history was trimmed: rendering this paints the
+   * real screen instead of asking OMP to redraw. An empty list is an honest answer
+   * (virtual UI off, session not running, or a host without the terminal engine).
+   */
+  getTerminalCheckpoints(sessionId: string): Promise<TerminalCheckpoint[]> {
+    return this.request<unknown>("GET", `/v1/sessions/${encoded(sessionId)}/terminals`)
+      .then(body => arrayBody<TerminalCheckpoint>(body, "terminals"));
   }
 
   getEvents(sessionId: string, after = 0, limit = 200): Promise<EventPage> {

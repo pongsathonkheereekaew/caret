@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
+import type { TerminalCheckpoint } from "../../../../packages/protocol/src/index.ts";
 import { VirtualTerminalRendererCoordinator, type VirtualTerminalIdentity, type VirtualTerminalSnapshot } from "../core/virtual-terminal.ts";
 import { terminalMessage, terminalDocument } from "./terminal/document.ts";
 
@@ -23,6 +24,11 @@ export interface VirtualTerminalProps {
   readonly onInput: (identity: VirtualTerminalIdentity, data: string) => void;
   readonly onResize: (identity: VirtualTerminalIdentity, cols: number, rows: number) => void;
   readonly onNegotiate: (identity: VirtualTerminalIdentity, cols: number, rows: number) => void;
+  /**
+   * The host's headless screen for this terminal, fetched when the bounded history was
+   * trimmed. Returning `undefined` keeps the old behaviour: OMP is asked to redraw.
+   */
+  readonly onLoadCheckpoint?: (identity: VirtualTerminalIdentity) => Promise<TerminalCheckpoint | undefined>;
 }
 
 const FRAME_HEIGHT = 268;
@@ -44,11 +50,12 @@ export function VirtualTerminalPanel(props: {
   readonly onInput: (identity: VirtualTerminalIdentity, data: string) => void;
   readonly onResize: (identity: VirtualTerminalIdentity, cols: number, rows: number) => void;
   readonly onNegotiate: (identity: VirtualTerminalIdentity, cols: number, rows: number) => void;
+  readonly onLoadCheckpoint?: (identity: VirtualTerminalIdentity) => Promise<TerminalCheckpoint | undefined>;
 }) {
   if (props.terminals.length === 0) return null;
   return <View style={[styles.panel, { backgroundColor: props.palette.surface, borderColor: props.palette.border }]}>
     <View style={styles.panelHeader}><Text style={[styles.panelTitle, { color: props.palette.text }]}>Live terminal</Text><Text style={[styles.panelHint, { color: props.palette.muted }]}>Interactive session</Text></View>
-    {props.terminals.map(terminal => <VirtualTerminalView key={`${props.sessionId}:${props.incarnation}:${terminal.terminalId}`} sessionId={props.sessionId} incarnation={props.incarnation} terminal={terminal} palette={props.palette} onInput={props.onInput} onResize={props.onResize} onNegotiate={props.onNegotiate} />)}
+    {props.terminals.map(terminal => <VirtualTerminalView key={`${props.sessionId}:${props.incarnation}:${terminal.terminalId}`} sessionId={props.sessionId} incarnation={props.incarnation} terminal={terminal} palette={props.palette} onInput={props.onInput} onResize={props.onResize} onNegotiate={props.onNegotiate} onLoadCheckpoint={props.onLoadCheckpoint} />)}
   </View>;
 }
 
@@ -73,6 +80,10 @@ export function VirtualTerminalView(props: VirtualTerminalProps) {
   const [rendererMountGeneration, setRendererMountGeneration] = useState(0);
   const [recovering, setRecovering] = useState(false);
   const recoverySequenceRef = useRef(-1);
+  // The host's screen for this terminal, fetched once when the history was trimmed and
+  // handed to the coordinator on ready. Absent (or stale) simply means the old path.
+  const checkpointRef = useRef<TerminalCheckpoint | undefined>(undefined);
+  const checkpointRequestedRef = useRef(false);
   const [rendererError, setRendererError] = useState<string | null>(null);
   const html = useMemo(() => terminalDocument({ terminalId: identity.terminalId, cols: terminal.cols, rows: terminal.rows, title: terminal.title }), [identity.terminalId, terminal.cols, terminal.rows, terminal.title]);
   const rendererKey = `${identity.sessionId}:${identity.incarnation}:${identity.terminalId}:${rendererMountGeneration}`;
@@ -110,11 +121,23 @@ export function VirtualTerminalView(props: VirtualTerminalProps) {
     props.onNegotiate(identity, next.cols, next.rows);
   }, [identity, post, props.onNegotiate]);
 
+  useEffect(() => {
+    const { onLoadCheckpoint } = props;
+    if (!onLoadCheckpoint || !terminal.historyTruncated || terminal.closed) return;
+    if (checkpointRequestedRef.current) return;
+    checkpointRequestedRef.current = true;
+    let cancelled = false;
+    onLoadCheckpoint(identity)
+      .then(checkpoint => { if (!cancelled) checkpointRef.current = checkpoint; })
+      .catch(() => { /* no checkpoint: the renderer falls back to the OMP redraw */ });
+    return () => { cancelled = true; };
+  }, [identity, props, terminal.closed, terminal.historyTruncated]);
+
   const handleMessage = useCallback((value: unknown) => {
     const message = terminalMessage(value);
     if (!message || message.terminalId !== identity.terminalId) return;
     if (message.type === "ready") {
-      const plan = coordinatorRef.current?.ready(identity, terminal);
+      const plan = coordinatorRef.current?.ready(identity, terminal, checkpointRef.current);
       if (!plan) return;
       setRendererError(null);
       setReady(true);
@@ -195,7 +218,7 @@ export function VirtualTerminalView(props: VirtualTerminalProps) {
       onTouchStart={() => post({ type: "focus" })}
       style={frameStyle}
     />}
-    {rendererError ? <Pressable onPress={() => { setRendererError(null); setReady(false); setRecovering(false); recoverySequenceRef.current = -1; coordinatorRef.current?.resetRenderer(); setRendererMountGeneration(generation => generation + 1); }}><Text style={[styles.error, { color: palette.accent }]}>Terminal renderer error: {rendererError}. Tap to retry.</Text></Pressable> : null}
+    {rendererError ? <Pressable onPress={() => { setRendererError(null); setReady(false); setRecovering(false); recoverySequenceRef.current = -1; checkpointRequestedRef.current = false; coordinatorRef.current?.resetRenderer(); setRendererMountGeneration(generation => generation + 1); }}><Text style={[styles.error, { color: palette.accent }]}>Terminal renderer error: {rendererError}. Tap to retry.</Text></Pressable> : null}
   </View>;
 }
 

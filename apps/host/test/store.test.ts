@@ -115,6 +115,30 @@ describe("DurableStore", () => {
 		expect(store.listSessions(first.id, { includeArchived: true })).toHaveLength(1);
 	});
 
+	it("deletes a session row with its commands and events, and refuses an unknown id", () => {
+		const { dir, store } = temporaryStore(false);
+		const project = store.createProject({ path: projectDirectory(dir, "delete-project") });
+		const session = store.createSession({ projectId: project.id, incarnation: "inc-1" });
+		store.claimCommand({ sessionId: session.id, commandId: "cmd", deviceId: "mac", incarnation: "inc-1", kind: "prompt", payload: {} });
+		store.appendEvent(session.id, "inc-1", { type: "agent_start" });
+		expect(store.listCommands(session.id).length).toBe(1);
+		expect(store.readEvents(session.id, 0, 10).events.length).toBe(1);
+		store.deleteSession(session.id);
+		expect(store.getSession(session.id)).toBeUndefined();
+		expect(store.listSessions(project.id, { includeArchived: true })).toEqual([]);
+		// The row is gone for every reader...
+		expect(() => store.listCommands(session.id)).toThrow(/not found/i);
+		expect(() => store.readEvents(session.id, 0, 10)).toThrow(/not found/i);
+		// ...and the foreign keys took its commands and events with it, so nothing is
+		// left pointing at an id no session owns.
+		const probe = new DatabaseSync(store.paths.journalPath);
+		try {
+			expect(probe.prepare("SELECT COUNT(*) AS count FROM commands").get()).toMatchObject({ count: 0 });
+			expect(probe.prepare("SELECT COUNT(*) AS count FROM events").get()).toMatchObject({ count: 0 });
+		} finally { probe.close(); }
+		expect(() => store.deleteSession(session.id)).toThrow(/not found/i);
+	});
+
 	it("claims atomically, canonicalizes payload ordering, and rejects identity conflicts or unsafe JSON", () => {
 		const { dir, store } = temporaryStore(false);
 		const project = store.createProject({ path: projectDirectory(dir, "project") });

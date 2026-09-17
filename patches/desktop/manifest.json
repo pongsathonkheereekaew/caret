@@ -31,7 +31,7 @@
     },
     {
       "file": "0010-caret-sessions-bridge.patch",
-      "sha256": "297f7d484018acb8ab08c26f230d9bbbbd7ce666576b32a0b40f844f57b571bf"
+      "sha256": "6d78a595e0ae95288c365d692560b5d940a027d14f04c57f89a904b8020d5732"
     },
     {
       "file": "0011-caret-sessions-model-picker.patch",
@@ -96,6 +96,14 @@
     {
       "file": "0026-caret-agents-no-bottom-panel.patch",
       "sha256": "4c7e1575442c015aa925fa0c7c3177e4f39d4d28c621a620b2de98ce0a6ebbae"
+    },
+    {
+      "file": "0031-caret-agents-no-remote-connections.patch",
+      "sha256": "98045408742ae38b5e50815c2b2be5e500b5fb904687f557f7d9a7065c639f8b"
+    },
+    {
+      "file": "0032-caret-no-base-agent-host.patch",
+      "sha256": "82bc17be328658b8c7cdc5607718764b5bd1b572763c0e88007041a5ce65fd84"
     }
   ],
   "removals": [

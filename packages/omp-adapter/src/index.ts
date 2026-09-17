@@ -29,6 +29,7 @@ export {
 	OMP_BASELINE_VERSION,
 	OMP_RPC_PROTOCOL_VERSION,
 	RPC_COMMAND_TYPES,
+	isSupportedOmpVersion,
 } from "./types.ts";
 export type {
 	OmpFrame,

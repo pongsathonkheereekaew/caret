@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, writeFile, rm, stat, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
-import { OmpRpcClient } from "../packages/omp-adapter/src/index.ts";
+import { isSupportedOmpVersion, OMP_BASELINE_VERSION, OmpRpcClient } from "../packages/omp-adapter/src/index.ts";
 
 function check(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
@@ -27,9 +27,9 @@ for (const candidate of requestedBinary.includes("/")
   : (process.env.PATH ?? "").split(delimiter).map(dir => join(dir, requestedBinary))) {
   if (await exists(candidate)) { executable = candidate; break; }
 }
-check(executable, "OMP is missing; set CARET_OMP_BINARY to an OMP 18.1.18 executable");
+check(executable, `OMP is missing; set CARET_OMP_BINARY to an OMP ${OMP_BASELINE_VERSION} or later executable`);
 const version = execFileSync(executable, ["--version"], { encoding: "utf8", timeout: 10_000 }).trim();
-check(version === "omp/18.1.18", `Expected omp/18.1.18, received ${version}`);
+check(isSupportedOmpVersion(version), `Expected OMP ${OMP_BASELINE_VERSION} or later, received ${version}`);
 const binarySha256 = createHash("sha256").update(await readFile(executable)).digest("hex");
 const implementationSourceHashes: Record<string, string> = {};
 for (const file of ["client.ts", "framing.ts", "types.ts", "index.ts"]) {

@@ -5,5 +5,8 @@
   "type": "module",
   "bin": {
     "caret-host": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@coder/libghostty-vt-node": "0.1.0-beta.0"
   }
 }

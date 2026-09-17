@@ -24,7 +24,7 @@ import {
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import WebView from "react-native-webview";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
-import type { Command, Json, Project, Session, UiResponseRequest } from "../../packages/protocol/src/index.ts";
+import type { Command, Json, Project, Session, TerminalCheckpoint, UiResponseRequest } from "../../packages/protocol/src/index.ts";
 import {
   CaretApi,
   CommandLedger,
@@ -1102,6 +1102,22 @@ function CaretRoot({ transport, secretStore = securePairingStore, cache = taskSn
     }
   }, [dispatchCommand]);
 
+  /**
+   * The host's headless screen for one terminal, used when the app's bounded history was
+   * trimmed. Failures stay silent on purpose: without a checkpoint the renderer keeps its
+   * existing recovery path and asks OMP to redraw.
+   */
+  const loadTerminalCheckpoint = useCallback(async (identity: VirtualTerminalIdentity): Promise<TerminalCheckpoint | undefined> => {
+    const current = stateRef.current;
+    if (!api || !current.session || current.session.id !== identity.sessionId || current.session.incarnation !== identity.incarnation) return undefined;
+    try {
+      const checkpoints = await api.getTerminalCheckpoints(identity.sessionId);
+      return checkpoints.find(item => item.terminalId === identity.terminalId);
+    } catch {
+      return undefined;
+    }
+  }, [api]);
+
   const sendUiResponse = useCallback(async (request: PendingUiRequest, answer: UiResponseRequest["answer"]) => {
     if (syncing) return;
     const session = stateRef.current.session;
@@ -1267,6 +1283,7 @@ function CaretRoot({ transport, secretStore = securePairingStore, cache = taskSn
           onTerminalInput={sendTerminalInput}
           onTerminalResize={sendTerminalResize}
           onTerminalNegotiate={sendTerminalNegotiate}
+          onTerminalCheckpoint={loadTerminalCheckpoint}
         />
       ) : (
         <Dashboard
@@ -1709,6 +1726,7 @@ function TaskDetail(props: {
   onTerminalInput: (identity: VirtualTerminalIdentity, data: string) => void;
   onTerminalResize: (identity: VirtualTerminalIdentity, cols: number, rows: number) => void;
   onTerminalNegotiate: (identity: VirtualTerminalIdentity, cols: number, rows: number) => void;
+  onTerminalCheckpoint: (identity: VirtualTerminalIdentity) => Promise<TerminalCheckpoint | undefined>;
 }) {
   const { state, styles, palette } = props;
   const { prefs } = React.useContext(PresentationContext);
@@ -1777,7 +1795,7 @@ function TaskDetail(props: {
     >
       {session.status === "recovery_required" ? <View style={styles.sessionStart}><Text style={styles.sessionStartTitle}>Review this session</Text><Text style={styles.sessionStartBody}>The Mac reported an unknown command outcome. Check the Mac first, then reconcile this session before starting it again.</Text><Pressable onPress={props.onReconcile} disabled={props.busy || props.syncing || state.connection === "offline"} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{props.busy ? "Reconciling…" : "Reconcile session"}</Text></Pressable></View> : null}
       {session.status !== "running" && session.status !== "recovery_required" && !state.transcript.length ? <View style={styles.sessionStart}><Text style={styles.sessionStartTitle}>Ready when you are</Text><Text style={styles.sessionStartBody}>This session runs on your Mac. Start it once, then continue from anywhere.</Text><Pressable onPress={props.onStart} disabled={props.busy || props.syncing || state.connection === "offline"} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{props.busy ? "Starting…" : "Start session"}</Text></Pressable></View> : null}
-      <VirtualTerminalPanel sessionId={session.id} incarnation={session.incarnation} terminals={state.virtualTerminals} palette={palette} onInput={props.onTerminalInput} onResize={props.onTerminalResize} onNegotiate={props.onTerminalNegotiate} />
+      <VirtualTerminalPanel sessionId={session.id} incarnation={session.incarnation} terminals={state.virtualTerminals} palette={palette} onInput={props.onTerminalInput} onResize={props.onTerminalResize} onNegotiate={props.onTerminalNegotiate} onLoadCheckpoint={props.onTerminalCheckpoint} />
       {visibleTranscript.map(entry => {
         const expanded = Object.prototype.hasOwnProperty.call(toolExpanded, entry.id)
           ? toolExpanded[entry.id] === true

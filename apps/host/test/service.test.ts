@@ -294,6 +294,20 @@ describe("CaretHost", () => {
     await waitFor(() => unexpected.store.getSession(unexpected.sessionId)?.status === "recovery_required");
     await expect(unexpected.host.startSession(unexpected.sessionId)).rejects.toMatchObject({ code: "recovery_required" });
   });
+
+  it("deletes a session: runtime stopped, record gone, the host's own files removed", async () => {
+    const fixtureHost = makeHost();
+    await fixtureHost.host.startSession(fixtureHost.sessionId);
+    const sessionDirectory = join(fixtureHost.directory, "sessions", fixtureHost.sessionId);
+    expect(existsSync(sessionDirectory)).toBe(true);
+    await fixtureHost.host.deleteSession(fixtureHost.sessionId);
+    expect(fixtureHost.store.getSession(fixtureHost.sessionId)).toBeUndefined();
+    expect(existsSync(sessionDirectory)).toBe(false);
+    // The id is gone for good: a second delete is a not-found, not a silent success.
+    await expect(fixtureHost.host.deleteSession(fixtureHost.sessionId)).rejects.toMatchObject({ code: "not_found" });
+    // The runtime is no longer tracked, so a later start cannot resurrect it.
+    await expect(fixtureHost.host.startSession(fixtureHost.sessionId)).rejects.toMatchObject({ code: "not_found" });
+  });
 });
 
 describe("real OMP session ownership", () => {
@@ -429,4 +443,60 @@ it("binds native permission options and exact arguments before returning a struc
   const outcome = fixture.store.readEvents(session.id).events.find(event => event.frame && typeof event.frame === "object" && !Array.isArray(event.frame) && event.frame.type === "fixture_permission_outcome");
   expect(outcome?.frame).toMatchObject({ outcome: { outcome: "selected", optionId: "allow_once", kind: "allow_once" } });
   await expect(fixture.host.respond(session.id, "owner", { commandId: "stale-answer", incarnation: session.incarnation, token: pending.token, answer: "1. Allow once" })).resolves.toMatchObject({ status: "not_dispatched" });
+});
+
+describe("OMP runtime version gate", () => {
+  /**
+   * The gate exists so a task can never be started on a runtime the adapter contract
+   * was not written against. A later patch of the baseline's minor line is the case a
+   * developer machine actually hits: refusing it made the composer fail at startSession
+   * before any prompt was sent.
+   */
+  function hostWithOmpVersion(version: string): { host: CaretHost; sessionId: string; store: DurableStore } {
+    const directory = temporaryDirectory("caret-host-omp-version-");
+    const projectPath = join(directory, "project");
+    mkdirSync(projectPath, { recursive: true });
+    const store = DurableStore.open({ stateDir: directory, recover: false });
+    const project = store.createProject({ path: projectPath, name: "Version gate project" });
+    const host = new CaretHost({
+      store,
+      stateDir: directory,
+      ompExecutable: fixture,
+      ompEnv: { CARET_NODE: fixtureNode, CARET_FAKE_HOST_MODE: "normal", CARET_FAKE_OMP_VERSION: version },
+    });
+    const session = host.createSession(project.id, "Version gate task");
+    return { host, sessionId: session.id, store };
+  }
+
+  it("starts a session on a later patch of the supported line", async () => {
+    const fixtureHost = hostWithOmpVersion("omp/18.1.22");
+    const started = await fixtureHost.host.startSession(fixtureHost.sessionId);
+    expect(started.status).toBe("idle");
+    await fixtureHost.host.stopSession(fixtureHost.sessionId);
+  });
+
+  it("runs on a newer minor line instead of refusing its number", async () => {
+    // The baseline is a floor, not a pin: this project's machine moved to 18.2.1 while the
+    // contract was written at 18.1.18, and what a runtime supports is read from its ready
+    // frame (the Caret bridges are capability-gated there) rather than from its version.
+    const fixtureHost = hostWithOmpVersion("omp/18.2.1");
+    const started = await fixtureHost.host.startSession(fixtureHost.sessionId);
+    expect(started.status).toBe("idle");
+    await fixtureHost.host.stopSession(fixtureHost.sessionId);
+  });
+
+  it("refuses a runtime older than the baseline, naming what it expects", async () => {
+    const fixtureHost = hostWithOmpVersion("omp/18.1.17");
+    await expect(fixtureHost.host.startSession(fixtureHost.sessionId)).rejects.toMatchObject({
+      code: "unsupported_omp",
+      message: expect.stringContaining("18.1.18 or later"),
+    });
+    // Nothing ran: the gate refuses before the session is mutated, so it stays idle.
+    expect(fixtureHost.store.getSession(fixtureHost.sessionId)?.status).toBe("idle");
+  });
+
+  it("refuses output that is not an OMP version at all", async () => {
+    const fixtureHost = hostWithOmpVersion("not-an-omp");
+    await expect(fixtureHost.host.startSession(fixtureHost.sessionId)).rejects.toMatchObject({ code: "unsupported_omp" });
+  });
 });

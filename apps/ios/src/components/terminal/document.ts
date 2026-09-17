@@ -91,12 +91,14 @@ function writeOutput(sequence,data){
   replayWrites++;
   try{terminal.write(data,function(){replayWrites=Math.max(0,replayWrites-1);finishReplay()})}catch(_){replayWrites=Math.max(0,replayWrites-1);finishReplay()}
 }
-function beginReplay(cols,rows,historyTruncated,recovery){
+function beginReplay(cols,rows,historyTruncated,recovery,checkpoint){
   replaying=true;replayEndRequested=false;replayWrites=0;
   try{terminal.reset()}catch(_){}
   lastSequence=-1;
   if(Number.isSafeInteger(cols)&&Number.isSafeInteger(rows))try{terminal.resize(cols,rows)}catch(_){}
-  if(historyTruncated){
+  // A checkpoint seed follows immediately and paints the real screen, so the
+  // "expired/restoring" notice would only flash and be painted over.
+  if(historyTruncated&&!checkpoint){
     // The host keeps a bounded chunk history. Once its prefix is gone, replay
     // cannot reconstruct an ANSI emulator state, so reset explicitly and only
     // continue with live output instead of presenting a false reconstruction.
@@ -106,14 +108,14 @@ function beginReplay(cols,rows,historyTruncated,recovery){
 function endReplay(){replayEndRequested=true;finishReplay()}
 function replay(outputs,cols,rows,historyTruncated,recovery){
   if(!terminal||!Array.isArray(outputs))return;
-  beginReplay(cols,rows,historyTruncated,recovery);
+  beginReplay(cols,rows,historyTruncated,recovery,false);
   for(var i=0;i<outputs.length;i++){var item=outputs[i];if(item&&typeof item.sequence==="number")writeOutput(item.sequence,item.data)}
   endReplay();
 }
 function receive(event){
   var message=safeMessage(event);if(!message||!terminal)return;
   if(message.type==="replay_start"){
-    beginReplay(message.cols,message.rows,message.historyTruncated===true,message.recovery===true);
+    beginReplay(message.cols,message.rows,message.historyTruncated===true,message.recovery===true,message.checkpoint===true);
     return;
   }
   if(message.type==="replay_end"){

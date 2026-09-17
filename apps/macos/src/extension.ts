@@ -19,7 +19,7 @@ import { CaretHostClient, HostDescriptorError, HostHttpError, HostRequestTimeout
 import { parseWebviewMessage, type NativeAction, type WebviewMessage } from "./messages.ts";
 import { createInitialTaskState, normalizeSlashCommands, parseCaretUiRequest, reduceTaskState, type LoginProviderOption, type ModelOption, type TaskState } from "./state.ts";
 import { createTaskWebviewHtml } from "./webview.ts";
-import { registerCaretChatSessions } from "./chat-sessions.ts";
+import { sessionIdFromUri } from "./chat-sessions-map.ts";
 import { canAnswer } from "./approval-runtime.ts";
 import { approvalCanSubmit, approvalDisplayStatus } from "./approval-view.ts";
 import type { ArtifactReceipt } from "./artifact-transfer.ts";
@@ -480,6 +480,25 @@ function normalizeProject(value: unknown): Project | undefined {
 	const item = value as Record<string, unknown>;
 	if (typeof item.id !== "string" || typeof item.path !== "string") return undefined;
 	return item as unknown as Project;
+}
+
+/**
+ * Host session ids from whatever the caller passed.
+ *
+ * The Agents window's session list hands over its own ids, which are the chat
+ * session resources (`caret://session/<id>`); a caller that already holds host ids
+ * passes those. Both are accepted, and anything else is dropped rather than guessed
+ * at, so a malformed hint deletes nothing instead of the wrong chat.
+ */
+function hostSessionIdsFromHint(hint: unknown): string[] {
+	const values = Array.isArray(hint) ? hint : [hint];
+	const ids = new Set<string>();
+	for (const value of values) {
+		if (typeof value !== "string" || value.length === 0) continue;
+		const hostId = value.includes("://") ? sessionIdFromUri(vscode.Uri.parse(value)) : value;
+		if (hostId) ids.add(hostId);
+	}
+	return [...ids];
 }
 
 function normalizeSession(value: unknown): Session | undefined {
@@ -1181,6 +1200,36 @@ export class CaretTaskViewProvider {
 			this.refreshChatSessions();
 			await this.refresh();
 		});
+	}
+
+	/**
+	 * Delete chats the Agents window's session list picked.
+	 *
+	 * The list's own `Delete...` item confirms first ("This action cannot be
+	 * undone."), so the ids arrive already agreed on. Deleting removes the host's
+	 * record and the transcript it wrote for the session; a project folder is never
+	 * touched, and a worktree the session created stays on disk because it can hold
+	 * uncommitted work.
+	 */
+	async deleteChatSessions(hint: unknown): Promise<void> {
+		const ids = hostSessionIdsFromHint(hint);
+		if (ids.length === 0) {
+			void vscode.window.showWarningMessage("Caret could not tell which chat to delete.");
+			return;
+		}
+		try {
+			const client = await this.ensureClient();
+			for (const id of ids) {
+				await client.deleteSession(id);
+			}
+			void vscode.window.showInformationMessage(ids.length === 1 ? "Deleted 1 chat." : `Deleted ${ids.length} chats.`);
+			// A row leaves the sidebar only when the item collection says it is gone,
+			// so the delete has to be followed by a republish.
+			this.refreshChatSessions();
+			await this.refresh();
+		} catch (error) {
+			void vscode.window.showWarningMessage(`Caret could not delete that chat: ${errorMessage(error)}`);
+		}
 	}
 
 	/**
@@ -3966,12 +4015,16 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand("caret.showIde", () => provider.showIde()),
 		vscode.commands.registerCommand("caret.newTask", () => provider.newTaskFlow()),
 		vscode.commands.registerCommand("caret.openFolder", () => provider.openFolderFlow()),
+		// than a composer chip (the Agents window composer renders only the model picker).
 		// The sidebar's project rows call these with the folder they were right-clicked on:
 		// the row is a workspace folder, the operations are the host's project record.
 		vscode.commands.registerCommand("caret.project.setPinned", (folderPath?: string) => provider.setProjectPinned(folderPath)),
 		vscode.commands.registerCommand("caret.project.rename", (folderPath?: string) => provider.renameProject(folderPath)),
 		vscode.commands.registerCommand("caret.project.archiveChats", (folderPath?: string) => provider.archiveProjectChats(folderPath)),
 		vscode.commands.registerCommand("caret.project.remove", (folderPath?: string) => provider.removeProject(folderPath)),
+		// The Agents window's session rows call this with the chat session resources
+		// the list's own `Delete...` item confirmed.
+		vscode.commands.registerCommand("caret.session.delete", (hint?: unknown) => provider.deleteChatSessions(hint)),
 		vscode.commands.registerCommand("caret.project.createWorktree", (folderPath?: string) => provider.createWorktreeForProject(folderPath)),
 		vscode.commands.registerCommand("caret.project.reveal", (hint?: string) => provider.revealProject(hint)),
 		// The Agents sidebar's "New Project": registers the folder and gives it a task

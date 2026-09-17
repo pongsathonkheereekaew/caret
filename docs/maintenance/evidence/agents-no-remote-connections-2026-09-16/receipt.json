@@ -1,0 +1,64 @@
+{
+  "slice": "agents-window-chrome",
+  "date": "2026-09-16",
+  "queueItem": "user report: unusable icon at the top right of the Agents window",
+  "reference": "Cursor 3.20.17 Agents window (docs/maintenance/CARET-PLAN.md section 3: header is IDE / Chat actions / Show Apps)",
+  "problem": {
+    "report": "an unusable icon at the top right (right panel, connection)",
+    "identified": "li.action-item.tunnel-host-toggle at 1386,7 with aria-label 'Allow connections from other machines'",
+    "source": "SessionsTunnelHostTitlebarContribution (src/vs/sessions/contrib/tunnelHost/electron-browser/tunnelHost.contribution.ts) appends an 'Allow Remote Connections' toggle (Codicon.radioTower) into Menus.TitleBarRightLayout, gated ChatContextKeys.enabled && IsSessionsWindowContext && !IsAuxiliaryWindowContext, and registers a custom view item for it",
+    "whyUnusable": "the command runs executeToggleRemoteConnections(..., { authenticationProviderId: 'github' }) - a GitHub-authenticated dev tunnel; this fork ships no GitHub sign-in, so the control could only open a flow it cannot finish"
+  },
+  "change": {
+    "patch": "patches/desktop/0031-caret-agents-no-remote-connections.patch (new patch; the file is a base file no earlier patch touches, so it stands alone)",
+    "content": "the menu item's when becomes ContextKeyExpr.false() with a Caret comment, and the three imports only the old gate used are removed; the declaration and its view item stay registered so the type checker and the base's wiring keep working (same shape as 0029)",
+    "bookkeeping": [
+      "patches/desktop/manifest.json: 0031 entry with sha256 98045408742ae38b5e50815c2b2be5e500b5fb904687f557f7d9a7065c639f8b",
+      "patches/desktop/README.md: paragraph next to the 0029 one",
+      "apps/macos/test/ide-native-workbench.test.ts: needle test - the old when line is removed, the false expression present, one diff, path scoped to src/vs/sessions/, digest matches the manifest"
+    ]
+  },
+  "driftRepaired": {
+    "symptom": "bun scripts/prepare-desktop.ts refused to run: 'Caret desktop patch integrity mismatch: 0003-caret-agents-window-proposals.patch'",
+    "cause": "0003 and 0010 were each re-cut a second time in the working tree after the manifest digest had been updated; HEAD itself is consistent",
+    "fix": "manifest digests for 0003 (f329167d882638001829d288902583c0c37471a0b6f0502ffea9a0a3e78ada8c) and 0010 (015e4c6939bcfa022ddb9740f341559a816e754fa6f676d238f3af186df6bdf9) now match the patches on disk"
+  },
+  "verified": {
+    "gates": [
+      "bun scripts/prepare-desktop.ts: 29 patches / 18 removals, digest and reverse-check for every patch",
+      "bun test apps/macos/test/desktop-patch-set.test.ts: applies in manifest order and reproduces the checkout",
+      "cd desktop && npm run typecheck-client: 0 errors",
+      "bun run typecheck: clean",
+      "node scripts/ci-validate.mjs: CI-OK",
+      "bun scripts/cursor-parity-check.ts: 340 keys, 0 mismatches",
+      "bun run test: 749 pass, 1 fail (menus-contract.test.ts needs rg on PATH; this machine has none - environmental and pre-existing)"
+    ],
+    "onScreenBefore": "CDP: .tunnel-host-toggle visible at 1386,7, aria-label 'Allow connections from other machines'; screenshot shows the radio-tower glyph next to Show Apps",
+    "onScreenAfter": "CDP: tunnel-host-toggle 0, codicon-radio-tower 0, no aria-label containing 'connection'; the row reads Toggle Side Panel / Show Apps / IDE (Shift-Cmd-A); screenshot captured",
+    "ideWindow": "launched with a folder: 'package.json - Caret', status bar and explorer present; the change is scoped to src/vs/sessions/**, which only the Agents window loads",
+    "buildLoop": "cd desktop && node build/next/index.ts bundle --minify, copy desktop/out-vscode/. into the packaged app/out/, CARET_HOST_NODE=... bun scripts/build-caret.ts --package"
+  },
+  "notVerified": [
+    "no real-mouse click was made on the removed control (it is absent; CDP DOM plus a screenshot are the evidence). The real-input rule in the plan applies to surfaces drawn over native views, not to a title-bar toolbar item"
+  ],
+  "audit": {
+    "scope": "every visible control of the Agents window on this revision, its owner, and whether the product can honour it",
+    "findings": [
+      "title bar left: Toggle Side Bar (Cmd-B) works; Go Back / Go Forward One Session work (Forward stays disabled until a forward stack exists)",
+      "right of centre: IDE (Shift-Cmd-A) is Caret's (0025) and opens the editor window",
+      "right: Toggle Side Panel (Opt-Cmd-B) works and is a recorded deviation (the reference has no such control); Show Panel (Cmd-J) is registered but hidden by 0025/0026 (the bottom panel never opens)",
+      "right: the account widget was already hidden (0029) and the remote-connections toggle is removed by 0031",
+      "sidebar: Caret's React navigation (New Chat / Search / Automations / Customize, Projects and Repositories sections) is mounted at 8,39-135; below it the base sessions list draws groups Automations / Chats / project. The empty Chats group (placeholder row 'No chats') is a base artifact the reference does not show and is controlled by sessions.list.showEmptyDefaultGroups",
+      "Apps panel: rail (Changes/Browser/Terminal/File), Open new tab menu and Toggle Pinned Summary are Caret's (0021) and were verified with real mouse input in apps-panel-changes-file-panes-2026-09-16",
+      "composer: Configure Tools... opens Copilot's built-in tool set ('13 Selected', 'applied globally for all chat sessions that use the default agent') - OMP owns execution, so nothing there reaches the harness",
+      "composer: the Permission picker offers Default permissions / Allow all / Autopilot (Preview) - Copilot permission semantics, while Caret's approvals and questions come from OMP (plan section 4)",
+      "composer: the Agent mode picker opens Agent / Configure Custom Agents...; whether modes change OMP behaviour is unverified and Configure Custom Agents has no surface here",
+      "composer: Dictate (Speech to Text) is unverified; message-row actions (Restore checkpoint, Fork conversation, Helpful/Unhelpful) depend on agent-host and feedback services the fork does not wire and are likely inert"
+    ],
+    "conclusion": "the composer picks (tools, permission mode, custom agents) are the same class of problem as the removed icon: base Copilot concepts rendered over a harness that does not implement them. Each needs a decision - wire to OMP, hide, or disable with a reason (plan section 5) - before the composer can be called parity-clean"
+  },
+  "artifacts": {
+    "before": "scratchpad tunnel-icon.png (radio-tower glyph at the top right)",
+    "after": "scratchpad titlebar-after.png (IDE / Toggle Side Panel / Show Apps only)"
+  }
+}

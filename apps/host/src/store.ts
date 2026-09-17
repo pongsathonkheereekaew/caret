@@ -764,6 +764,22 @@ export class DurableStore {
 		});
 	}
 
+	/**
+	 * Remove a session row for good.
+	 *
+	 * Commands and events reference the row with `ON DELETE CASCADE`, and the store
+	 * runs with `PRAGMA foreign_keys=ON`, so they go with it. The row's files on
+	 * disk are the caller's business (`CaretHost.deleteSession` removes them).
+	 */
+	deleteSession(id: string): void {
+		this.assertOpen();
+		const sessionId = requireString(id, "sessionId");
+		this.getSessionOrThrow(sessionId);
+		this.transaction(() => {
+			this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+		});
+	}
+
 	claimCommand(input: ClaimCommandInput): ClaimCommandResult {
 		this.assertOpen();
 		const sessionId = requireString(input.sessionId, "sessionId");

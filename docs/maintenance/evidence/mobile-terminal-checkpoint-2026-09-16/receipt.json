@@ -1,0 +1,26 @@
+{
+  "slice": "mobile-terminal-checkpoint",
+  "date": "2026-09-16",
+  "planItem": "27 (client half; the host half is host-terminal-checkpoint-2026-09-16)",
+  "change": {
+    "apps/ios/src/core/virtual-terminal.ts": "terminalCheckpointSeed(checkpoint) builds terminal bytes from the host grid (hide cursor, clear, place each row, restore the cursor); VirtualTerminalRendererCoordinator.ready(identity, terminal, checkpoint?) seeds when the history was trimmed, the terminal is live and the checkpoint is fresh (terminalId matches, lastSequence >= 0), advancing the watermark to the checkpoint sequence",
+    "apps/ios/src/components/terminal/document.ts": "replay_start carries checkpoint: true and suppresses the expired/restoring notice for that case, because the seed paints the screen immediately after",
+    "apps/ios/src/core/api.ts": "CaretApi.getTerminalCheckpoints(sessionId) -> GET /v1/sessions/:id/terminals",
+    "apps/ios/src/components/VirtualTerminal.tsx": "optional onLoadCheckpoint prop; the view fetches once when historyTruncated is set and passes the result to the coordinator on ready; failure keeps the old redraw path and the retry button clears the latch",
+    "apps/ios/App.tsx": "loadTerminalCheckpoint builds the prop from the session-scoped CaretApi, guarded by the current session and incarnation"
+  },
+  "verified": {
+    "mobileTests": "bun run test:mobile: 146 pass (141 before), with new cases for the seed bytes and cursor clamp, seeding instead of recovery (including the watermark), the fallback when the checkpoint is missing/stale/empty or nothing was trimmed, and the document suppressing the expired notice only when a checkpoint follows",
+    "gates": [
+      "bun run typecheck: clean",
+      "bun run test: 776 tests, 1 environmental failure (menus-contract.test.ts needs rg on PATH)",
+      "node scripts/ci-validate.mjs: CI-OK"
+    ],
+    "iosTypecheck": "two pre-existing failures in untouched files (src/__tests__/activity-inbox.test.ts, src/__tests__/product-prefs.test.ts); the files this slice changed compile clean"
+  },
+  "notVerified": [
+    "no device receipt: nothing here has run on a real iPhone over the relay, which is what item 27 asks for to close",
+    "text only: TerminalCheckpoint carries rows and a cursor, not cell styles, so a seeded screen has the right text without colours; the engine's snapshot already exposes per-cell styles, so styled runs are the next fidelity step",
+    "the React mount wiring (VirtualTerminalView props/effects) has no component test; the coordinator, document and api calls are unit-tested"
+  ]
+}

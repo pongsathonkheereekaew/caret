@@ -1,0 +1,27 @@
+diff --git a/src/vs/sessions/contrib/tunnelHost/electron-browser/tunnelHost.contribution.ts b/src/vs/sessions/contrib/tunnelHost/electron-browser/tunnelHost.contribution.ts
+index ca00486b6c5..fec96d11399 100644
+--- a/src/vs/sessions/contrib/tunnelHost/electron-browser/tunnelHost.contribution.ts
++++ b/src/vs/sessions/contrib/tunnelHost/electron-browser/tunnelHost.contribution.ts
+@@ -12,8 +12,6 @@ import { ICommandService } from '../../../../platform/commands/common/commands.j
+ import { ContextKeyExpr } from '../../../../platform/contextkey/common/contextkey.js';
+ import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
+ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../workbench/common/contributions.js';
+-import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../../workbench/common/contextkeys.js';
+-import { ChatContextKeys } from '../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
+ import { IRemoteTunnelService } from '../../../../platform/remoteTunnel/common/remoteTunnel.js';
+ import { ToggleRemoteConnectionsActionViewItem } from '../../../../workbench/contrib/chat/electron-browser/toggleRemoteConnectionsActionViewItem.js';
+ import { executeToggleRemoteConnections, TUNNEL_HOST_SHARING_KEY } from '../../../../workbench/contrib/chat/electron-browser/tunnelHost.contribution.js';
+@@ -40,7 +38,12 @@ export class SessionsTunnelHostTitlebarContribution extends Disposable implement
+ 			},
+ 			group: 'navigation',
+ 			order: 90,
+-			when: ContextKeyExpr.and(ChatContextKeys.enabled, IsSessionsWindowContext, IsAuxiliaryWindowContext.toNegated())
++			// Caret: a remote tunnel is a GitHub-authenticated capability and this fork ships no
++			// GitHub sign-in, so the control could only open a flow it cannot finish. The Agents
++			// window is fed by the local host, whose descriptor is the credential it uses, so the
++			// title bar has nothing to show here. A false `when` keeps the action (and the view
++			// item below) unreachable instead of leaving a control the product cannot honour.
++			when: ContextKeyExpr.false()
+ 		}));
+ 
+ 		this._register(registerAction2(class ToggleRemoteConnectionsFromAgentsAction extends Action2 {

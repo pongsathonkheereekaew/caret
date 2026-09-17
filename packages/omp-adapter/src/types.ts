@@ -13,8 +13,50 @@
 /** OMP RPC transport version selected by the adapter after negotiation. */
 export const OMP_RPC_PROTOCOL_VERSION = 2 as const;
 
-/** OMP source version used by the G0 contract and smoke fixture. */
+/**
+ * The OMP release the adapter contract was last written and run against.
+ *
+ * It is a floor, not a pin. Caret follows OMP: every later release is accepted (see
+ * {@link isSupportedOmpVersion}), and what a runtime can actually do is read from its own
+ * `ready` frame instead of guessed from its version string. The Caret bridges are
+ * capability-gated there - `caretUiVersion`, `caretTerminalVersion`, `caretModelRolesVersion`,
+ * the editor and native bridges - so a runtime without them, such as a stock OMP, degrades
+ * honestly instead of failing. The contract suites (`scripts/omp-smoke.ts`,
+ * `scripts/omp-ui-smoke.ts`, `scripts/omp-g1-smoke.ts`) are the acceptance test for any release
+ * newer than this one, and a Caret build packages a runtime it contract-tested when it was
+ * built.
+ */
 export const OMP_BASELINE_VERSION = "18.1.18" as const;
+
+/**
+ * Whether a runtime that reports `version` is one Caret may drive: the baseline, or anything
+ * newer - including a newer minor and a newer major.
+ *
+ * The baseline is the release the contract was written against, so anything older is refused by
+ * name: it was never tested. Anything newer is accepted because a version string cannot tell
+ * Caret what a runtime does, while the `ready` frame can, and that is what the adapter asks:
+ * the protocol versions the runtime speaks and the Caret bridges it carries. A user who updates
+ * OMP past the number Caret was tested at should get a working window whose features are the
+ * ones their runtime advertises, not a composer that fails before the first prompt; a release
+ * that really did change the envelope is caught by the contract suites and by the adapter's
+ * request-level checks, not by refusing its number. Malformed output is refused as well: the
+ * version string is the only thing Caret knows about the binary before it spawns it.
+ */
+export function isSupportedOmpVersion(version: string): boolean {
+	const match = /^omp\/(\d+)\.(\d+)\.(\d+)$/.exec(version.trim());
+	if (!match) {
+		return false;
+	}
+	const [major, minor, patch] = [Number(match[1]), Number(match[2]), Number(match[3])];
+	const [baseMajor, baseMinor, basePatch] = OMP_BASELINE_VERSION.split(".").map(Number) as [number, number, number];
+	if (major !== baseMajor) {
+		return major > baseMajor;
+	}
+	if (minor !== baseMinor) {
+		return minor > baseMinor;
+	}
+	return patch >= basePatch;
+}
 
 /** Maximum UTF-8 bytes in one physical JSONL frame, including its newline. */
 export const MAX_RPC_FRAME_BYTES = 1024 * 1024;

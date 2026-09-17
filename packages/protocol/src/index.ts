@@ -50,6 +50,30 @@ export interface SessionEvent {
   frame: Json;
 }
 
+/**
+ * One checkpoint of a virtual terminal, as the host keeps it.
+ *
+ * OMP owns the PTY; the host keeps a headless screen per terminal so a client that
+ * attaches (or reattaches) can restore the screen instead of replaying a bounded chunk
+ * history. `lastSequence` is the highest `caret_terminal_output` sequence folded into
+ * this screen, and `historyIncomplete` says the host itself dropped a gap and cannot
+ * vouch for the whole grid.
+ */
+export interface TerminalCheckpoint {
+  terminalId: string;
+  title?: string;
+  cols: number;
+  rows: number;
+  cursorRow: number;
+  cursorCol: number;
+  /** Visible rows, right-trimmed; trailing blank rows are dropped. */
+  lines: string[];
+  lastSequence: number;
+  closed: boolean;
+  closeReason?: string;
+  historyIncomplete: boolean;
+}
+
 export interface CommandRequest {
   commandId: string;
   incarnation: string;

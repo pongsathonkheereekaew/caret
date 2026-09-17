@@ -1,4 +1,4 @@
-import type { Json } from "../../../../packages/protocol/src/index.ts";
+import type { Json, TerminalCheckpoint } from "../../../../packages/protocol/src/index.ts";
 import { isRecord, nonEmptyString } from "./types.ts";
 
 /** Version negotiated by OMP's opt-in virtual TUI surface. */
@@ -51,9 +51,30 @@ export interface VirtualTerminalSnapshot {
  * an older prefix.
  */
 export type VirtualTerminalRendererMessage =
-  | { readonly type: "replay_start"; readonly cols: number; readonly rows: number; readonly historyTruncated: boolean; readonly recovery?: boolean }
+  | { readonly type: "replay_start"; readonly cols: number; readonly rows: number; readonly historyTruncated: boolean; readonly recovery?: boolean; readonly checkpoint?: boolean }
   | { readonly type: "output"; readonly sequence: number; readonly data: string }
   | { readonly type: "replay_end" };
+
+/**
+ * Terminal bytes that paint a host checkpoint onto an xterm.js screen.
+ *
+ * The host's checkpoint is a grid (rows, cursor), not the byte stream that produced
+ * it, so the screen is rebuilt directly: clear, place each row, then put the cursor
+ * where the host had it. Text only - colours and other cell styles are not carried by
+ * the checkpoint yet, which the receipt records.
+ */
+export function terminalCheckpointSeed(checkpoint: TerminalCheckpoint): string {
+  const rows = Math.max(1, checkpoint.rows);
+  const cols = Math.max(1, checkpoint.cols);
+  const parts: string[] = ["\u001b[?25l\u001b[2J\u001b[H"];
+  checkpoint.lines.slice(0, rows).forEach((line, index) => {
+    parts.push(`\u001b[${index + 1};1H${line}\u001b[K`);
+  });
+  const cursorRow = Math.min(Math.max(checkpoint.cursorRow, 0), rows - 1) + 1;
+  const cursorCol = Math.min(Math.max(checkpoint.cursorCol, 0), cols - 1) + 1;
+  parts.push(`\u001b[${cursorRow};${cursorCol}H\u001b[?25h`);
+  return parts.join("");
+}
 
 export interface VirtualTerminalRendererPlan {
   readonly readyGeneration: number;
@@ -102,12 +123,32 @@ export class VirtualTerminalRendererCoordinator {
     this.#recoveryRequested = false;
   }
 
-  ready(identity: VirtualTerminalIdentity, terminal: VirtualTerminalSnapshot): VirtualTerminalRendererPlan | null {
+  ready(identity: VirtualTerminalIdentity, terminal: VirtualTerminalSnapshot, checkpoint?: TerminalCheckpoint): VirtualTerminalRendererPlan | null {
     if (identityKey(identity) !== this.#identity || terminal.terminalId !== identity.terminalId) return null;
     this.#rendererReady = true;
     this.#readyGeneration += 1;
     this.#sentSequence = -1;
     this.#recoveryRequested = terminal.historyTruncated && !terminal.closed;
+
+    // A checkpoint beats a redraw: the host already holds the screen, so the renderer
+    // paints it instead of clearing to an empty grid and asking OMP to draw again.
+    const seed = terminal.historyTruncated && !terminal.closed && checkpoint
+      && checkpoint.terminalId === terminal.terminalId && checkpoint.lastSequence >= 0
+      ? checkpoint
+      : undefined;
+    if (seed) {
+      this.#recoveryRequested = false;
+      this.#sentSequence = seed.lastSequence;
+      return {
+        readyGeneration: this.#readyGeneration,
+        messages: [
+          { type: "replay_start", cols: seed.cols, rows: seed.rows, historyTruncated: true, checkpoint: true },
+          { type: "output", sequence: seed.lastSequence, data: terminalCheckpointSeed(seed) },
+          { type: "replay_end" },
+        ],
+        requestRecovery: false,
+      };
+    }
 
     const messages: VirtualTerminalRendererMessage[] = [{ type: "replay_start", cols: terminal.cols, rows: terminal.rows, historyTruncated: terminal.historyTruncated, ...(terminal.historyTruncated && !terminal.closed ? { recovery: true } : {}) }];
     if (terminal.historyTruncated) {

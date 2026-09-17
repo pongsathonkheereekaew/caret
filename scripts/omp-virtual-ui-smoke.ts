@@ -670,6 +670,17 @@ async function probeHostBootstrap(cwd: string, extension: string, checks: string
 		check(events.some(frame => frame.type === "caret_terminal_output"), "Host bootstrap did not retain terminal output events");
 		checks.push(startResolvedWhileCustomWaited ? "host-bootstrap-concurrent-get-state-and-host-tools" : "host-bootstrap-waited-for-custom-ui");
 		checks.push("host-command-delivers-virtual-terminal-input");
+
+		// The host keeps a headless screen (libghostty-vt) beside the frame stream, so a
+		// client that attaches later can render it instead of replaying chunk history.
+		const openCols = typeof open.cols === "number" ? open.cols : -1;
+		const openRows = typeof open.rows === "number" ? open.rows : -1;
+		const checkpoint = host.terminalSnapshots(created.id).find(item => item.terminalId === terminalId);
+		check(checkpoint, "Host kept no terminal checkpoint for the negotiated virtual terminal");
+		check(checkpoint.cols === openCols && checkpoint.rows === openRows, `Host checkpoint is ${checkpoint.cols}x${checkpoint.rows}, open frame was ${openCols}x${openRows}`);
+		check(checkpoint.lines.some(line => line.includes("caret-virtual-startup")), `Host checkpoint does not show the startup output: ${JSON.stringify(checkpoint.lines)}`);
+		check(checkpoint.lastSequence >= 0, "Host checkpoint recorded no output sequence");
+		checks.push("host-terminal-checkpoint-matches-omp-frames");
 		await host.stopSession(created.id);
 	} finally {
 		await host?.close().catch(() => {});

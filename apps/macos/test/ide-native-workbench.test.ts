@@ -682,22 +682,43 @@ describe("ide-native workbench surface", () => {
 		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
 	});
 
+	it("keeps the Agents window free of the remote-connections toggle and the patch in agreement with the manifest", async () => {
+		// The same title-bar row also carried "Allow Remote Connections", whose command starts a
+		// GitHub-authenticated dev tunnel - a flow this fork cannot finish. It sat next to the
+		// Apps panel control as a second unexplained icon at the top right.
+		const fileName = "0031-caret-agents-no-remote-connections.patch";
+		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
+		for (const needle of [
+			// The sessions-window gate the control used to be reachable through, and the false
+			// expression that takes its place - the declaration and its view item stay for the
+			// type checker and the base's wiring.
+			`-			when: ContextKeyExpr.and(ChatContextKeys.enabled, IsSessionsWindowContext, IsAuxiliaryWindowContext.toNegated())`,
+			`+			when: ContextKeyExpr.false()`,
+			`Caret: a remote tunnel is a GitHub-authenticated capability`,
+		]) {
+			expect(patchText).toContain(needle);
+		}
+		// The tunnel toggle is a Sessions-window contribution; the IDE's own chat-input copy is
+		// not touched by this patch.
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(1);
+		expect(patchText).toContain("src/vs/sessions/contrib/tunnelHost/");
+		expect(patchText).not.toContain("src/vs/workbench/");
+
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === fileName);
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
 	it("keeps the Agent Home utility patch in agreement with the manifest", async () => {
 		// The empty Agent Home must show the reference's right utility area, not a bare
 		// editor group, and it must stay scoped to the Sessions window.
 		const fileName = "0021-caret-agent-home-utility.patch";
 		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
 		for (const needle of [
-			// The app entries either run a real existing command or host a real terminal.
-			`commandId: NEW_CHANGES_TAB_COMMAND_ID`,
-			`commandId: QUICK_OPEN_COMMAND_ID`,
-			// The strip entry and `+` share one path, and the entries this pane can host
-			// (Browser, Terminal) never open a second surface in the editor group.
 			`hosted: 'browser'`,
 			`hosted: 'terminal'`,
 			// The panel names its own entries the way the reference window does, and the
 			// pinned summary is a real control over the real active session, not decoration.
-			`localize('caret.agentHome.utility.review', "Review")`,
 			`caret.agentHome.utility.toggleSummary`,
 			`this.sessionsService.activeSession.read(reader)`,
 			// Terminal is the entry the pane hosts itself - one tab per instance - by
@@ -978,6 +999,53 @@ describe("ide-native workbench surface", () => {
 		for (const proposal of proposals) expect(allowed.has(proposal)).toBe(true);
 	});
 
+	it("offers Delete only where the Caret host can carry it out", async () => {
+		// The sessions list's own `Delete...` item is gated on the session's
+		// supportsDelete capability, so the bridge has to advertise it and have a
+		// route to the host; the delete itself is the extension's, because it owns
+		// the host connection and removes what the host wrote for the session.
+		const root = join(import.meta.dir, "..", "..", "..");
+		const bridge = readFileSync(join(root, "patches", "desktop", "0010-caret-sessions-bridge.patch"), "utf8");
+		for (const needle of [
+			"supportsDelete: true,",
+			`const CARET_SESSION_DELETE_COMMAND = 'caret.session.delete';`,
+			"await this.commandService.executeCommand(CARET_SESSION_DELETE_COMMAND, [...sessionIds]);",
+		]) {
+			expect(bridge).toContain(needle);
+		}
+
+		const extension = readFileSync(join(import.meta.dir, "..", "src", "extension.ts"), "utf8");
+		expect(extension).toContain(`vscode.commands.registerCommand("caret.session.delete"`);
+		expect(extension).toContain("await client.deleteSession(id);");
+
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as { contributes: { commands: { command: string }[] } };
+		expect(manifest.contributes.commands.some(entry => entry.command === "caret.session.delete")).toBe(true);
+	});
+	it("does not start the base Agent Host in the Agents window", async () => {
+		// The Agent Host utility process hosts the Copilot/Claude/Codex harnesses, and
+		// S1 removed that layer; its node-side graph still requires Copilot services
+		// that no longer exist (`agentHostCustomizationEnablementService depends on
+		// copilotApiService which is NOT registered`), so a process started from the
+		// window dies on boot, restarts five times and raises "The Agent Host failed to
+		// start". The window must not prewarm it at all.
+		const root = join(import.meta.dir, "..", "..", "..");
+		const patchText = readFileSync(join(root, "patches", "desktop", "0032-caret-no-base-agent-host.patch"), "utf8");
+		for (const needle of [
+			"the window does not prewarm the base Agent Host",
+			"does not start the agent host while enabled",
+			"does not forward assignment context to a host that is never started",
+		]) {
+			expect(patchText).toContain(needle);
+		}
+		// The prewarm call itself is removed by the patch (a diff carries the old line),
+		// so the source no longer starts the process anywhere.
+		expect(patchText).toMatch(/^-\t\tthis\.agentHostService\.startAgentHost\(\);$/m);
+
+		const manifest = JSON.parse(readFileSync(join(root, "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === "0032-caret-no-base-agent-host.patch");
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
 	it("keeps the Caret title when the Agents window has no folder to write into", async () => {
 		// The first Agents screen can open with no folder attached, where every
 		// workspace-scope write rejects. The window then showed the raw shell

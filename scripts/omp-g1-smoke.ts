@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { OmpRpcClient } from "../packages/omp-adapter/src/client.ts";
 import { OmpHostDispatcher } from "../packages/omp-adapter/src/host.ts";
+import { isSupportedOmpVersion, OMP_BASELINE_VERSION } from "../packages/omp-adapter/src/types.ts";
 
 function check(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
@@ -34,9 +35,9 @@ for (const candidate of requestedBinary.includes("/") ? [resolve(requestedBinary
   : (process.env.PATH ?? "").split(delimiter).map(dir => join(dir, requestedBinary))) {
   if (await exists(candidate)) { executable = candidate; break; }
 }
-check(executable, "Set CARET_OMP_BINARY to OMP 18.1.18");
+check(executable, `Set CARET_OMP_BINARY to OMP ${OMP_BASELINE_VERSION} or later`);
 const version = execFileSync(executable, ["--version"], { encoding: "utf8", timeout: 10_000 }).trim();
-check(version === "omp/18.1.18", `Unsupported OMP: ${version}`);
+check(isSupportedOmpVersion(version), `Unsupported OMP: ${version} (the contract is written from ${OMP_BASELINE_VERSION} onward)`);
 const binarySha256 = createHash("sha256").update(await readFile(executable)).digest("hex");
 const cwd = await mkdtemp(join(tmpdir(), "caret-g1-omp-"));
 const marker = join(cwd, "host-marker.txt");

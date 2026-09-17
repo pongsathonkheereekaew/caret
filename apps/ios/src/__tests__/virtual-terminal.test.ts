@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type { TerminalCheckpoint } from "../../../../packages/protocol/src/index.ts";
 import {
   CARET_TERMINAL_MAX_HISTORY_BYTES,
   applyVirtualTerminalFrame,
+  terminalCheckpointSeed,
   terminalNegotiateCommand,
   terminalInputCommand,
   terminalResizeCommand,
@@ -115,7 +117,113 @@ describe("terminal renderer recovery coordinator", () => {
   });
 });
 
+const checkpoint: TerminalCheckpoint = {
+  terminalId: "tty-1",
+  cols: 20,
+  rows: 4,
+  cursorRow: 2,
+  cursorCol: 5,
+  lines: ["$ npm test", "caret-virtual-output"],
+  lastSequence: 41,
+  closed: false,
+  historyIncomplete: false,
+};
+
+describe("host terminal checkpoint", () => {
+  test("paints the host grid and puts the cursor back", () => {
+    expect(terminalCheckpointSeed(checkpoint)).toBe(
+      "\u001b[?25l\u001b[2J\u001b[H"
+      + "\u001b[1;1H$ npm test\u001b[K"
+      + "\u001b[2;1Hcaret-virtual-output\u001b[K"
+      + "\u001b[3;6H\u001b[?25h",
+    );
+  });
+
+  test("clamps a cursor that sits outside the checkpoint grid", () => {
+    expect(terminalCheckpointSeed({ ...checkpoint, cursorRow: 99, cursorCol: 99 }).endsWith("\u001b[4;20H\u001b[?25h")).toBe(true);
+  });
+
+  test("seeds the renderer from the checkpoint instead of asking OMP to redraw", () => {
+    const coordinator = new VirtualTerminalRendererCoordinator(identity);
+    const truncated = snapshot({ outputs: [{ sequence: 41, data: "tail" }], lastOutputSequence: 41, historyTruncated: true });
+    const plan = coordinator.ready(identity, truncated, checkpoint);
+    expect(plan?.requestRecovery).toBe(false);
+    expect(plan?.messages[0]).toMatchObject({ type: "replay_start", cols: 20, rows: 4, historyTruncated: true, checkpoint: true });
+    expect(plan?.messages[1]).toEqual({ type: "output", sequence: 41, data: terminalCheckpointSeed(checkpoint) });
+    expect(plan?.messages.at(-1)).toEqual({ type: "replay_end" });
+    expect(coordinator.sentSequence).toBe(41);
+    // Live output continues from the sequence the checkpoint carried: no gap, no redraw.
+    const live = coordinator.update(identity, snapshot({ outputs: [{ sequence: 42, data: "live" }], lastOutputSequence: 42, historyTruncated: true }));
+    expect(live).toMatchObject({ requestRecovery: false, messages: [{ type: "output", sequence: 42, data: "live" }] });
+  });
+
+  test("falls back to the OMP redraw when the checkpoint is missing, stale or empty", () => {
+    const truncated = snapshot({ outputs: [{ sequence: 41, data: "tail" }], lastOutputSequence: 41, historyTruncated: true });
+    expect(new VirtualTerminalRendererCoordinator(identity).ready(identity, truncated)?.requestRecovery).toBe(true);
+    expect(new VirtualTerminalRendererCoordinator(identity).ready(identity, truncated, { ...checkpoint, terminalId: "other" })?.requestRecovery).toBe(true);
+    expect(new VirtualTerminalRendererCoordinator(identity).ready(identity, truncated, { ...checkpoint, lastSequence: -1 })?.requestRecovery).toBe(true);
+    // Nothing was trimmed: an intact replay never seeds and never recovers.
+    const intact = new VirtualTerminalRendererCoordinator(identity).ready(identity, snapshot({ outputs: [{ sequence: 0, data: "old" }], lastOutputSequence: 0 }), checkpoint);
+    expect(intact?.requestRecovery).toBe(false);
+    expect(intact?.messages).toHaveLength(3);
+  });
+});
+
 describe("bundled terminal document bridge", () => {
+  /** Boots the generated document with a fake xterm and returns what it wrote. */
+  async function bootDocument(): Promise<{ writes: string[]; send: (payload: Record<string, unknown>) => void }> {
+    const html = terminalDocument({ terminalId: "tty-1", cols: 80, rows: 24, title: "Shell" });
+    const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)?.[1];
+    const writes: string[] = [];
+    const listeners: Array<(event: { data: string }) => void> = [];
+    class FakeTerminal {
+      open(): void {}
+      reset(): void { writes.push("\u0000reset"); }
+      resize(): void {}
+      focus(): void {}
+      onData(): void {}
+      write(data: string, callback?: () => void): void { writes.push(data); queueMicrotask(() => callback?.()); }
+    }
+    class FakeParser {
+      registerCsiHandler(): { dispose(): void } { return { dispose() {} }; }
+      registerDcsHandler(): { dispose(): void } { return { dispose() {} }; }
+      registerOscHandler(): { dispose(): void } { return { dispose() {} }; }
+    }
+    const previousTerminal = (globalThis as unknown as { Terminal?: unknown }).Terminal;
+    (globalThis as unknown as { Terminal: unknown }).Terminal = class extends FakeTerminal {
+      readonly parser = new FakeParser();
+    };
+    try {
+      const windowObject = { parent: { postMessage: () => undefined }, ReactNativeWebView: undefined, addEventListener: (_type: string, callback: (event: { data: string }) => void) => listeners.push(callback) };
+      new Function("window", "document", script!)(windowObject, { getElementById: () => ({}) });
+    } finally {
+      if (previousTerminal === undefined) delete (globalThis as unknown as { Terminal?: unknown }).Terminal;
+      else (globalThis as unknown as { Terminal: unknown }).Terminal = previousTerminal;
+    }
+    const send = (payload: Record<string, unknown>) => {
+      const event = { data: JSON.stringify({ source: "caret-terminal", payload }) };
+      for (const listener of listeners) listener(event);
+    };
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return { writes, send };
+  }
+
+  test("renders a checkpoint seed without printing the expired notice", async () => {
+    const seeded = await bootDocument();
+    seeded.send({ type: "replay_start", terminalId: "tty-1", cols: 20, rows: 4, historyTruncated: true, checkpoint: true });
+    seeded.send({ type: "output", terminalId: "tty-1", sequence: 41, data: "SEED-BYTES" });
+    seeded.send({ type: "replay_end", terminalId: "tty-1" });
+    await new Promise(resolve => setTimeout(resolve, 5));
+    expect(seeded.writes.filter(text => text.includes("expired") || text.includes("restoring"))).toEqual([]);
+    expect(seeded.writes).toContain("SEED-BYTES");
+
+    // Without a checkpoint the same truncated replay keeps its honest notice.
+    const redrawn = await bootDocument();
+    redrawn.send({ type: "replay_start", terminalId: "tty-1", cols: 20, rows: 4, historyTruncated: true, recovery: true });
+    await new Promise(resolve => setTimeout(resolve, 5));
+    expect(redrawn.writes.some(text => text.includes("restoring"))).toBe(true);
+  });
+
   test("contains xterm bundle and only accepts the Caret bridge envelope", () => {
     const html = terminalDocument({ terminalId: "tty-1", cols: 80, rows: 24, title: "Shell" });
     expect(html).toContain("globalThis.Terminal");

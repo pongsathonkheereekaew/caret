@@ -133,4 +133,30 @@ describe("authenticated Caret host router", () => {
     expect(notDispatched).toMatchObject({ status: 200, body: { commandId: "queued", status: "not_dispatched" } });
     expect(existsSync(join(fixture.projectPath, "hello.txt"))).toBe(true);
   });
+
+  it("serves the headless terminal checkpoint a reattaching client renders", async () => {
+    const fixture = makeFixture();
+    const project = fixture.store.createProject({ path: fixture.projectPath });
+    const session = fixture.store.createSession({ projectId: project.id });
+    // No OMP is running here, so the host's own answer is the empty list - an honest
+    // one. The checkpoint shape itself is what this route contract pins.
+    expect((await request(fixture, "GET", `/v1/sessions/${session.id}/terminals`)).body).toEqual({ terminals: [] });
+    expect((await request(fixture, "GET", `/v1/sessions/not-a-session/terminals`)).status).toBe(404);
+
+    const checkpoint = {
+      terminalId: "pty-1",
+      cols: 100,
+      rows: 30,
+      cursorRow: 2,
+      cursorCol: 7,
+      lines: ["$ npm test", "caret-virtual-pty-output"],
+      lastSequence: 12,
+      closed: false,
+      historyIncomplete: false,
+    };
+    Object.assign(fixture.host, { terminalSnapshots: () => [checkpoint] });
+    const served = await request(fixture, "GET", `/v1/sessions/${session.id}/terminals`);
+    expect(served.status).toBe(200);
+    expect(served.body).toEqual({ terminals: [checkpoint] });
+  });
 });

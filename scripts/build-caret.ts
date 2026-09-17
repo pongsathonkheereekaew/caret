@@ -1,17 +1,42 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve, join } from "node:path";
 import { personalCaretArgv } from "./lib/personal-argv.ts";
 
 const root = resolve(import.meta.dir, "..");
+/** The host's headless terminal engine (libghostty-vt). Native addon: external + shipped beside the bundle. */
+const HOST_TERMINAL_ENGINE = "@coder/libghostty-vt-node";
 const portable = process.argv.includes("--portable") || process.argv.includes("--package");
 if (portable) execFileSync(process.execPath, [join(root, "scripts/prepare-omp-runtime.ts"), "--standalone"], { cwd: root, stdio: "inherit" });
 if (process.argv.includes("--runtime")) execFileSync(process.execPath, [join(root, "scripts/prepare-omp-runtime.ts")], { cwd: root, stdio: "inherit" });
+
+
 const dist = join(root, "dist");
 await mkdir(dist, { recursive: true });
 for (const [entrypoint, output] of [["apps/host/src/cli.ts", "host/cli.js"], ["apps/host/src/runtime-lock.ts", "host/runtime-lock.ts"]]) {
-  const result = await Bun.build({ entrypoints: [join(root, entrypoint!)], outdir: join(dist, "host"), target: "node", format: "esm", naming: output!.split("/").at(-1)!, sourcemap: "external" });
+  // `@coder/libghostty-vt-node` is the host's headless terminal engine (libghostty-vt).
+  // It carries a native addon, which cannot live inside a bundle, so it stays external
+  // and the package is copied beside the bundle below.
+  const result = await Bun.build({ entrypoints: [join(root, entrypoint!)], outdir: join(dist, "host"), target: "node", format: "esm", naming: output!.split("/").at(-1)!, sourcemap: "external", external: [HOST_TERMINAL_ENGINE] });
   if (!result.success) throw new AggregateError(result.logs, `Build failed: ${entrypoint}`);
+}
+// Ship the engine with the host: the bundle imports it at runtime, and `node-gyp-build`
+// resolves the addon from the package's own prebuilds directory.
+function installedPackage(name: string, from = root): string {
+  // Resolve the way the runtime would: bun links a workspace dependency into the
+  // workspace's node_modules and keeps transitive ones in its store layout.
+  try {
+    return dirname(Bun.resolveSync(`${name}/package.json`, from));
+  } catch {
+    throw new Error(`Host runtime dependency is missing: ${name} (run bun install)`);
+  }
+}
+const hostEngine = installedPackage(HOST_TERMINAL_ENGINE, join(root, "apps", "host"));
+const prebuild = join(hostEngine, "prebuilds", `${process.platform}-${process.arch}`);
+if (!existsSync(prebuild)) throw new Error(`The host terminal engine has no prebuild for ${process.platform}-${process.arch}: ${prebuild}`);
+for (const [name, from] of [[HOST_TERMINAL_ENGINE, join(root, "apps", "host")], ["node-gyp-build", hostEngine]] as const) {
+  await cp(installedPackage(name, from), join(dist, "host", "node_modules", name), { recursive: true });
 }
 const extensionOutput = join(dist, "mac-extension");
 await mkdir(extensionOutput, { recursive: true });

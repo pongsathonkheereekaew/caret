@@ -1,12 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, realpathSync } from "node:fs";
+import { mkdirSync, realpathSync, rmSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OmpRpcClient, OmpCommandError, OmpRequestTimeoutError } from "../../../packages/omp-adapter/src/client.ts";
 import { ExtensionUiBroker } from "../../../packages/omp-adapter/src/ui.ts";
-import { RPC_COMMAND_TYPES, CARET_UI_COMMAND_TYPES, type CaretUiCommandType, type RpcCommandType, type RpcCommandPayload, type OmpFrame } from "../../../packages/omp-adapter/src/types.ts";
-import type { Command, CommandRequest, Json, Session, SessionEvent, UiResponseRequest } from "../../../packages/protocol/src/index.ts";
+import { RPC_COMMAND_TYPES, CARET_UI_COMMAND_TYPES, isSupportedOmpVersion, OMP_BASELINE_VERSION, type CaretUiCommandType, type RpcCommandType, type RpcCommandPayload, type OmpFrame } from "../../../packages/omp-adapter/src/types.ts";
+import type { Command, CommandRequest, Json, Session, SessionEvent, TerminalCheckpoint, UiResponseRequest } from "../../../packages/protocol/src/index.ts";
+import { TerminalStateRegistry } from "./terminal-state.ts";
 import { DurableStore } from "./store.ts";
 import { collectUsedWorkspacePorts, createWorktree, loadWorkspaceBootstrap, saveSnapshotManifest, workspacePath } from "./workspaces.ts";
 import { EditorConnections } from "./editors.ts";
@@ -47,6 +48,12 @@ interface Runtime {
   closing: boolean;
   faulted: boolean;
   timer?: ReturnType<typeof setInterval>;
+  /**
+   * Headless screen per virtual terminal, when the virtual UI is on. OMP owns the PTY;
+   * this keeps the state a reattaching client would otherwise have to replay
+   * (docs/maintenance/evidence/terminal-vt-spike-2026-09-16/).
+   */
+  terminals?: TerminalStateRegistry;
 }
 const terminal = new Set(["completed", "failed", "outcome_unknown", "not_dispatched"]);
 const turnCommands = new Set(["prompt", "abort_and_prompt"]);
@@ -114,8 +121,21 @@ export class CaretHost {
     const before = this.#session(id);
     if (before.status === "recovery_required") throw new HostError("recovery_required", "Previous work has an unknown outcome. Reconcile before resuming; it will never be replayed automatically.");
     const executable = this.#options.ompExecutable ?? "omp";
-    const version = execFileSync(executable, ["--version"], { encoding: "utf8", timeout: 10_000 }).trim();
-    if (version !== "omp/18.1.18") throw new HostError("unsupported_omp", `Expected OMP 18.1.18; received ${version}`);
+    // Probe with the same environment the runtime will be spawned with: a launcher that
+    // selects a binary through `ompEnv` has to be described by the version it reports
+    // under that environment, not by whatever the host process's own PATH resolves to.
+    const version = execFileSync(executable, ["--version"], {
+      encoding: "utf8",
+      timeout: 10_000,
+      env: { ...process.env, ...(this.#options.ompEnv ?? {}) },
+    }).trim();
+    // The baseline is a floor, not a pin: an older runtime than the one the adapter
+    // contract was written against is refused by name, and anything newer runs - what it
+    // can do is read from its ready frame (the Caret bridges are capability-gated there),
+    // not guessed from its version (see isSupportedOmpVersion).
+    if (!isSupportedOmpVersion(version)) {
+      throw new HostError("unsupported_omp", `Expected OMP ${OMP_BASELINE_VERSION} or later; received ${version}`);
+    }
     const directory = join(this.#options.stateDir, "sessions", before.id);
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     this.#assertOwnedSessionPath(before, before.sessionFile);
@@ -133,6 +153,7 @@ export class CaretHost {
         },
         onEvent: event => this.#record(runtime, { type: "caret_ui", event: json(event) }),
       }),
+      ...(this.#options.virtualUi ? { terminals: new TerminalStateRegistry() } : {}),
     };
     this.#runtimes.set(id, runtime);
     try {
@@ -242,6 +263,7 @@ export class CaretHost {
           ...(awaitsTurn ? {} : { result: { meaning: "OMP command acknowledged", data: json(ack.data ?? null) } }) });
         if (!awaitsTurn && runtime.activeCommand === request.commandId) runtime.activeCommand = undefined;
       }
+      if (request.command === "caret_terminal_resize") this.#resizeTerminal(runtime, request.payload);
       if (["new_session", "switch_session", "branch"].includes(request.command)) {
         const state = (await runtime.client!.request("get_state")).data;
         if (object(state) && typeof state.sessionFile === "string") {
@@ -315,12 +337,46 @@ export class CaretHost {
     runtime.ui.dispose();
     this.#disposePolicy(runtime);
     if (runtime.timer) clearInterval(runtime.timer);
+    runtime.terminals?.dispose();
     await runtime.client?.close();
     if (this.#runtimes.get(id) === runtime) this.#runtimes.delete(id);
     this.#unknownCommands(id, "OMP session was stopped before completion");
     runtime.session = this.store.updateSession(id, { status: "stopped" });
     this.#record(runtime, { type: "caret_session", session: json(runtime.session) });
     return runtime.session;
+  }
+
+  /**
+   * The headless screen per virtual terminal for one session.
+   *
+   * Read-only and cheap: a client that has just attached (or reattached after the
+   * mobile history was trimmed) can render this instead of asking OMP for a redraw.
+   * An empty list is an honest answer - the session is not running, the virtual UI is
+   * off, or this host has no terminal engine for its platform.
+   */
+  terminalSnapshots(id: string): readonly TerminalCheckpoint[] {
+    this.#assertOpen();
+    this.#session(id);
+    return this.#runtimes.get(id)?.terminals?.snapshots() ?? [];
+  }
+
+  /**
+   * Delete a session for good: stop whatever is running, drop the record (commands
+   * and events follow through the foreign keys) and remove what the host wrote for
+   * the session on disk - its transcript directory and its artifacts.
+   *
+   * A worktree the session created is deliberately left alone: it can hold the
+   * user's uncommitted work, and removing it is a larger promise than deleting a
+   * chat. The window that asks for this confirms first ("This action cannot be
+   * undone."), so there is no second confirmation here.
+   */
+  async deleteSession(id: string): Promise<void> {
+    this.#assertOpen();
+    this.#session(id);
+    await this.stopSession(id);
+    this.store.deleteSession(id);
+    rmSync(join(this.#options.stateDir, "sessions", id), { recursive: true, force: true });
+    rmSync(join(this.#options.stateDir, "artifacts", id), { recursive: true, force: true });
   }
 
   close(): Promise<void> {
@@ -334,10 +390,28 @@ export class CaretHost {
     })();
   }
 
+  /**
+   * Apply a client's resize to the headless screen.
+   *
+   * It runs after OMP acknowledged the command, so the host's grid follows the PTY it
+   * is actually describing instead of a request that may not have landed.
+   */
+  #resizeTerminal(runtime: Runtime, payload: Record<string, Json> | undefined): void {
+    const value = payload ?? {};
+    const terminalId = typeof value.terminalId === "string" ? value.terminalId : undefined;
+    const cols = typeof value.cols === "number" ? value.cols : undefined;
+    const rows = typeof value.rows === "number" ? value.rows : undefined;
+    if (!terminalId || !cols || !rows) return;
+    runtime.terminals?.resize(terminalId, cols, rows);
+  }
+
   #onFrame(runtime: Runtime, frame: OmpFrame): void {
     if (runtime.faulted) return;
     try {
       this.#record(runtime, frame);
+      // Every terminal frame passes through here, so this is where the headless screen
+      // stays in step with what the clients are being streamed.
+      runtime.terminals?.apply(frame);
       runtime.ui.ingest(frame);
       if (typeof frame.type === "string" && ["host_tool_call", "host_tool_cancel", "host_uri_request", "host_uri_cancel"].includes(frame.type)) {
         if (runtime.dispatcher) void runtime.dispatcher.handle(frame);
@@ -389,6 +463,7 @@ export class CaretHost {
     runtime.ui.dispose();
     this.#disposePolicy(runtime);
     if (runtime.timer) clearInterval(runtime.timer);
+    runtime.terminals?.dispose();
     this.#runtimes.delete(runtime.session.id);
     this.#unknownCommands(runtime.session.id, reason);
     runtime.session = this.store.updateSession(runtime.session.id, { status: "recovery_required" });

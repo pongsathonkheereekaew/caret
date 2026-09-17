@@ -83,6 +83,11 @@
         "category": "Caret"
       },
       {
+        "command": "caret.session.delete",
+        "title": "Delete Chat",
+        "category": "Caret"
+      },
+      {
         "command": "caret.skipToTask",
         "title": "Skip to Task",
         "category": "Caret"

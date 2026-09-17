@@ -1,0 +1,210 @@
+diff --git a/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts b/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts
+index 2a89b7d120a..455b8df6ea0 100644
+--- a/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts
++++ b/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts
+@@ -10,19 +10,12 @@
+ // (`LocalAgentHostServiceClient`).
+ 
+ import { Disposable } from '../../../../base/common/lifecycle.js';
+-import { autorun } from '../../../../base/common/observable.js';
+ import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
+ import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+ import { IAgentHostService } from '../../../../platform/agentHost/common/agentService.js';
+ import { LocalAgentHostServiceClient } from '../../../../platform/agentHost/electron-browser/localAgentHostService.js';
+-import { IAgentHostEnablementService } from '../../../../platform/agentHost/common/agentHostEnablementService.js';
+ import { agentsWindowAgentHostClientInfo, editorWindowAgentHostClientInfo } from '../../../../platform/agentHost/common/agentHostClientInfo.js';
+-import { CopilotCliVSCodeAssignmentContextKey } from '../../../../platform/agentHost/common/copilotCliConfig.js';
+-import { ActionType } from '../../../../platform/agentHost/common/state/sessionActions.js';
+-import { ROOT_STATE_URI } from '../../../../platform/agentHost/common/state/sessionState.js';
+-import { ILogService } from '../../../../platform/log/common/log.js';
+ import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
+-import { IWorkbenchAssignmentService } from '../../assignment/common/assignmentService.js';
+ import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
+ import { EditorRemoteAgentHostServiceClient } from '../browser/editorRemoteAgentHostServiceClient.js';
+ 
+@@ -50,63 +43,27 @@ class WorkbenchAgentHostService {
+ 	}
+ }
+ 
+-class AgentHostPrewarmer extends Disposable {
+-
+-	private _assignmentContextRequest = 0;
+-
+-	constructor(
+-		@IAgentHostService private readonly agentHostService: IAgentHostService,
+-		@IWorkbenchAssignmentService private readonly assignmentService: IWorkbenchAssignmentService,
+-		@ILogService private readonly logService: ILogService,
+-	) {
+-		super();
+-		this._register(this.agentHostService.onAgentHostStart(() => this.updateAssignmentContext()));
+-		this._register(this.assignmentService.onDidRefetchAssignments(() => this.updateAssignmentContext()));
+-		this.agentHostService.startAgentHost();
+-		this.updateAssignmentContext();
+-	}
+-
+-	private updateAssignmentContext(): void {
+-		void this.doUpdateAssignmentContext().catch(error => this.logService.error('Failed to forward Agent Host assignment context', error));
+-	}
+-
+-	private async doUpdateAssignmentContext(): Promise<void> {
+-		const request = ++this._assignmentContextRequest;
+-		const context = (await this.assignmentService.getCurrentExperiments())?.join(';') ?? '';
+-		if (request !== this._assignmentContextRequest) {
+-			return;
+-		}
+-		this.agentHostService.dispatch(ROOT_STATE_URI, {
+-			type: ActionType.RootConfigChanged,
+-			config: { [CopilotCliVSCodeAssignmentContextKey]: context },
+-		});
+-	}
+-}
+-
++/**
++ * Caret: the window does not prewarm the base Agent Host.
++ *
++ * Upstream this contribution starts the Agent Host utility process as soon as Agent Host
++ * features are enabled, and keeps its Copilot-CLI assignment context in sync. That process
++ * hosts the Copilot/Claude/Codex harnesses - the layer this fork removed - and its
++ * node-side graph still requires Copilot services that no longer exist
++ * (`agentHostCustomizationEnablementService depends on copilotApiService which is NOT
++ * registered`, with `AgentBranchNameGenerator` and the changeset handlers among the
++ * remaining required injections). A process started from here therefore dies on boot,
++ * `AgentHostProcessManager` restarts it five times and the window raises
++ * "The Agent Host failed to start. Restart the application to try again."
++ *
++ * Nothing in Caret asks that host for work: OMP is the only execution owner, and the
++ * Agents window lists Caret's sessions through the extension provider. The contribution
++ * stays registered so the decision sits where the upstream behaviour was - and its test
++ * pins it - but it starts nothing.
++ */
+ export class AgentHostPrewarmContribution extends Disposable implements IWorkbenchContribution {
+ 
+ 	static readonly ID = 'workbench.contrib.agentHostPrewarm';
+-	private prewarmer: AgentHostPrewarmer | undefined;
+-
+-	constructor(
+-		@IAgentHostEnablementService agentHostEnablementService: IAgentHostEnablementService,
+-		@IInstantiationService private readonly instantiationService: IInstantiationService,
+-		@IWorkbenchEnvironmentService environmentService: IWorkbenchEnvironmentService,
+-	) {
+-		super();
+-		if (environmentService.remoteAuthority) {
+-			return;
+-		}
+-		this._register(autorun(reader => {
+-			if (agentHostEnablementService.enabled.read(reader)) {
+-				this.start();
+-			}
+-		}));
+-	}
+-
+-	private start(): void {
+-		this.prewarmer ??= this._register(this.instantiationService.createInstance(AgentHostPrewarmer));
+-	}
+ }
+ 
+ registerSingleton(
+diff --git a/src/vs/workbench/services/agentHost/test/electron-browser/agentHostService.test.ts b/src/vs/workbench/services/agentHost/test/electron-browser/agentHostService.test.ts
+index be8a6ea7b9f..95d121f4e64 100644
+--- a/src/vs/workbench/services/agentHost/test/electron-browser/agentHostService.test.ts
++++ b/src/vs/workbench/services/agentHost/test/electron-browser/agentHostService.test.ts
+@@ -11,9 +11,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/tes
+ import { NullAgentHostService } from '../../../../../platform/agentHost/browser/nullAgentHostService.js';
+ import { IAgentHostEnablementService } from '../../../../../platform/agentHost/common/agentHostEnablementService.js';
+ import { IAgentHostService } from '../../../../../platform/agentHost/common/agentService.js';
+-import { CopilotCliVSCodeAssignmentContextKey } from '../../../../../platform/agentHost/common/copilotCliConfig.js';
+-import { ActionType } from '../../../../../platform/agentHost/common/state/sessionActions.js';
+-import { ROOT_STATE_URI } from '../../../../../platform/agentHost/common/state/sessionState.js';
+ import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
+ import { ILogService, NullLogService } from '../../../../../platform/log/common/log.js';
+ import { AgentHostPrewarmContribution } from '../../electron-browser/agentHostService.js';
+@@ -112,78 +109,31 @@ suite('AgentHostPrewarmContribution', () => {
+ 		return { contribution, agentHostEnablementService, agentHostService, assignmentService };
+ 	}
+ 
+-	test('starts immediately when enabled', () => {
+-		const { agentHostService } = createContribution(true);
+-		assert.strictEqual(agentHostService.startCount, 1);
+-	});
+-
+-	test('does not start while disabled', () => {
+-		const { agentHostService } = createContribution(false);
+-		assert.strictEqual(agentHostService.startCount, 0);
+-	});
++	// Caret: the Agent Host hosts the Copilot/Claude/Codex harnesses and this fork
++	// removed that layer, so the window never starts it - its node-side graph still
++	// requires Copilot services that no longer exist, and a process started here dies
++	// on boot (the manager restarts it five times and the window shows "The Agent Host
++	// failed to start"). The contribution is kept registered so the decision lives next
++	// to the upstream wiring, and these tests pin the Caret contract instead.
+ 
+-	test('does not start in a remote workspace', () => {
+-		const { agentHostService } = createContribution(true, 'ssh-remote+test');
++	test('does not start the agent host while enabled', () => {
++		const { agentHostService } = createContribution(true);
+ 		assert.strictEqual(agentHostService.startCount, 0);
+ 	});
+ 
+-	test('starts when enablement changes to true', () => {
++	test('does not start the agent host when enablement changes', () => {
+ 		const { agentHostEnablementService, agentHostService } = createContribution(false);
+ 		agentHostEnablementService.setEnabled(true);
+-		assert.strictEqual(agentHostService.startCount, 1);
+-	});
+-
+-	test('does not start after disposal', () => {
+-		const { contribution, agentHostEnablementService, agentHostService } = createContribution(false);
+-		contribution.dispose();
+-		agentHostEnablementService.setEnabled(true);
+ 		assert.strictEqual(agentHostService.startCount, 0);
+ 	});
+ 
+-	test('starts once after repeated enablement changes', () => {
+-		const { agentHostEnablementService, agentHostService } = createContribution(false);
+-		agentHostEnablementService.setEnabled(true);
+-		agentHostEnablementService.setEnabled(false);
+-		agentHostEnablementService.setEnabled(true);
+-		assert.strictEqual(agentHostService.startCount, 1);
+-	});
+-
+-	test('forwards assignment context and clears it when unavailable', async () => {
++	test('does not forward assignment context to a host that is never started', async () => {
+ 		const { agentHostService, assignmentService } = createContribution(true);
+ 		await Promise.resolve();
+ 
+ 		assignmentService.setExperiments(undefined);
+ 		await Promise.resolve();
+ 
+-		assert.deepStrictEqual(agentHostService.dispatches, [
+-			[ROOT_STATE_URI, {
+-				type: ActionType.RootConfigChanged,
+-				config: { [CopilotCliVSCodeAssignmentContextKey]: 'experiment:1' },
+-			}],
+-			[ROOT_STATE_URI, {
+-				type: ActionType.RootConfigChanged,
+-				config: { [CopilotCliVSCodeAssignmentContextKey]: '' },
+-			}],
+-		]);
+-	});
+-
+-	test('refreshes assignment context when the agent host starts', async () => {
+-		const { agentHostService, assignmentService } = createContribution(true);
+-		await Promise.resolve();
+-
+-		assignmentService.experiments = ['experiment:2'];
+-		agentHostService.fireAgentHostStart();
+-		await Promise.resolve();
+-
+-		assert.deepStrictEqual(agentHostService.dispatches, [
+-			[ROOT_STATE_URI, {
+-				type: ActionType.RootConfigChanged,
+-				config: { [CopilotCliVSCodeAssignmentContextKey]: 'experiment:1' },
+-			}],
+-			[ROOT_STATE_URI, {
+-				type: ActionType.RootConfigChanged,
+-				config: { [CopilotCliVSCodeAssignmentContextKey]: 'experiment:2' },
+-			}],
+-		]);
++		assert.deepStrictEqual(agentHostService.dispatches, []);
+ 	});
+ });

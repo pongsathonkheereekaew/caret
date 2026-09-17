@@ -1,5 +1,6 @@
 import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import { CARET_PROTOCOL_VERSION, type CommandRequest, type UiResponseRequest } from "../../../packages/protocol/src/index.ts";
+import { OMP_BASELINE_VERSION } from "../../../packages/omp-adapter/src/types.ts";
 import { DeviceAuth } from "./auth.ts";
 import { CaretHost, HostError } from "./service.ts";
 import { reviewWorkspace, workspacePath } from "./workspaces.ts";
@@ -43,7 +44,10 @@ export function createRouter(host: CaretHost, auth: DeviceAuth, extras: { artifa
       if (parts.length === 3 && parts[1] === "responses" && method === "GET") {
         result = responses.read(device.id, parts[2]!, integer(url.searchParams.get("offset"), 0));
       } else if (parts.length === 2 && parts[1] === "health" && method === "GET") {
-        result = { protocolVersion: CARET_PROTOCOL_VERSION, status: "ready", ompVersion: "18.1.18" };
+        // Informational: the OMP release this host was built against. The runtime gate accepts
+        // that release or anything newer (see isSupportedOmpVersion), so this is the baseline,
+        // not a claim about the binary on disk.
+        result = { protocolVersion: CARET_PROTOCOL_VERSION, status: "ready", ompVersion: OMP_BASELINE_VERSION };
       } else if (parts[1] === "projects" && parts.length === 2) {
         if (method === "GET") result = host.store.listProjects({ includeArchived: true });
         else if (method === "POST") { const b = body(); result = host.store.createProject({ path: string(b.path, "path"), ...(b.name === undefined ? {} : { name: string(b.name, "name") }) }); }
@@ -65,7 +69,10 @@ export function createRouter(host: CaretHost, auth: DeviceAuth, extras: { artifa
         if (!session) throw new HostError("not_found", "Task not found", 404);
         const action = parts[3];
         if (parts.length === 3 && method === "GET") result = session;
-        else if (parts.length === 3 && method === "PATCH") {
+        else if (parts.length === 3 && method === "DELETE") {
+          await host.deleteSession(id);
+          result = { deleted: true };
+        } else if (parts.length === 3 && method === "PATCH") {
           const b = body();
           for (const key of Object.keys(b)) if (!["title", "archived", "pinned"].includes(key)) throw new HostError("invalid_body", `Unsupported task field ${key}`, 400);
           result = host.store.updateSession(id, b);
@@ -83,6 +90,9 @@ export function createRouter(host: CaretHost, auth: DeviceAuth, extras: { artifa
           if (!Array.isArray(sourcePaths) || sourcePaths.some(path => typeof path !== "string")) throw new HostError("invalid_body", "sourcePaths must be a list of paths", 400);
           result = extras.artifacts.capture(id, session.cwd, string(b.path, "path"), sourcePaths);
         }
+        // A client that just attached can render the host's headless screen instead of
+        // replaying a bounded chunk history (empty list = no virtual UI or no engine).
+        else if (action === "terminals" && parts.length === 4 && method === "GET") result = { terminals: host.terminalSnapshots(id) };
         else if (action === "start" && method === "POST") result = await host.startSession(id);
         else if (action === "stop" && method === "POST") result = await host.stopSession(id);
         else if (action === "reconcile" && method === "POST") {

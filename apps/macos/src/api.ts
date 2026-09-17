@@ -395,4 +395,9 @@ export class CaretHostClient {
 	patchSession(sessionId: string, patch: { title?: string; archived?: boolean; pinned?: boolean }): Promise<Session> {
 		return this.request<Session>("PATCH", `sessions/${encoded(sessionId)}`, normalizePatch(patch));
 	}
+
+	/** Removes the record and everything the host wrote for the session. */
+	deleteSession(sessionId: string): Promise<unknown> {
+		return this.request("DELETE", `sessions/${encoded(sessionId)}`);
+	}
 }

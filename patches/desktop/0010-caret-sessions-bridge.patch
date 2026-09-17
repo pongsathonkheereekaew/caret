@@ -1,9 +1,9 @@
 diff --git a/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
 new file mode 100644
-index 00000000000..497cca6a394
+index 00000000000..8b5ffcae77e
 --- /dev/null
 +++ b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
-@@ -0,0 +1,455 @@
+@@ -0,0 +1,511 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret contributors. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -33,11 +33,12 @@ index 00000000000..497cca6a394
 +
 +import { CancellationToken } from '../../../../../base/common/cancellation.js';
 +import { Emitter } from '../../../../../base/common/event.js';
-+import { Disposable } from '../../../../../base/common/lifecycle.js';
++import { Disposable, toDisposable } from '../../../../../base/common/lifecycle.js';
 +import { IObservable, ISettableObservable, observableValue } from '../../../../../base/common/observable.js';
 +import { ThemeIcon } from '../../../../../base/common/themables.js';
 +import { URI } from '../../../../../base/common/uri.js';
 +import { localize } from '../../../../../nls.js';
++import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 +import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
 +import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
 +import { ILogService } from '../../../../../platform/log/common/log.js';
@@ -45,6 +46,7 @@ index 00000000000..497cca6a394
 +import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../workbench/common/contributions.js';
 +import { IChatSessionItem, IChatSessionsService } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
 +import { IChatService } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
++import { ILanguageModelsService } from '../../../../../workbench/contrib/chat/common/languageModels.js';
 +import { resolveModelIdentifier } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
 +import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
 +import { ChatInteractivity, ChatModelSource, IChat, IChatCheckpoints, ISession, ISessionCapabilities, ISessionType, ISessionWorkspace, ISessionWorkspaceBrowseAction, SessionStatus, SessionTypeAuthRequirement } from '../../../../services/sessions/common/session.js';
@@ -52,8 +54,17 @@ index 00000000000..497cca6a394
 +
 +const EXTENSION_SESSIONS_PROVIDER_ID = 'caret-extension-sessions';
 +const UNSUPPORTED = 'Caret sessions are owned by the Caret host; that action is not advertised yet.';
++/** The Caret extension command that deletes sessions in the host. */
++const CARET_SESSION_DELETE_COMMAND = 'caret.session.delete';
 +const CARET_MODELS_GROUP_ID = 'models';
 +const CARET_EXTENSION_ID = 'caret.caret';
++/**
++ * Vendor `apps/macos` registers its OMP language models under. Kept as a literal
++ * because the workbench cannot import from the extension package; the value is
++ * pinned to the extension's `CARET_OMP_MODEL_VENDOR` by
++ * `apps/macos/test/ide-native-workbench.test.ts`.
++ */
++const CARET_OMP_MODEL_VENDOR = 'caret-omp';
 +
 +/** Non-empty string or undefined (option-group items carry OMP labels loosely). */
 +function cleanText(value: unknown): string | undefined {
@@ -159,7 +170,10 @@ index 00000000000..497cca6a394
 +			supportsFork: false,
 +			supportsSideChat: false,
 +			supportsRename: false,
-+			supportsDelete: false,
++			// Delete goes through the Caret extension to the host, which owns the
++			// record and the transcript. The sessions list's own `Delete...` item
++			// confirms first ("This action cannot be undone.").
++			supportsDelete: true,
 +		});
 +	}
 +
@@ -200,9 +214,11 @@ index 00000000000..497cca6a394
 +	private refreshing = false;
 +
 +	constructor(
++		@ICommandService private readonly commandService: ICommandService,
 +		@IChatSessionsService private readonly chatSessionsService: IChatSessionsService,
 +		@IChatService private readonly chatService: IChatService,
 +		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
++		@ILanguageModelsService private readonly _languageModelsService: ILanguageModelsService,
 +		@ILogService private readonly logService: ILogService,
 +	) {
 +		super();
@@ -354,8 +370,17 @@ index 00000000000..497cca6a394
 +			// Never invent a vendor: unknown stays empty (type requires a
 +			// string, so empty is the honest unknown, not 'caret').
 +			const vendor = cleanText(record.description) ?? '';
++			// Sizes come from the registered model itself (OMP advertises them), not
++			// from this projection: 0 stays the neutral unknown for a model that
++			// reports no window.
++			const registered = this._languageModelsService.lookupLanguageModel(`${CARET_OMP_MODEL_VENDOR}/${item.id}`);
 +			return {
-+				identifier: item.id,
++				// The extension host resolves a request's model by the identifier the
++				// extension registered it under, which is `<vendor>/<model id>`. The
++				// vendor below is the one `apps/macos` registers with
++				// `lm.registerLanguageModelChatProvider`; a pick that is not that string
++				// cannot be resolved and the send fails as "Language model unavailable".
++				identifier: `${CARET_OMP_MODEL_VENDOR}/${item.id}`,
 +				metadata: {
 +					extension: new ExtensionIdentifier(CARET_EXTENSION_ID),
 +					id: item.id,
@@ -368,8 +393,8 @@ index 00000000000..497cca6a394
 +					// 0 is the neutral unknown: core guards token display with
 +					// `if (maxInputTokens || maxOutputTokens)`, so 0 renders as
 +					// unknown rather than asserting a false limit.
-+					maxInputTokens: 0,
-+					maxOutputTokens: 0,
++					maxInputTokens: registered?.maxInputTokens ?? 0,
++					maxOutputTokens: registered?.maxOutputTokens ?? 0,
 +					isDefaultForLocation: {},
 +					targetChatSessionType: sessionType,
 +					isUserSelectable: true,
@@ -429,8 +454,24 @@ index 00000000000..497cca6a394
 +	async archiveSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
 +	async unarchiveSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
 +	async setSessionReadState(_sessionId: string, _isRead: boolean): Promise<void> { /* read state is host-owned */ }
-+	async deleteSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
-+	async deleteSessions(_sessionIds: readonly string[]): Promise<void> { throw new Error(UNSUPPORTED); }
++	/**
++	 * Delete sessions through the Caret extension, which owns the host connection.
++	 *
++	 * The sessions list confirms before it calls this, so the ids arrive already
++	 * agreed on; they travel as the session resources this provider published, and
++	 * the extension maps them back to host ids. The list is republished right after,
++	 * because a row leaves the sidebar only when the item says it is gone.
++	 */
++	async deleteSession(sessionId: string): Promise<void> {
++		await this.deleteSessions([sessionId]);
++	}
++	async deleteSessions(sessionIds: readonly string[]): Promise<void> {
++		if (sessionIds.length === 0) {
++			return;
++		}
++		await this.commandService.executeCommand(CARET_SESSION_DELETE_COMMAND, [...sessionIds]);
++		await this.refresh();
++	}
 +	async deleteChat(_sessionId: string, _chatUri: URI): Promise<boolean> { return false; }
 +	async createNewChat(_sessionId: string, _prompt?: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
 +	async forkChat(_sessionId: string, _sourceChat: URI, _turnId: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
@@ -444,9 +485,24 @@ index 00000000000..497cca6a394
 +	constructor(
 +		@IInstantiationService instantiationService: IInstantiationService,
 +		@ISessionsProvidersService sessionsProvidersService: ISessionsProvidersService,
++		@ILanguageModelsService languageModelsService: ILanguageModelsService,
 +		@ILogService logService: ILogService,
 +	) {
 +		super();
++		// The vendor has to exist before Caret's extension registers its provider
++		// (`registerLanguageModelProvider` refuses an unknown vendor), and the
++		// models under it are what the workbench attaches to a Caret request — see
++		// the identifier comment in `getModelsSnapshot`. Registered here, at
++		// restore, which precedes the extension's `onStartupFinished` activation.
++		const vendorDescriptor = {
++			vendor: CARET_OMP_MODEL_VENDOR,
++			displayName: 'Caret',
++			configuration: undefined,
++			managementCommand: undefined,
++			when: undefined,
++		};
++		languageModelsService.deltaLanguageModelChatProviderDescriptors([vendorDescriptor], []);
++		this._register(toDisposable(() => languageModelsService.deltaLanguageModelChatProviderDescriptors([], [vendorDescriptor])));
 +		try {
 +			const provider = this._register(instantiationService.createInstance(ExtensionSessionsProvider));
 +			this._register(sessionsProvidersService.registerProvider(provider));
