@@ -1221,6 +1221,26 @@ describe("ide-native workbench surface", () => {
 		expect(extension).toContain("This action cannot be undone.");
 		expect(extension).toContain("await this.deleteChatSessions([session.id]);");
 	});
+	it("gives a Caret session its own welcome instead of the base agent's", async () => {
+		// Plan section 10 item 3: a session with 0 events used to show the base's welcome
+		// ("Build with Agent" / "Generate Agent Instructions"). The session type Caret contributes
+		// is the extension point that owns that copy, so the welcome is Caret's own words and
+		// names the harness this build actually runs.
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as {
+			contributes: { chatSessions: { type: string; welcomeTitle?: string; welcomeMessage?: string; welcomeTips?: string }[] };
+		};
+		const session = manifest.contributes.chatSessions.find(entry => entry.type === "caret.omp");
+		expect(session).toBeTruthy();
+		expect(session!.welcomeTitle).toBe("Caret");
+		expect(session!.welcomeMessage).toContain("OMP");
+		// `welcomeTips` is declared by the extension point but nothing in this fork renders it, so
+		// Caret does not ship copy into a field no code reads.
+		expect(session!.welcomeTips).toBeUndefined();
+		// The base names its own agent in that welcome; Caret must not.
+		const copy = `${session!.welcomeTitle} ${session!.welcomeMessage}`;
+		expect(copy).not.toContain("Build with Agent");
+		expect(copy).not.toContain("Agent Instructions");
+	});
 	it("keeps the Copilot-flavoured composer controls out of the Agents window", async () => {
 		// Three plan chrome decisions: the tool picker, the permission picker and the
 		// "Configure Custom Agents..." entry all describe Copilot-chat behaviour, and this

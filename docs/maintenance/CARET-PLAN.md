@@ -1755,6 +1755,23 @@ Verified in a rebuilt app through the proven loop (fork `tsc`, `gulp vscode-darw
 panel`, and the comparison now reads **shared 15, renamed 1, absent by decision 3, missing 26** - the
 reference's two splitter entries are exact matches instead of misses. Receipt:
 [`evidence/dead-code-followup-decisions-2026-09-17/chrome-report-after-splitter-names.txt`](evidence/dead-code-followup-decisions-2026-09-17/chrome-report-after-splitter-names.txt).
+### A Caret session greets you in Caret's words (2026-09-17)
+
+§10 item 3's first half. A session with 0 events showed the base's welcome - `Build with Agent` /
+`Generate Agent Instructions` - because `chatWidget` reads the welcome copy from the session *type's*
+contribution (`chatWidget.ts:1680`) and falls back to the base's text when the provider supplies
+none. Caret's `chatSessions` entry now carries `welcomeTitle: Caret` and a `welcomeMessage` that names
+OMP, so the empty chat greets a Caret user in Caret's words.
+
+One deliberate omission: `welcomeTips` exists in the extension point and in the service interface but
+**no code in this fork renders it** (`rg welcomeTips src/vs` finds the two declarations and nothing
+else), so Caret ships nothing into that field rather than adding contribution data no one reads. A
+test pins both halves - the copy is Caret's, and the inert field stays empty.
+
+Verified: `bun test apps/macos/test` 622 pass / 0 fail, `bun run typecheck` 0 errors, and the copy is
+present in the packaged bundle's own `extensions/caret/package.json` (checked by reading it out of
+`Caret.app`). On-screen rendering was not exercised: the window has no 0-event session to show, and
+creating one is D1's work.
 ## 10. Open work (the only authoritative list of what is not done)
 
 Anything not listed here is either done (§9) or out of scope (§5). Each item states what closes it.
@@ -1782,9 +1799,19 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
    (`Caret could not list OMP models: Refresh the task before submitting this command`), leaving
    the option-group picker empty at boot. The language-model provider resolving later masks it, but
    a retry is needed.
-3. A session with **0 events** still shows the base's welcome (`Build with Agent` /
-   `Generate Agent Instructions`) instead of Caret's chat view. This is the real remaining S2
-   blocker at the UI level (6 of 9 sidebar rows were in this state).
+3. ~~A session with **0 events** still shows the base's welcome (`Build with Agent` /
+   `Generate Agent Instructions`) instead of Caret's chat view.~~ **Half closed 2026-09-17**: the
+   chat widget reads `welcomeTitle` / `welcomeMessage` from the session *type's* contribution
+   (`chatWidget.ts:1680`, `chatSessionsService.getChatSessionContribution`) and falls back to the
+   base's copy when the provider supplies none, so Caret's `chatSessions` entry now carries its own
+   (`Caret` / "Caret runs your task with **OMP** on this Mac…"). The contribution ships in the
+   packaged app, checked by reading `extensions/caret/package.json` inside the bundle, and a test
+   pins the copy. **Not done:** the reference's empty state is interactive starter cards, which this
+   welcome surface does not render (the `welcomeTips` field exists in the extension point and in the
+   service interface but no code in this fork reads it, so Caret deliberately ships nothing into it);
+   those starters are the Agent Home's own surface (patch `0023`) and belong to wherever the empty
+   draft lands (D1). On-screen rendering was not exercised because this window has no 0-event session
+   to show - creating one is D1.
 4. The composer in draft state (no session) is `0×0` and disabled. Showing a model before there is
    work needs a read path not tied to a session, e.g. a host-owned route.
 5. Choosing a model in the picker and verifying that `set_model` actually writes has not been done.

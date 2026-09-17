@@ -491,7 +491,9 @@
         "displayName": "Caret",
         "description": "Run work in this workspace with OMP",
         "icon": "$(comment-discussion)",
-        "inputPlaceholder": "Plan, Build, / for skills, @ for context"
+        "inputPlaceholder": "Plan, Build, / for skills, @ for context",
+        "welcomeTitle": "Caret",
+        "welcomeMessage": "Caret runs your task with **OMP** on this Mac. Describe the work and the session starts; you can steer it from here while it works."
       }
     ],
     "chatParticipants": [
