@@ -1,0 +1,35 @@
+diff --git a/src/vs/base/browser/ui/sash/sash.ts b/src/vs/base/browser/ui/sash/sash.ts
+index beb88ed9bc1..e33c9596dfc 100644
+--- a/src/vs/base/browser/ui/sash/sash.ts
++++ b/src/vs/base/browser/ui/sash/sash.ts
+@@ -100,6 +100,14 @@ export interface ISashOptions {
+ 	 * hovers over a corner sash provided by this and an orthogonal sash.
+ 	 */
+ 	readonly orthogonalEdge?: OrthogonalEdge;
++
++	/**
++	 * What this sash resizes, as a screen reader should hear it (for example
++	 * `Resize sidebar`). When set, the sash becomes a labelled `separator` in the
++	 * accessibility tree; when omitted the sash is unchanged, so a caller opts in
++	 * per boundary instead of every divider in the workbench announcing itself.
++	 */
++	readonly ariaLabel?: string;
+ }
+ 
+ export interface IVerticalSashOptions extends ISashOptions {
+@@ -439,6 +447,15 @@ export class Sash extends Disposable {
+ 
+ 		this.el = append(container, $('.monaco-sash'));
+ 
++		if (options.ariaLabel) {
++			// A labelled divider is a separator to a screen reader. Unlabelled ones
++			// are left alone so the workbench does not gain unnamed separators in
++			// every split view at once.
++			this.el.setAttribute('role', 'separator');
++			this.el.setAttribute('aria-orientation', options.orientation === Orientation.VERTICAL ? 'vertical' : 'horizontal');
++			this.el.setAttribute('aria-label', options.ariaLabel);
++		}
++
+ 		if (options.orthogonalEdge) {
+ 			this.el.classList.add(`orthogonal-edge-${options.orthogonalEdge}`);
+ 		}

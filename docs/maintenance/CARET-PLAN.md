@@ -597,7 +597,7 @@ through it.
 | Slice | What it takes | Closes when |
 |---|---|---|
 | **D1 New Chat creates a draft** | Caret's provider has no draft: `createNewSession` returns the newest contributed session or throws (`UNSUPPORTED`), and the base's `openNewSession` cannot await a provider, so the draft has to exist before the call. The extension already materializes on first send (`newChatSessionItemHandler` → `client.createSession`), so what is missing is the workbench-side provisional/untitled session. The model to port is `agentHostUntitledProvisionalSessionService.ts` (1,091 lines, agent-host-flavoured); the honest alternative is to stop offering the control until it exists (§5). | clicking `New Chat` in the Agents window opens an empty Caret draft, and the comparison's 24 state misses can finally be compared fairly where they belong (the reference's empty draft) |
-| **D2 Accessible names for the splitters and the tab group** | Checked 2026-09-17, and the seam is **not** where it looked: `Sash` sets no `role`, no `aria-label` and no `aria-valuenow` at all (`sash.ts`), `SplitView` constructs every sash (`splitview.ts:1172`) with `{...this.opts, orientation}`, and the two grids in `src/vs/sessions/**` (`sessionsPart.ts:150`, `chatGroupsView.ts:179`) hold only session/chat content - so the sidebar and panel splitters in this window come from the **workbench parts layout**, which is where the names have to be attached. It is not a `Grid`/`Sash` at all - `rg "new Sash\("` finds nothing under `src/vs/workbench/browser/parts/**`, and the parts layout is the workbench's own layout code - so the splitter is a plain element with no role, and the work has two halves: give that element a separator role with its name, then wire: `ariaLabel` on `SashOptions`, an index-based `sashAriaLabel` on the split view, and `Resize sidebar` / `Resize panel` from the parts owner. Naming the tab group is a separate editor-part surface. | the capture shows `splitter Resize sidebar`, `splitter Resize panel` and a named tab group, i.e. the last three entries of §10 item 16's difference list |
+| **D2 Accessible names for the splitters and the tab group** | **Mechanism landed** (patch `0036`): `ISashOptions.ariaLabel` makes a sash a labelled `separator` (`role`, `aria-orientation`, `aria-label`) and is opt-in, so nothing announces itself until a caller names a boundary. The naming half needs one decision, because the parts carry no accessible name to derive from: the workbench layout is where the sidebar and panel boundaries are known (`layout.ts:1676` builds the parts grid from `SerializableGrid.deserialize`, whose views are the parts themselves - `sideBarPartView` etc.), so either those two boundaries are named explicitly there, or the parts gain a name the grid can derive from. Naming the tab group is a separate editor-part surface. | the capture shows `splitter Resize sidebar`, `splitter Resize panel` and a named tab group, i.e. the last three entries of §10 item 16's difference list |
 | **D3 The dock becomes native (S3)** | `webview.ts` (2,836 lines) + `TASK_WEBVIEW_CSS` + the shell-bound tests are the IDE window's agent surface today. §7 already decided React for these surfaces; the dock has to move before the shell can be deleted, and `caret.focusDock` + the `prefill` handoffs have to keep working through the move. | `rg "webview.ts|TASK_WEBVIEW_CSS"` finds no remaining users and the suite passes (§8 S3's own exit gate) |
 | **D4 Composer modes, then the chips** | The reference's `Plan New Idea` / `Multitask` are CTAs on a real mode state (measured 2026-09-17). Caret needs the mode in the composer first, mapped to something OMP actually does (a plan-first turn over `ompPlan`; parallel subagents per §10 item 8), and the `High` effort popup needs a provider config action. | the chips exist and change what a turn does, or they stay unrendered by decision (§10 item 11) |
 | **D5 `--caret-*` at the workbench level** | The extension cannot write CSS into the workbench DOM, so the token layer relies on CSS fallbacks a test pins. A workbench contribution has to own the variables, and its values have to come from `caret-theme.ts` — generated into the patch the way the brand icon is generated into the bundle. | the workbench DOM carries the `--caret-*` variables and the parity check reads them from there instead of from fallbacks |
@@ -1716,6 +1716,24 @@ confirmation; `bun run typecheck` 0 errors; `bun run build` puts `delete_session
 `dist/mac-extension/out/extension.js`. Receipt:
 [`evidence/dead-code-followup-decisions-2026-09-17/`](evidence/dead-code-followup-decisions-2026-09-17/).
 
+### A sash can carry a name (2026-09-17)
+
+D2's first half. `Sash` set no `role`, no `aria-label` and no `aria-valuenow` at all, so no divider in
+the workbench reached the accessibility tree with a name - which is why the comparison's two
+`splitter` entries in §10 item 16 were missing rather than merely renamed. Patch `0036` adds
+`ISashOptions.ariaLabel`: when a caller sets it, the sash becomes a labelled `separator` with its
+orientation; when nobody sets it, the sash is byte-for-byte the element it was, so this touches a
+component every split view in the app uses without changing any of them.
+
+Verified by the proven loop: fork `tsc` 0 errors, `npx gulp vscode-darwin-arm64-min` rebuilt the
+bundle (2.98 min), `package:mac` re-signed the app, and a capture on the running window reads the
+same inventory as before the change (`shared 13, renamed 1, absent by decision 3`, 25 Caret
+controls) - the one line that differs is the model picker reading `Claude Sonnet 4` instead of `No
+models available`, because the rebuilt runtime now answers with the operator's catalogue.
+
+What is left of D2 is the naming decision recorded in §8: the parts carry no accessible name, so
+`Resize sidebar` / `Resize panel` have to be attached either explicitly at the two boundaries in
+`layout.ts` or through a name the parts expose and the grid derives from.
 ## 10. Open work (the only authoritative list of what is not done)
 
 Anything not listed here is either done (§9) or out of scope (§5). Each item states what closes it.

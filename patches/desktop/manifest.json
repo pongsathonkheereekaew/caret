@@ -132,6 +132,10 @@
     {
       "file": "0035-caret-sessions-nav-copy.patch",
       "sha256": "585175b1279fb2560053e14f927e12ba39da7e809fc471942f444cc4473e3486"
+    },
+    {
+      "file": "0036-caret-sash-accessible-name.patch",
+      "sha256": "f2b59593868110bed4e940ff3c4444042adef5113c22f1fb37a200b473fa708a"
     }
   ],
   "removals": [
