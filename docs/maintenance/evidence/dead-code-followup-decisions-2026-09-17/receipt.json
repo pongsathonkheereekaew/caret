@@ -63,6 +63,7 @@
     "repoChecks": "node scripts/ci-validate.mjs and bun scripts/cursor-parity-check.ts green",
     "desktopRebuild": "npx gulp vscode-darwin-arm64-min -> exit 0 in 3.1 min, rebuilt the workbench bundle and the app bundle; CARET_HOST_NODE=~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun run package:mac -> exit 0 (runtime prepared, identity stamped, 10 checksums refreshed, ad-hoc signed); bun scripts/verify-packaged-caret.ts -> structural checks pass; re-capture of the running window: shared 13, renamed 1, absent by decision 3, with Go Back / Go Forward matching the reference exactly (chrome-report-after-nav-copy.txt)",
     "toolchainTraps": "upstream/omp was a git worktree whose parent lived in /private/tmp and had been cleaned, so git rev-parse HEAD failed and the packaging step could not start; the checkout was moved aside as upstream/omp.stale-20260917 (4.2 GB, still on disk) and re-cloned by prepare-omp-runtime.ts, which then rebuilt the Rust native once (cargo build -p pi-natives, ~10 min) before reusing it. The packaging step also requires CARET_HOST_NODE to point at Node 24.",
+    "staleCheckoutRemoved": "upstream/omp.stale-20260917 (4.2 GB) was deleted with `find … -depth -delete`; `upstream/` now holds only the pinned re-clone at 00085d4e7d",
     "dockDelete": "bun test apps/macos/test -> 621 pass / 0 fail (the new case included); bun run typecheck 0 errors; bun run build -> dist/mac-extension/out/extension.js contains delete_session four times, the confirmation sentence, and the menu item"
   },
   "notVerified": [

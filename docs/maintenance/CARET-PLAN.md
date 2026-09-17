@@ -585,6 +585,22 @@ removes the main cost R4 was meant to evaluate, so R4 is now a question about co
 | **S4 Close parity §3** | Build every component in §3 and measure the real geometry/colour | root + reviewer | Capture at the same viewport/theme + every §3 row passing |
 | **S5 Mobile continuity** | The iPhone as a projection of the same session (relay/approval/replay) | root | Receipt: real iPhone + cellular |
 
+### Desktop completion slices (opened 2026-09-17)
+
+§10's desktop items are four independent slices. Each one closes the same way, which is now a
+proven loop rather than a hope: change the fork, `cd desktop && npx gulp vscode-darwin-arm64-min`
+(~3 min), `CARET_HOST_NODE=~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun run package:mac`
+(~12 s), launch with `--agents --remote-debugging-port=9333`, capture with
+`scripts/agents-chrome-inventory.ts`. The first one (navigation copy, patch `0035`) has been
+through it.
+
+| Slice | What it takes | Closes when |
+|---|---|---|
+| **D1 New Chat creates a draft** | Caret's provider has no draft: `createNewSession` returns the newest contributed session or throws (`UNSUPPORTED`), and the base's `openNewSession` cannot await a provider, so the draft has to exist before the call. The extension already materializes on first send (`newChatSessionItemHandler` → `client.createSession`), so what is missing is the workbench-side provisional/untitled session. The model to port is `agentHostUntitledProvisionalSessionService.ts` (1,091 lines, agent-host-flavoured); the honest alternative is to stop offering the control until it exists (§5). | clicking `New Chat` in the Agents window opens an empty Caret draft, and the comparison's 24 state misses can finally be compared fairly where they belong (the reference's empty draft) |
+| **D2 Accessible names for the splitters and the tab group** | `Grid` (the sessions layout) delegates to `SplitView`, which constructs `Sash` (`splitview.ts:1172`) — and `Sash` sets no `role`, no `aria-label` and no `aria-valuenow` at all, so nothing reaches the accessibility tree. Adding `ariaLabel` to `SashOptions` and threading it from the view owners names the two visible splitters; the tab group's name is a separate editor-part surface. | the capture shows `splitter Resize sidebar`, `splitter Resize panel` and a named tab group, i.e. the last three entries of §10 item 16's difference list |
+| **D3 The dock becomes native (S3)** | `webview.ts` (2,836 lines) + `TASK_WEBVIEW_CSS` + the shell-bound tests are the IDE window's agent surface today. §7 already decided React for these surfaces; the dock has to move before the shell can be deleted, and `caret.focusDock` + the `prefill` handoffs have to keep working through the move. | `rg "webview.ts|TASK_WEBVIEW_CSS"` finds no remaining users and the suite passes (§8 S3's own exit gate) |
+| **D4 Composer modes, then the chips** | The reference's `Plan New Idea` / `Multitask` are CTAs on a real mode state (measured 2026-09-17). Caret needs the mode in the composer first, mapped to something OMP actually does (a plan-first turn over `ompPlan`; parallel subagents per §10 item 8), and the `High` effort popup needs a provider config action. | the chips exist and change what a turn does, or they stay unrendered by decision (§10 item 11) |
+| **D5 `--caret-*` at the workbench level** | The extension cannot write CSS into the workbench DOM, so the token layer relies on CSS fallbacks a test pins. A workbench contribution has to own the variables, and its values have to come from `caret-theme.ts` — generated into the patch the way the brand icon is generated into the bundle. | the workbench DOM carries the `--caret-*` variables and the parity check reads them from there instead of from fallbacks |
 ## 9. Landed work ledger (append-only registry, no authority over §3-§8)
 
 This section records what landed and when, with a receipt for each. It is a registry, not a spec:
