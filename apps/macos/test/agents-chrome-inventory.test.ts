@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
 	chromeControlsFromTree,
 	cleanLabel,
+	deviationReasons,
 	diffChrome,
 	formatInventory,
 	type ChromeControl,
@@ -64,6 +65,41 @@ describe("chrome inventory", () => {
 		const reference: readonly ChromeControl[] = [{ role: "button", label: "File" }, { role: "button", label: "File" }];
 		const caret: readonly ChromeControl[] = [{ role: "button", label: "File" }];
 		expect(diffChrome(reference, caret).missing).toEqual([{ role: "button", label: "File" }]);
+	});
+
+	it("keeps a recorded deviation out of the failure list, with its reason", () => {
+		const reference: readonly ChromeControl[] = [{ role: "button", label: "Hide Apps" }];
+		const diff = diffChrome(reference, []);
+		expect(diff.missing).toEqual([]);
+		expect(diff.deviations).toEqual(reference);
+		expect(deviationReasons(diff.deviations)).toEqual(["Hide Apps - section 5: the Agents window keeps its current panel controls"]);
+	});
+
+	it("matches the two capture shapes: a merged row label and a longer Caret label", () => {
+		const reference: readonly ChromeControl[] = [
+			{ role: "button", label: "Projects New Project" },
+			{ role: "button", label: "Go Back" },
+		];
+		const caret: readonly ChromeControl[] = [
+			{ role: "button", label: "New Project" },
+			{ role: "button", label: "Go Back One Session" },
+		];
+		const diff = diffChrome(reference, caret);
+		expect(diff.missing).toEqual([]);
+		expect(diff.renamed).toEqual([
+			{ reference: { role: "button", label: "Projects New Project" }, caret: { role: "button", label: "New Project" } },
+			{ reference: { role: "button", label: "Go Back" }, caret: { role: "button", label: "Go Back One Session" } },
+		]);
+	});
+
+	it("does not match a control just because its name appears inside another", () => {
+		// The reference's starter card contains the word Find, and Caret's
+		// transcript find box is a different control.
+		const reference: readonly ChromeControl[] = [{ role: "button", label: "Debug an issue Find root causes and fix tricky bugs" }];
+		const caret: readonly ChromeControl[] = [{ role: "button", label: "Find" }];
+		const diff = diffChrome(reference, caret);
+		expect(diff.renamed).toEqual([]);
+		expect(diff.missing).toEqual(reference);
 	});
 
 	it("reads the shipped reference capture and finds the controls the plan names", () => {

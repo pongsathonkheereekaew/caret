@@ -17,6 +17,10 @@ were previously one unknown.
 Both dumps are in this directory: `caret-agents-chrome-open-session.txt` (the window as it opened)
 and `caret-agents-chrome-empty-draft.txt` (after clicking the window's own `New Chat`).
 
+The generated reports are `chrome-report-open-session.txt` and `chrome-report-empty-draft.txt`.
+After the normalisation pass below they read: reference 45, Caret 30, **shared 11, renamed 3,
+absent by decision 3, missing 28**.
+
 Note on revision: the packaged app predates this pass. Nothing changed today is chrome-visible - the
 day's changes removed dead modules, a duplicate palette command, the retired `agentWorkbench` island
 and the local agent-host client - so the capture describes the same window chrome the current source
@@ -66,3 +70,58 @@ as separate controls (`New Project`, `Filter Repositories`, `Add Repository`).
 
 The fair run needs Caret's Agents window in an empty draft. Finding out why `New Chat` in the
 sidebar does not put this window there is the first step of that pass.
+
+## The normalisation pass, and what it found
+
+The first comparison was dominated by two capture effects, and both are now handled in the tool:
+
+- **A hidden control is not a control.** The reference side is an accessibility tree of the rendered
+  window; the DOM side was reading every matching element, including hidden panel actions and a
+  collapsed find widget (51 controls against the reference's 45). The query now skips anything with
+  no client rect or `aria-hidden="true"`.
+- **A shortcut is not part of the name.** A DOM label carries its key (`Toggle Side Bar (⌘B)`) where
+  the AX node carries the label and the key as separate nodes. The parser strips a parenthesised
+  shortcut, and leaves product names alone (`Models, DeepSeek V4.1 Flash (Command Code)`).
+
+Three further categories were separated, so the failure list is only unexplained differences:
+
+- **Absent by decision (3)** — `Enter Full Screen` and `Hide Apps` (section 5, keep the current
+  panel) and `Account menu` (patch `0029`). Each carries its reason in the report, because a label
+  on that list without a reason would be an excuse rather than a decision.
+- **Same control, different words (3)** — `Go Back` ≤ `Go Back One Session`, `Go Forward` ≤
+  `Go Forward One Session`, and `Projects New Project` ≤ `New Project`. The last one is the AX
+  capture merging a row's text children into its parent button; the middle two are Caret's own
+  wording.
+- **Not a match just because a name appears inside another.** The first attempt used a substring
+  test, which paired the reference's starter card `Debug an issue Find root causes and fix tricky
+  bugs` with Caret's transcript `Find` box, and would have hidden a real difference. Matching is now
+  an edge match — a whole-word prefix or suffix with at most two words of slack — and a test pins
+  the pair that exposed it.
+
+## What the 28 remaining misses are
+
+24 of them are the empty-draft state the reference was captured in: the four starter cards and their
+`Dismiss recommendation`, `Plan New Idea`, `Multitask`, `Run in Cloud`, `Start voice input`,
+`Add agents, context, tools`, `High`, `This Mac`, the composer placeholder
+`Plan, Build, / for skills, @ for context`, `Connect Slack` and `Skip step 2 of 3` from Getting
+Started, plus the sidebar's repo rows and section actions (`sortable cedia`, `Repositories …`,
+`Customize Sidebar`, `Open Workspace`, `combo box main`, `toggle button Settings`, `Chat actions`).
+
+Four are real differences, and they are now the concrete to-do list of this check:
+
+1. `Hide Sidebar` (reference) against Caret's `Toggle Side Bar` — same control, different words.
+2. `splitter Resize panel` and `splitter Resize sidebar` — Cursor names its splitters; Caret's
+   `role=separator` elements carry no accessible name.
+3. `tab group Tabs` — Cursor names the tab group; Caret's editor tabs expose no group name.
+4. `New Project` appears twice in the reference tree (a group row and a button); only one matches.
+   This one is a capture artefact on the reference side, kept visible rather than suppressed.
+
+## Why the state did not match
+
+Probing the live window over CDP (`/tmp` helper, not committed) showed why clicking `New Chat` did
+not produce an empty draft: the control is Caret's own Agent Home nav row
+(`caret-agent-home-nav-row.selected`) and the window already sat on a *read-only chat* — the sessions
+part read `New task … This chat is read-only … Caret picked up this …`. So the window had adopted a
+session that belongs to the host rather than opening a fresh draft, and no control in that state
+offers one. Reaching the fair state is therefore about how that window decides what to show, not
+about the comparison tool.

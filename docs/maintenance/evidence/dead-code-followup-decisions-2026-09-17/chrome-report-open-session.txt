@@ -1,0 +1,60 @@
+reference controls: 45, caret controls: 30
+shared: 11, renamed: 3, absent by decision: 3
+
+missing from Caret (parity failures) (28)
+  button	Build from a design Turn a frame into working UI in this repo
+  button	Connect Slack
+  button	Debug an issue Find root causes and fix tricky bugs
+  button	Deploy my prototype Put it on a live link anyone can open
+  button	Dismiss recommendation
+  button	Hide Sidebar
+  button	Multitask
+  button	New Project
+  button	Plan New Idea
+  button	Repositories Customize Sidebar Open Workspace
+  button	Run in Cloud
+  button	Skip step 2 of 3
+  button	Start voice input
+  button	Start with a plan Align on implementation before writing code
+  combo box	main
+  pop up button	Add agents, context, tools
+  pop up button	caret
+  pop up button	Chat actions
+  pop up button	Customize Sidebar
+  pop up button	High
+  pop up button	Open Workspace
+  pop up button	This Mac
+  sortable	cedia
+  splitter	Resize panel
+  splitter	Resize sidebar
+  tab group	Tabs
+  text entry area	Plan, Build, / for skills, @ for context
+  toggle button	Settings
+
+same control, different words (3)
+  Go Back  <=>  Go Back One Session
+  Go Forward  <=>  Go Forward One Session
+  Projects New Project  <=>  New Project
+
+absent by decision (3)
+  Account menu - patch 0029 removes the account widget on purpose
+  Enter Full Screen - section 5: the Agents window keeps its current panel controls
+  Hide Apps - section 5: the Agents window keeps its current panel controls
+
+Caret-only (informational, section 4) (16)
+  button	Add Context...
+  button	Add Repository
+  button	Close
+  button	Dictate (Speech to Text)
+  button	Filter Repositories
+  button	Next Match
+  button	Previous Match
+  button	Send [⌥] Send to New Chat
+  button	Toggle Pinned Summary
+  button	Toggle Side Bar
+  button	Toggle Side Panel
+  pop up button	Agent
+  pop up button	Models, DeepSeek V4.1 Flash (Command Code)
+  pop up button	More Actions...
+  text entry area	Find
+  text entry area	The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1

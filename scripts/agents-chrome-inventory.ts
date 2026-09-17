@@ -24,6 +24,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
 	chromeControlsFromTree,
+	deviationReasons,
 	diffChrome,
 	formatInventory,
 	type ChromeControl,
@@ -122,14 +123,17 @@ const NEW_CHAT_CLICK = [
 
 function report(reference: readonly ChromeControl[], caret: readonly ChromeControl[]): number {
 	const diff = diffChrome(reference, caret);
-	const write = (title: string, controls: readonly ChromeControl[]) => {
-		process.stdout.write(`\n${title} (${controls.length})\n`);
-		for (const line of formatInventory(controls).split("\n")) if (line) process.stdout.write(`  ${line}\n`);
+	const inventory = (controls: readonly ChromeControl[]) => formatInventory(controls).split("\n").filter(Boolean);
+	const write = (title: string, lines: readonly string[]) => {
+		process.stdout.write(`\n${title} (${lines.length})\n`);
+		for (const line of lines) process.stdout.write(`  ${line}\n`);
 	};
 	process.stdout.write(`reference controls: ${reference.length}, caret controls: ${caret.length}\n`);
-	process.stdout.write(`shared: ${diff.shared.length}\n`);
-	write("missing from Caret (parity failures)", diff.missing);
-	write("Caret-only (informational, section 4)", diff.extra);
+	process.stdout.write(`shared: ${diff.shared.length}, renamed: ${diff.renamed.length}, absent by decision: ${diff.deviations.length}\n`);
+	write("missing from Caret (parity failures)", inventory(diff.missing));
+	write("same control, different words", diff.renamed.map(pair => `${pair.reference.label}  <=>  ${pair.caret.label}`));
+	write("absent by decision", deviationReasons(diff.deviations));
+	write("Caret-only (informational, section 4)", inventory(diff.extra));
 	return diff.missing.length === 0 ? 0 : 1;
 }
 

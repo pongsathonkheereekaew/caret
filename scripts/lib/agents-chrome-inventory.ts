@@ -112,43 +112,102 @@ function dedupe(controls: readonly ChromeControl[]): readonly ChromeControl[] {
 }
 
 export interface ChromeDiff {
-	/** In the reference, absent from Caret - the parity failures. */
+	/** Nothing in Caret resembles it - the parity failures. */
 	readonly missing: readonly ChromeControl[];
+	/** The control exists under different words, with the pair that matched. */
+	readonly renamed: readonly { readonly reference: ChromeControl; readonly caret: ChromeControl }[];
+	/** Absent by a recorded decision (section 5 / a named patch), not a failure. */
+	readonly deviations: readonly ChromeControl[];
 	/** In Caret, absent from the reference - informational (section 4), not failures. */
 	readonly extra: readonly ChromeControl[];
 	readonly shared: readonly ChromeControl[];
 }
 
 /**
+ * Controls the reference has and this build deliberately does not. Each one is
+ * recorded in the plan or in a named patch, so the comparison can tell a
+ * decision apart from a miss; a label here without a reason would be an excuse,
+ * which is why the reason travels with it.
+ */
+export const RECORDED_DEVIATIONS: readonly { readonly label: string; readonly reason: string }[] = [
+	{ label: "Enter Full Screen", reason: "section 5: the Agents window keeps its current panel controls" },
+	{ label: "Hide Apps", reason: "section 5: the Agents window keeps its current panel controls" },
+	{ label: "Account menu", reason: "patch 0029 removes the account widget on purpose" },
+];
+
+const deviationFor = (label: string): boolean => RECORDED_DEVIATIONS.some(entry => entry.label === label);
+
+/**
+ * A captured accessibility tree merges a row's text children into its parent
+ * button (`Projects New Project`), while the DOM exposes them as separate
+ * controls (`New Project`); the same merge makes a Caret label longer than the
+ * reference's when the reference leaves context to the window (`Go Back` is
+ * `Go Back One Session` in Caret). Both shapes are edge matches: one label is a
+ * whole-word prefix or suffix of the other, with at most two words of slack.
+ *
+ * Deliberately not a substring test. `Debug an issue Find root causes and fix
+ * tricky bugs` contains `Find`, and that pair is two different controls (a
+ * starter card and the transcript's find box); matching them would hide a real
+ * difference behind a capture artefact.
+ */
+function edgeMatch(a: string, b: string): boolean {
+	if (a === b) return true;
+	const [long, short] = a.length >= b.length ? [a, b] : [b, a];
+	const longWords = long.split(" ");
+	const shortWords = short.split(" ");
+	const slack = 2;
+	if (shortWords.length >= longWords.length) return false;
+	const suffix = longWords.slice(-shortWords.length).join(" ");
+	if (suffix === short && longWords.length - shortWords.length <= slack) return true;
+	const prefix = longWords.slice(0, shortWords.length).join(" ");
+	if (prefix === short && longWords.length - shortWords.length <= slack + 1) return true;
+	return false;
+}
+
+/**
  * Compare a Caret inventory against the reference's.
  *
- * Matching is on the label, with the role as a second pass: a label can move
- * between control kinds between Code-OSS builds (`button` vs `pop up button`)
- * without the user seeing a difference, so a comparison that failed on the role
- * would report noise instead of parity. A label that appears more than once on
- * either side is consumed one for one.
+ * Matching is on the label, with the role left out: a label can move between
+ * control kinds between Code-OSS builds (`button` vs `pop up button`) without
+ * the user seeing a difference, so a comparison that failed on the role would
+ * report noise instead of parity. A label that appears more than once on either
+ * side is consumed one for one.
  */
 export function diffChrome(reference: readonly ChromeControl[], caret: readonly ChromeControl[]): ChromeDiff {
-	const remaining = new Map<string, ChromeControl[]>();
-	for (const control of caret) {
-		const list = remaining.get(control.label);
-		if (list) list.push(control);
-		else remaining.set(control.label, [control]);
-	}
+	const remaining = [...caret];
+	const take = (predicate: (control: ChromeControl) => boolean): ChromeControl | undefined => {
+		const index = remaining.findIndex(predicate);
+		return index === -1 ? undefined : remaining.splice(index, 1)[0]!;
+	};
 	const missing: ChromeControl[] = [];
+	const renamed: { reference: ChromeControl; caret: ChromeControl }[] = [];
+	const deviations: ChromeControl[] = [];
 	const shared: ChromeControl[] = [];
 	for (const control of reference) {
-		const match = remaining.get(control.label);
-		if (match && match.length > 0) {
-			match.shift();
+		const exact = take(candidate => candidate.label === control.label);
+		if (exact) {
 			shared.push(control);
+			continue;
+		}
+		const similar = take(candidate => edgeMatch(candidate.label, control.label));
+		if (similar) {
+			renamed.push({ reference: control, caret: similar });
+			continue;
+		}
+		if (deviationFor(control.label)) {
+			deviations.push(control);
 			continue;
 		}
 		missing.push(control);
 	}
 	const referenceLabels = new Set(reference.map(control => control.label));
-	const extra = caret.filter(control => !referenceLabels.has(control.label));
-	return { missing, extra, shared };
+	const extra = remaining.filter(control => !referenceLabels.has(control.label));
+	return { missing, renamed, deviations, extra, shared };
+}
+
+/** The recorded decisions a diff hit, with their reasons, for the report. */
+export function deviationReasons(controls: readonly ChromeControl[]): readonly string[] {
+	return controls.map(control => `${control.label} - ${RECORDED_DEVIATIONS.find(entry => entry.label === control.label)?.reason ?? "unrecorded"}`);
 }
 
 /** One line per control, stable order, for a receipt or a diff. */

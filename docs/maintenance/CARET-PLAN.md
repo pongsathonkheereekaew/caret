@@ -1761,6 +1761,14 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
     `New Chat` does not reach an empty draft in that window), one normalisation pass over the two
     capture vocabularies (the AX capture merges a row's text children into its parent button), and a
     re-capture from the next packaged build.
+    **Normalised the same day** (hidden elements excluded, shortcut tails stripped, recorded
+    deviations and renamed pairs split out of the failure list — a test pins the substring-match
+    false positive that forced the stricter rule): the report now reads shared 11, renamed 3, absent
+    by decision 3, missing 28. Of the 28, 24 are the empty-draft state and 4 are real — the two
+    wording differences, the unnamed splitters and tab group, and one reference duplicate. Why the
+    state is unreachable in that window was probed too: `New Chat` is Caret's own Agent Home nav row
+    and the window had adopted a read-only session from the host, so nothing in that state offers a
+    fresh draft.
 17. Vision-side verification is repeatedly unavailable (the image tool answers HTTP 429), so no
     pane's colour, type or spacing has ever been checked against a picture.
 
