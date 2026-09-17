@@ -27,7 +27,12 @@ describe("single execution owner", () => {
 		expect(extensionSource).not.toMatch(/omp-standalone/);
 		expect(extensionSource).not.toMatch(/CARET_OMP_BINARY|CARET_OMP_PATH/);
 		expect(extensionSource).not.toMatch(/spawn\([^)]*omp/i);
-		expect(extensionSource).not.toMatch(/exec[A-Za-z]*\([^)]*omp/i);
+		// The leading `\b` keeps the guard on the executable name: it still catches
+		// `execFile("omp", …)` and `execFileAsync(ompPath, …)`, while the looser
+		// `exec[A-Za-z]*\([^)]*omp` also flagged
+		// `executeCommand("caretComposerDock.focus")` — a workbench command, not a
+		// process — for the "omp" inside "Composer".
+		expect(extensionSource).not.toMatch(/exec[A-Za-z]*\([^)]*\bomp/i);
 	});
 
 	it("launches the agent runtime from the host package instead", () => {

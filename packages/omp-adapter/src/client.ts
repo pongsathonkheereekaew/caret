@@ -265,7 +265,9 @@ export class OmpRpcClient {
 
 	/** Gracefully close stdin and reap the child, escalating TERM then KILL. */
 	requestCaret(command: CaretUiCommandType, payload: Record<string, unknown>, options?: OmpRequestOptions): Promise<RpcAck> {
-		if (this.#readyFrame?.caretVirtualUiVersion !== 1) return Promise.reject(new OmpClientStateError("This OMP runtime does not advertise Caret virtual UI v1"));
+		const modelRoles = command === "caret_get_model_roles" || command === "caret_set_model_role";
+		if (!this.#caretCommandAdvertised(command))
+			return Promise.reject(new OmpClientStateError(modelRoles ? "This OMP runtime does not advertise the Caret model-role bridge" : "This OMP runtime does not advertise Caret virtual UI v1"));
 		return this.#sendCommand(command as unknown as RpcCommandType, payload as RpcCommandPayload<RpcCommandType>, options?.timeoutMs ?? this.#options.requestTimeoutMs, options?.onRequestId);
 	}
 
@@ -428,6 +430,20 @@ export class OmpRpcClient {
 		pending.reject(new OmpCommandError(failure.error, failure.command, failure.code, failure));
 	}
 
+	/**
+	 * Whether the running OMP advertised the patch command the caller is about to
+	 * send. Each Caret bridge has its own ready-frame marker because they ship
+	 * under different opt-ins: a runtime with the terminal bridge but not the
+	 * model-role surface must reject only the command it really lacks, instead of
+	 * letting the call through to a process that would answer with an error.
+	 */
+	#caretCommandAdvertised(command: string): boolean {
+		const ready = this.#readyFrame;
+		if (!ready) return false;
+		if (command === "caret_get_model_roles" || command === "caret_set_model_role") return ready.caretModelRolesVersion === 1;
+		return ready.caretVirtualUiVersion === 1;
+	}
+
 	#sendCommand<C extends RpcCommandType>(
 		command: C,
 		payload: RpcCommandPayload<C>,
@@ -436,7 +452,7 @@ export class OmpRpcClient {
 	): Promise<RpcAck<C>> {
 		if (this.#phase !== "ready" && !(this.#phase === "starting" && command === "negotiate_protocol"))
 			return Promise.reject(new OmpClientStateError(`OMP client is ${this.#phase}, not ready`));
-		if (!isCommandType(command) && !(this.#readyFrame?.caretVirtualUiVersion === 1 && (CARET_UI_COMMAND_TYPES as readonly string[]).includes(command))) return Promise.reject(new TypeError(`Unknown OMP RPC command: ${command}`));
+		if (!isCommandType(command) && !(this.#caretCommandAdvertised(command) && (CARET_UI_COMMAND_TYPES as readonly string[]).includes(command))) return Promise.reject(new TypeError(`Unknown OMP RPC command: ${command}`));
 		if (!isRecord(payload)) return Promise.reject(new TypeError("OMP RPC payload must be an object"));
 		const requestId = this.#newRequestId();
 		try { onRequestId?.(requestId); } catch (error) { return Promise.reject(error); }

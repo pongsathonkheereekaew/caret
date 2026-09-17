@@ -3,7 +3,7 @@
   "patches": [
     {
       "file": "0001-caret-rpc-bridges.patch",
-      "sha256": "545266a3f45bdbd2c27450e519d6c8ada88631dde745039985bbc3a94264f533"
+      "sha256": "a18567ec33d7ef924e030846ce36deac9decdeef690b9b768fa49d202a78705a"
     }
   ]
 }

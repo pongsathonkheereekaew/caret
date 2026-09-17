@@ -119,7 +119,13 @@ export const RPC_COMMAND_TYPES = [
 export type RpcCommandType = (typeof RPC_COMMAND_TYPES)[number];
 
 /** Opt-in commands of Caret's separately pinned OMP UI patch, never stock OMP claims. */
-export const CARET_UI_COMMAND_TYPES = ["caret_terminal_negotiate", "caret_terminal_input", "caret_terminal_resize"] as const;
+export const CARET_UI_COMMAND_TYPES = [
+	"caret_terminal_negotiate",
+	"caret_terminal_input",
+	"caret_terminal_resize",
+	"caret_get_model_roles",
+	"caret_set_model_role",
+] as const;
 export type CaretUiCommandType = typeof CARET_UI_COMMAND_TYPES[number];
 
 /** A JSON object accepted as the body of an RPC command. */

@@ -19,7 +19,8 @@ import { CaretHostClient, HostDescriptorError, HostHttpError, HostRequestTimeout
 import { parseWebviewMessage, type NativeAction, type WebviewMessage } from "./messages.ts";
 import { createInitialTaskState, normalizeSlashCommands, parseCaretUiRequest, reduceTaskState, type LoginProviderOption, type ModelOption, type TaskState } from "./state.ts";
 import { createTaskWebviewHtml } from "./webview.ts";
-import { sessionIdFromUri } from "./chat-sessions-map.ts";
+import { fetchGlobalOmpModelSnapshot, fetchOmpModelRoles, registerCaretChatSessions } from "./chat-sessions.ts";
+import { modelRoleLabel, sessionIdFromUri, setModelRoleRequest } from "./chat-sessions-map.ts";
 import { canAnswer } from "./approval-runtime.ts";
 import { approvalCanSubmit, approvalDisplayStatus } from "./approval-view.ts";
 import type { ArtifactReceipt } from "./artifact-transfer.ts";
@@ -48,7 +49,7 @@ import { layoutBoxes, layoutSashes, setSplitRatio } from "./layout-geometry.ts";
 import { buildPaneViews, rememberPaneTranscript, type PaneTranscriptCache, type PaneView } from "./pane-views.ts";
 import { announceSummary, motionTokens } from "./ui-a11y.ts";
 import { redactedDiagnostics } from "./diagnostics.ts";
-import { agentsWindowOpenMode, CARET_AGENTS_WORKSPACE, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode, type IdeLayoutSnapshot, type NativeDestination, type RetentionSnapshot } from "./workbench-mode.ts";
+import { AGENTS_WINDOW_WORKSPACE, CARET_AGENTS_WORKSPACE, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode, themeProvidingExtensionIds, type IdeLayoutSnapshot, type NativeDestination, type RetentionSnapshot } from "./workbench-mode.ts";
 import { availabilityFromLists, routeErrorPage, validateRoute, type RouteErrorPage } from "./route-error.ts";
 import { applySettingsSection, beginSettingsDraft, previewResetOverride, settingsSourcePath, type ResetOverridePreview, type SettingsSectionDraft } from "./settings-revision.ts";
 import { OLDER_PAGES_NOTE } from "./history-page.ts";
@@ -558,7 +559,6 @@ export class CaretTaskViewProvider {
 	readonly #views = new ViewRegistry<vscode.WebviewView>();
 	/** A composer focus requested before the dock view resolved for the first time. */
 	readonly #pendingComposerFocus = new PendingFocus();
-	#panel: vscode.WebviewPanel | undefined;
 	#client: CaretHostClient | undefined;
 	#state: TaskState = createInitialTaskState();
 	#pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -685,8 +685,7 @@ export class CaretTaskViewProvider {
 			// IDE window keeps full chrome even when it has no editors open.
 			if (!this.inAgentsWindow()) return;
 			if (this.#agentsChromeApplied || this.#state.workbenchMode !== "ide") return;
-			const remaining = editors.filter(editor => editor.document.uri.scheme !== "untitled" || editor.document.getText().length > 0)
-				.filter(editor => !editor.document.uri.path.endsWith(".caret-shell"));
+			const remaining = editors.filter(editor => editor.document.uri.scheme !== "untitled" || editor.document.getText().length > 0);
 			if (remaining.length === 0) void this.setWorkbenchMode("agents");
 		}));
 		this.#context.subscriptions.push(vscode.window.onDidCloseTerminal(terminal => {
@@ -749,7 +748,7 @@ export class CaretTaskViewProvider {
 
 	openAgentsWindow(): void {
 		// Caret's Agents surface is the base sessions workbench window, not a
-		// docked shell in this window (see CARET-PLAN-2026-09-14.th.md S1c).
+		// docked shell in this window (see CARET-PLAN.md S1c).
 		void vscode.commands.executeCommand("workbench.action.openAgentsWindow");
 	}
 
@@ -787,48 +786,19 @@ export class CaretTaskViewProvider {
 		void this.setWorkbenchMode("ide");
 	}
 
-	attachAgentsPanel(panel: vscode.WebviewPanel): void {
-		this.#panel = panel;
-		this.configureWebview(panel.webview);
-		panel.onDidDispose(() => { if (this.#panel === panel) this.#panel = undefined; }, undefined, this.#context.subscriptions);
-		this.postSnapshot();
-	}
-
-	private ensureAgentsPanel(): void {
-		// Caret: in the native Agents window the base sessions workbench owns the
-		// agent surface. Opening the legacy Caret webview shell here mounted a
-		// second agent surface inside the same window (the `window.caret-shell`
-		// column the parity sweep kept flagging), which the SSOT rule in the plan
-		// forbids. The shell stays reachable only outside that window.
+	/**
+	 * Bring this window's agent surface forward.
+	 *
+	 * There is one agent surface per window and it differs by window: the native
+	 * Agents window (the base sessions workbench) owns its own, and in a plain IDE
+	 * window the agent surface is the docked `caretComposerDock` view. The
+	 * full-page shell editor that used to live in an editor column is retired - it
+	 * was a second agent surface for the same window, which the SSOT rule in the
+	 * plan forbids - so this only has to reveal the dock.
+	 */
+	private async revealAgentSurface(): Promise<void> {
 		if (this.inAgentsWindow()) return;
-		if (this.#panel) {
-			this.#panel.reveal(vscode.ViewColumn.One, false);
-			return;
-		}
-		void this.openAgentsShellEditor().catch(() => {
-			const panel = vscode.window.createWebviewPanel("caretAgents", "Agents", vscode.ViewColumn.One, {
-				enableScripts: true,
-				retainContextWhenHidden: true,
-				localResourceRoots: [this.#context.extensionUri],
-			});
-			this.attachAgentsPanel(panel);
-		});
-	}
-
-	private async openAgentsShellEditor(): Promise<void> {
-		const uri = vscode.Uri.joinPath(this.#context.globalStorageUri, "window.caret-shell");
-		await vscode.workspace.fs.createDirectory(this.#context.globalStorageUri);
-		if (!(await this.fileExists(uri))) await vscode.workspace.fs.writeFile(uri, new Uint8Array());
-		await vscode.commands.executeCommand("vscode.openWith", uri, "caret.agentsShell", vscode.ViewColumn.One);
-	}
-
-	private async fileExists(uri: vscode.Uri): Promise<boolean> {
-		try {
-			await vscode.workspace.fs.stat(uri);
-			return true;
-		} catch {
-			return false;
-		}
+		await this.focusDock();
 	}
 
 	#agentsChromeApplied = false;
@@ -976,21 +946,35 @@ export class CaretTaskViewProvider {
 		const dir = this.#context.globalStorageUri;
 		const uri = vscode.Uri.joinPath(dir, CARET_AGENTS_WORKSPACE);
 		await vscode.workspace.fs.createDirectory(dir);
-		await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(serializeCaretAgentsWorkspace(dir.fsPath)));
+		// This runs in the window the user is opening the Agents window FROM, so the configuration
+		// read here is the theme they actually chose. The Agents window is a different profile, so
+		// without carrying these keys across it falls back to the stock sessions theme and the two
+		// windows stop matching (see serializeCaretAgentsWorkspace).
+		const workbench = vscode.workspace.getConfiguration("workbench");
+		const windowConfig = vscode.workspace.getConfiguration("window");
+		const themeSettings: Record<string, unknown> = {};
+		const colorTheme = workbench.get<string>("colorTheme");
+		const preferredDark = workbench.get<string>("preferredDarkColorTheme");
+		const preferredLight = workbench.get<string>("preferredLightColorTheme");
+		const carried: readonly (readonly [string, unknown])[] = [
+			["workbench.colorTheme", colorTheme],
+			["workbench.preferredDarkColorTheme", preferredDark],
+			["workbench.preferredLightColorTheme", preferredLight],
+			["window.autoDetectColorScheme", windowConfig.get<boolean>("autoDetectColorScheme")],
+		];
+		for (const [key, value] of carried) {
+			if (value !== undefined) themeSettings[key] = value;
+		}
+		await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(serializeCaretAgentsWorkspace(dir.fsPath, themeSettings)));
+		await syncAgentsWindowTheme(dir);
 		return uri;
 	}
 
 	private async openCaretAgentsWindow(): Promise<void> {
 		const uri = await this.writeCaretAgentsWorkspace();
-		const mode = agentsWindowOpenMode({
-			inAgentsWindow: this.inAgentsWindow(),
-			hasWorkspaceFolder: Boolean(vscode.workspace.workspaceFolders?.length),
-		});
-		if (mode === "shell") {
-			this.ensureAgentsPanel();
-			return;
-		}
-		await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: mode === "new-window" });
+		// Only reached for an explicit "new window" request; the in-window path is
+		// `revealAgentSurface`, so there is no mode to pick here any more.
+		await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: true });
 	}
 
 	private async rememberIdeFolder(): Promise<void> {
@@ -1026,7 +1010,7 @@ export class CaretTaskViewProvider {
 		this.setState({ type: "workbench_mode", mode });
 		const switched = switchWorkbenchMode({ from, to: mode, ideLayout: this.#ideLayout });
 		this.#ideLayout = switched.ideLayout;
-		if (mode === "agents") this.ensureAgentsPanel();
+		if (mode === "agents") await this.revealAgentSurface();
 		await runWorkbenchCommands((command, ...args) => vscode.commands.executeCommand(command, ...args), switched.commands);
 		// Appearance is cosmetic and its workspace-scoped writes can stall (for
 		// example while the settings file is being written, or before a folder
@@ -1124,6 +1108,72 @@ export class CaretTaskViewProvider {
 			void vscode.window.showInformationMessage(updated.pinned ? `Pinned ${updated.name}` : `Unpinned ${updated.name}`);
 			await this.refresh();
 		});
+	}
+
+	/**
+	 * Assign which OMP model does which job (roles), or clear a role back to
+	 * OMP's own default.
+	 *
+	 * Roles are a host-side OMP concern, so this is a Caret command rather than a
+	 * composer chip: in the Agents window the composer renders only the `models`
+	 * option group (the bridge projects it into the dedicated model picker), so a
+	 * second inline picker would need a desktop patch. The command reaches the
+	 * same host surface the TUI carousel does and reports what OMP confirmed.
+	 */
+	async configureModelRoles(): Promise<void> {
+		try {
+			const client = await this.ensureClient();
+			const log = (message: string) => this.#log.info(message);
+			const roles = await fetchOmpModelRoles(() => this.ensureClient(), log);
+			if (roles.roles.length === 0) {
+				void vscode.window.showInformationMessage("OMP reports no configured model roles. Set them in OMP's own /models picker first.");
+				return;
+			}
+			const role = await vscode.window.showQuickPick(
+				roles.roles.map(entry => ({
+					label: modelRoleLabel(entry.role),
+					description: entry.modelId,
+					detail: `role: ${entry.role} · from ${entry.source}`,
+					role: entry.role,
+				})),
+				{ title: "OMP model roles", placeHolder: "Which role to change" },
+			);
+			if (!role) return;
+			const snapshot = await fetchGlobalOmpModelSnapshot(() => this.ensureClient(), log);
+			if (snapshot.models.length === 0) {
+				void vscode.window.showInformationMessage("OMP advertised no models, so there is nothing to assign.");
+				return;
+			}
+			const picked = await vscode.window.showQuickPick(
+				[
+					{ label: "OMP default", description: "Clear this role so OMP resolves it itself", selector: null as string | null },
+					...snapshot.models.map(model => ({
+						label: model.label,
+						description: `${model.provider ? `${model.provider}/` : ""}${model.id}${model.available ? "" : " (unavailable)"}`,
+						selector: (model.provider ? `${model.provider}/${model.id}` : model.id) as string | null,
+					})),
+				],
+				{ title: `Model for the ${modelRoleLabel(role.role)} role`, placeHolder: "Pick a model, or clear the role" },
+			);
+			if (!picked) return;
+			const sessions = await client.listSessions();
+			const probe = sessions.find(candidate => !candidate.archived) ?? sessions[0];
+			if (!probe) {
+				void vscode.window.showInformationMessage("Caret needs at least one task before it can change an OMP setting.");
+				return;
+			}
+			const session = probe.status === "running" ? probe : await client.startSession(probe.id);
+			const result = await client.sendCommand(session.id, setModelRoleRequest(session, role.role, picked.selector, commandId()));
+			if (result.status === "failed" || result.status === "not_dispatched") {
+				void vscode.window.showWarningMessage(`Caret could not set the ${modelRoleLabel(role.role)} role: ${result.error ?? result.status}`);
+				return;
+			}
+			void vscode.window.showInformationMessage(picked.selector === null
+				? `Cleared the ${modelRoleLabel(role.role)} role; OMP resolves it itself again.`
+				: `The ${modelRoleLabel(role.role)} role now uses ${picked.selector}.`);
+		} catch (error) {
+			void vscode.window.showWarningMessage(`Caret could not change the model roles: ${errorMessage(error)}`);
+		}
 	}
 
 	/** Rename the project record; the folder on disk is never touched. */
@@ -1305,7 +1355,6 @@ export class CaretTaskViewProvider {
 
 	private post(message: unknown): void {
 		const targets = this.#views.targets().map(view => view.webview);
-		if (this.#panel) targets.push(this.#panel.webview);
 		for (const target of targets) void target.postMessage(message);
 	}
 
@@ -1473,10 +1522,9 @@ export class CaretTaskViewProvider {
 		// Window-scoped writes throw when no folder is open (early startup, or a
 		// window opened without a workspace). The title is cosmetic, so a failure
 		// must not become an unhandled rejection on every snapshot.
-		// The Agents shell can open with no folder at all, and there the
-		// workspace write always fails: the window then kept the raw shell file
-		// name ("window.caret-shell") in its title bar, which reads as an
-		// internal Code-OSS document instead of the product. The global scope is
+		// A window can open with no folder at all, and there the workspace write
+		// always fails: the title then stays whatever the base set, which reads as
+		// an internal Code-OSS window instead of the product. The global scope is
 		// the same fallback the chrome settings above already use.
 		const windowConfig = vscode.workspace.getConfiguration("window");
 		void windowConfig
@@ -2682,7 +2730,7 @@ export class CaretTaskViewProvider {
 
 	async openCaretSettings(): Promise<void> {
 		await this.setWorkbenchMode("agents");
-		this.ensureAgentsPanel();
+		await this.revealAgentSurface();
 		this.post({ type: "open_settings", section: "Devices/connections" });
 	}
 
@@ -3723,15 +3771,13 @@ export class CaretTaskViewProvider {
 		// opens a view's container as part of focusing it. `caretDock` is the
 		// container id, so the earlier `caretDock.focus` was never a real command:
 		// it rejected into a silent catch and the composer was never brought
-		// forward after "add selection" or "inline edit".
+		// forward after "add selection" or "inline edit". The dock is the only
+		// Caret view now, so there is one command to try and no fallback chain.
 		let focused = false;
-		for (const command of ["caretComposerDock.focus", "caretComposer.focus"]) {
-			try {
-				await vscode.commands.executeCommand(command);
-				focused = true;
-				break;
-			} catch { /* Try the other Caret view before giving up. */ }
-		}
+		try {
+			await vscode.commands.executeCommand("caretComposerDock.focus");
+			focused = true;
+		} catch { /* The dock is not registered in this window (restricted mode, or no provider). */ }
 		if (!focused) this.#log.debug("no Caret view could be focused; the draft still updated");
 		if (this.#views.size > 0 && this.#pendingComposerFocus.claim()) this.post({ type: "focus_composer" });
 	}
@@ -3979,11 +4025,77 @@ function terminalSelectionOf(terminal: vscode.Terminal): string {
 	return (terminal as vscode.Terminal & { readonly selection?: string }).selection ?? "";
 }
 
+/** The settings that decide which theme the Agents window paints. */
+const AGENTS_WINDOW_THEME_SETTING_KEYS = [
+	"workbench.colorTheme",
+	"workbench.preferredDarkColorTheme",
+	"workbench.preferredLightColorTheme",
+	"window.autoDetectColorScheme",
+] as const;
+
+/**
+ * Keep the Agents window's own profile in step with the theme chosen in this window.
+ *
+ * The Agents window is a separate workbench on upstream's internal `agents` profile, and that
+ * profile starts with no settings file at all, so the theme the user picked here would not reach
+ * it. Carrying the keys is only half of it: the window also disables every extension that ships
+ * code (`canExecuteOnSessionsWindow`), which is every theme with a settings section of its own
+ * (Catppuccin contributes `configuration` next to `themes`). Its declarative theme is then never
+ * registered and `workbench.colorTheme` quietly resolves to the stock theme — the two windows
+ * disagreeing on colour is exactly this, not a missing extension.
+ *
+ * `extensions.supportAgentsWindow` is upstream's override for that gate, and it is
+ * `ConfigurationScope.APPLICATION`, so it has to be written at user scope. This profile's settings
+ * file is the only user scope the window has, and it carries the theme keys too so both halves of
+ * "the Agents window follows the theme I chose" land in one place.
+ */
+async function syncAgentsWindowTheme(globalStorage: vscode.Uri): Promise<void> {
+	// A window that is already the Agents window has nothing to hand over, and its globalStorage is
+	// the profile's own - the path below would resolve inside it instead of to it.
+	if (isAgentsWindow(vscode.workspace.workspaceFile)) return;
+	const workbench = vscode.workspace.getConfiguration("workbench");
+	const colorTheme = workbench.get<string>("colorTheme");
+	const preferredDark = workbench.get<string>("preferredDarkColorTheme");
+	const preferredLight = workbench.get<string>("preferredLightColorTheme");
+	const settings: Record<string, unknown> = {
+		"workbench.colorTheme": colorTheme,
+		"workbench.preferredDarkColorTheme": preferredDark,
+		"workbench.preferredLightColorTheme": preferredLight,
+		"window.autoDetectColorScheme": vscode.workspace.getConfiguration("window").get<boolean>("autoDetectColorScheme"),
+		// The reference's sidebar groups sessions by project and has no empty "Chats" group,
+		// so this window does not draw one (plan chrome decision). It is a settings-only
+		// change: the group's rows have nothing to show in a window whose chats all belong
+		// to a project.
+		"sessions.list.showEmptyDefaultGroups": false,
+	};
+	const support: Record<string, boolean> = {
+		...(vscode.workspace.getConfiguration("extensions").get<Record<string, boolean>>("supportAgentsWindow") ?? {}),
+	};
+	for (const id of themeProvidingExtensionIds([colorTheme, preferredDark, preferredLight], vscode.extensions.all)) support[id] = true;
+	if (Object.keys(support).length === 0) return;
+	const file = vscode.Uri.file(resolve(globalStorage.fsPath, "..", "..", AGENTS_WINDOW_WORKSPACE));
+	let existing: string | undefined;
+	try {
+		existing = new TextDecoder().decode(await vscode.workspace.fs.readFile(file));
+	} catch {
+		existing = undefined;
+	}
+	await vscode.workspace.fs.writeFile(file, new TextEncoder().encode(mergeAgentsWindowWorkspaceSettings(existing, settings, support)));
+}
+
 export function activate(context: vscode.ExtensionContext): void {
 	if (!vscode.workspace.isTrusted) {
 		activateRestrictedWorkspace(vscode, context, () => activate(context));
 		return;
 	}
+	// The Agents window is a second workbench on its own profile, so nothing here reaches it by
+	// itself: not the theme, and not the permission the theme's own extension needs (see
+	// syncAgentsWindowTheme). Doing it at activation - and again whenever the choice changes -
+	// means the window is right whichever route opened it.
+	void syncAgentsWindowTheme(context.globalStorageUri);
+	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
+		if (AGENTS_WINDOW_THEME_SETTING_KEYS.some(key => event.affectsConfiguration(key))) void syncAgentsWindowTheme(context.globalStorageUri);
+	}));
 	const provider = new CaretTaskViewProvider(context);
 	// Caret is the only chat session provider in this window: the native
 	// Agents window renders these sessions instead of a Caret-drawn shell. The
@@ -3994,11 +4106,6 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		provider,
 		chatSessions,
-		vscode.window.registerCustomEditorProvider("caret.agentsShell", new CaretAgentsShellEditor(provider), {
-			webviewOptions: { retainContextWhenHidden: true },
-			supportsMultipleEditorsPerDocument: false,
-		}),
-		vscode.window.registerWebviewViewProvider("caretComposer", provider, { webviewOptions: { retainContextWhenHidden: true } }),
 		vscode.window.registerWebviewViewProvider("caretComposerDock", provider, { webviewOptions: { retainContextWhenHidden: true } }),
 		// The chrome palette follows the active theme kind (Cursor ships light
 		// and dark), so repaint the dock when the user switches themes.
@@ -4010,12 +4117,16 @@ export function activate(context: vscode.ExtensionContext): void {
 		// pre-edit text for a Caret edit that is still pending.
 		vscode.workspace.registerTextDocumentContentProvider(AGENT_EDIT_DIFF_SCHEME, provider.agentEditBeforeProvider()),
 		vscode.commands.registerCommand("caret.openComposer", () => provider.focusComposer()),
-		vscode.commands.registerCommand("caret.openTask", () => provider.openAgentsWindow()),
+		// One command opens the Agents window. This used to be two
+		// (`caret.openTask` and `caret.showAgents`) with the same handler and
+		// different titles, so the palette offered the same destination twice.
 		vscode.commands.registerCommand("caret.showAgents", () => provider.openAgentsWindow()),
 		vscode.commands.registerCommand("caret.showIde", () => provider.showIde()),
 		vscode.commands.registerCommand("caret.newTask", () => provider.newTaskFlow()),
 		vscode.commands.registerCommand("caret.openFolder", () => provider.openFolderFlow()),
+		// Which OMP model does which job: a host concern, so it is a command rather
 		// than a composer chip (the Agents window composer renders only the model picker).
+		vscode.commands.registerCommand("caret.models.configureRoles", () => provider.configureModelRoles()),
 		// The sidebar's project rows call these with the folder they were right-clicked on:
 		// the row is a workspace folder, the operations are the host's project record.
 		vscode.commands.registerCommand("caret.project.setPinned", (folderPath?: string) => provider.setProjectPinned(folderPath)),
@@ -4068,16 +4179,6 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.languages.registerCodeLensProvider({ scheme: "file" }, provider.agentEditLensesProvider()),
 	);
 	provider.applyStartupView();
-}
-
-class CaretAgentsShellEditor implements vscode.CustomReadonlyEditorProvider {
-	constructor(private readonly provider: CaretTaskViewProvider) {}
-	async openCustomDocument(uri: vscode.Uri): Promise<vscode.CustomDocument> {
-		return { uri, dispose() {} };
-	}
-	async resolveCustomEditor(_document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel): Promise<void> {
-		this.provider.attachAgentsPanel(webviewPanel);
-	}
 }
 
 export function deactivate(): void { }

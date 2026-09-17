@@ -16,8 +16,8 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { DEFAULT_MOTION_TOKENS, MOTION_CURVE } from "../apps/macos/src/ui-a11y.ts";
-import { TASK_WEBVIEW_CSS } from "../apps/macos/src/webview.ts";
 import {
+	CARET_TOKENS,
 	CARET_HC_DARK_WORKBENCH_COLORS,
 	CARET_LIGHT_COLORBLIND_WORKBENCH_COLORS,
 	CARET_LIGHT_WORKBENCH_COLORS,
@@ -155,9 +155,9 @@ function referenceTokens(text: string): { scale: Map<string, string>; component:
 	return { scale, component };
 }
 
-/** Value of a Caret token as declared in the shell's CSS. */
+/** Value of a Caret token as declared in `caret-theme.ts`. */
 function caretToken(token: string): string | undefined {
-	return TASK_WEBVIEW_CSS.match(new RegExp(`--${token}:\\s*([^;]+);`))?.[1]?.trim();
+	return CARET_TOKENS[token];
 }
 
 /** Follow `var(--x)` chains in the reference tokens until a literal value
@@ -299,11 +299,13 @@ if (!existsSync(WORKBENCH_BUNDLE)) {
 	for (const [name, value] of scale) {
 		if (/^cursor-spacing-(?!ne-)/.test(name)) spacingValues.add(value.toLowerCase());
 	}
-	for (const match of TASK_WEBVIEW_CSS.matchAll(/--caret-space-(\d+):\s*([\d.]+px);/g)) {
+	for (const [token, value] of Object.entries(CARET_TOKENS)) {
+		const match = token.match(/^caret-space-(\d+)$/);
+		if (!match || !/^[\d.]+px$/.test(value)) continue;
 		shellChecked += 1;
-		if (!spacingValues.has(match[2]!.toLowerCase())) {
-			shellWrong.push(`caret-space-${match[1]} = ${match[2]}, not a value in the reference's spacing scale`);
-		} else shellOk.push(`caret-space-${match[1]} = ${match[2]} (in the reference's spacing scale)`);
+		if (!spacingValues.has(value.toLowerCase())) {
+			shellWrong.push(`caret-space-${match[1]} = ${value}, not a value in the reference's spacing scale`);
+		} else shellOk.push(`caret-space-${match[1]} = ${value} (in the reference's spacing scale)`);
 	}
 
 	if (shellWrong.length === 0) {

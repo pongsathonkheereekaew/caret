@@ -7,7 +7,7 @@
     },
     {
       "file": "0003-caret-agents-window-proposals.patch",
-      "sha256": "f63408ce3ee5b455dff9240a8d6783cfe11f833c95e178a59088cf9912ef1728"
+      "sha256": "f329167d882638001829d288902583c0c37471a0b6f0502ffea9a0a3e78ada8c"
     },
     {
       "file": "0005-caret-remove-copilot-sessions.patch",
@@ -35,7 +35,7 @@
     },
     {
       "file": "0011-caret-sessions-model-picker.patch",
-      "sha256": "e931bc428daa641e7dd08f2ec52c28aa76ebccead8b040017e44d41d71e5e49a"
+      "sha256": "d2a737873d457f04fc49c1e33f8dd6aa326ff1e925b4d67bc9ec7647a3d07e49"
     },
     {
       "file": "0012-caret-remove-copilot-status-entry.patch",
@@ -75,11 +75,11 @@
     },
     {
       "file": "0021-caret-agent-home-utility.patch",
-      "sha256": "abeb554e30173345f7542dd8d0dbe404988be4c47026e5d6c2475b4f6caf9264"
+      "sha256": "bf2e341ab0f40245bc01c50c0488fb2fe793d9b9b0debcfc1907de939a82ef34"
     },
     {
       "file": "0022-caret-agent-home-chrome-navigation.patch",
-      "sha256": "c808fccfda5ee88952bd408c1421954f35bcf3f09211a6125eef350f73c90cdf"
+      "sha256": "27401d1c4b3fcc7e84526787ed44e117a63429bdbd377ad8fecba4f403a22eb0"
     },
     {
       "file": "0023-caret-agent-home-composer-starters.patch",
@@ -87,7 +87,7 @@
     },
     {
       "file": "0024-caret-agent-home-context-row.patch",
-      "sha256": "64ae402719c59eaa6aa77a3de545b0b16895db0462f2d931f90119ff74ccf7e1"
+      "sha256": "46aa13b8bb6fe38e21cb257d92e05704ea63ebbb4caf5372d2f5e5b683c074ee"
     },
     {
       "file": "0025-caret-agents-titlebar-regions.patch",
@@ -98,15 +98,40 @@
       "sha256": "4c7e1575442c015aa925fa0c7c3177e4f39d4d28c621a620b2de98ce0a6ebbae"
     },
     {
+      "file": "0027-caret-agents-open-new-tab-menu.patch",
+      "sha256": "9d726f85c87b69e06153eb22e25b081bee2ae51467728880c837a9dc5097e4e3"
+    },
+    {
+      "file": "0028-caret-inline-react-in-client-bundles.patch",
+      "sha256": "7d4f607c75710bdffbb0769f04578334fe8d29a9c65292427ffcda720915d376"
+    },
+    {
+      "file": "0029-caret-agents-no-account-widget.patch",
+      "sha256": "25ca732129228521fcfdc7c620e889364d2d158992d9f4d1e1d0072245cce558"
+    },
+    {
+      "file": "0030-caret-jsx-for-react-surfaces.patch",
+      "sha256": "ee239984181b72d67f6b327059125355c233e3f616952bdba0f48e1e277bf033"
+    },
+    {
       "file": "0031-caret-agents-no-remote-connections.patch",
       "sha256": "98045408742ae38b5e50815c2b2be5e500b5fb904687f557f7d9a7065c639f8b"
     },
     {
       "file": "0032-caret-no-base-agent-host.patch",
       "sha256": "82bc17be328658b8c7cdc5607718764b5bd1b572763c0e88007041a5ce65fd84"
+    },
+    {
+      "file": "0033-caret-agents-no-copilot-composer-controls.patch",
+      "sha256": "e6dc814b8c05ccb5ce3e820f44539768e6ebdbf9a89e5fdb15f3b87a1e2bf562"
+    },
+    {
+      "file": "0034-caret-drop-agent-workbench-shell.patch",
+      "sha256": "f69b399c4e2aee9280982d2f9f05f618a57a71227e297b62670a1335579b2e32"
     }
   ],
   "removals": [
+    "src/vs/workbench/contrib/agentWorkbench",
     "src/vs/platform/agentHost/node/copilot",
     "src/vs/platform/agentHost/node/claude",
     "src/vs/platform/agentHost/node/codex",

@@ -1,0 +1,32 @@
+{
+  "slice": "R3 — the Agents sidebar navigation is a React surface",
+  "capturedAt": "2026-09-16T00:55:00+07:00",
+  "branch": "main",
+  "method": "desktop source change + patch 0022 re-cut + npm run typecheck-client + node build/next/index.ts bundle --minify + copy out-vscode into the app + build-caret.ts --package + CDP read of the running Agents window + bun test apps/macos/test",
+  "problem": {
+    "brief": "R3 was expected to be smaller than the plan assumed because the sidebar sections already exist",
+    "finding": "true, but not because sections were missing: agentHomeNav.ts (created by patch 0022) already carried the reference's wording, order and commands. What it was, was 308 lines of hand-built DOM interleaved with the wiring, which is the thing R1/R2 removed from the Apps panel."
+  },
+  "change": {
+    "split": "agentHomeNav.ts keeps the model and the wiring (which rows exist, what each runs, the filter state, the workspace folders, the delegated project menu) and mounts a React surface; agentHomeNavReact.ts owns the markup.",
+    "seam": "handlers onRow(id) / onAction(id) / onFilterInput(sectionId, query) with a Map<string, () => void> in the pane, so the React surface never holds a command id it could run itself.",
+    "jsx": "createElement, not JSX: the pinned base's src/tsconfig.json sets no jsx option.",
+    "classNames": "unchanged, so media/agentHomeNav.css, the Caret token layer and check:cursor-parity see what they saw before.",
+    "patch": "0022-caret-agent-home-chrome-navigation.patch re-cut (digest fd9175913d4f4b56ef5dcf7d4969065868fc9715e2a21bddb8e254b47afe4d52) because it creates agentHomeNav.ts and now creates agentHomeNavReact.ts too."
+  },
+  "verified": {
+    "typecheckClient": "cd desktop && npm run typecheck-client -> 0 errors",
+    "bundle": "the app's sessions.desktop.main.js contains the React surface's own literals ('caret-agent-home-nav-row selected', 'caret-agent-home-nav-section-action') and no longer contains the hand-built row factory ('button.caret-agent-home-nav-row')",
+    "sidebarOnScreen": "CDP: .caret-agent-home-nav present; rows newChat/search/automations/customize with the reference labels, New Chat selected with aria-current=page; Projects with the New Project action and no entries; Repositories with Filter Repositories (aria-expanded=false) and Add Repository plus the empty note 'No repository open'",
+    "filterOnScreen": "CDP: pressing Filter Repositories reveals input.caret-agent-home-nav-filter with placeholder 'Filter repositories'",
+    "prepareDesktop": "bun scripts/prepare-desktop.ts -> 'Caret desktop patches applied (27 patches, 18 removals)'",
+    "patchSetApplies": "bun test apps/macos/test/desktop-patch-set.test.ts -> applies every patch in manifest order onto the pinned base, tree equals the checkout",
+    "suites": "bun test apps/macos/test -> 593 pass / 0 fail",
+    "rePinnedTest": "apps/macos/test/ide-native-workbench.test.ts now pins the model rows instead of the old renderRow calls, pins export function mountAgentHomeNav( and the pane's runs map, and expects six diff sections in 0022"
+  },
+  "notVerified": [
+    "A window with a workspace folder open: this profile has none, so the repository rows, the filter narrowing real rows and the 'No matching repository' note were not exercised with data (the toggle and input were).",
+    "Drag-reordering the project groups in the session list below the navigation.",
+    "R4 (whether any Untitled UI component is worth restyling onto CARET_TOKENS) is still not started."
+  ]
+}

@@ -24,6 +24,31 @@ export const CARET_CHAT_SESSION_SCHEME = "caret";
  */
 export const CARET_CHAT_SESSION_TYPE = "caret.omp";
 export const CARET_CHAT_PARTICIPANT_ID = "caret.omp";
+/**
+ * Vendor Caret registers its language models under (`lm.registerLanguageModelChatProvider`).
+ *
+ * The extension host builds a model identifier as `<vendor>/<model id>` and
+ * resolves a request's model by that exact string, so the workbench pickers that
+ * project the same OMP catalogue have to hand back the same string: patch 0010
+ * (sessions bridge) and patch 0011 (chat-widget picker) both prefix with this
+ * vendor, and {@link ompModelIdFromPickId} turns a pick back into the OMP id the
+ * host's `set_model` expects. The value must never drift from those patches.
+ */
+export const CARET_OMP_MODEL_VENDOR = "caret-omp";
+
+/** Picker/LM identifier for one OMP model: `<vendor>/<model id>`. */
+export function ompModelPickId(modelId: string): string {
+	return `${CARET_OMP_MODEL_VENDOR}/${modelId}`;
+}
+
+/**
+ * The OMP model id behind a pick, or the value unchanged when it carries no
+ * vendor prefix (option-group items and older picks are bare ids).
+ */
+export function ompModelIdFromPickId(value: string): string {
+	const prefix = `${CARET_OMP_MODEL_VENDOR}/`;
+	return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
 
 /** Semantic session state; the registration layer maps it to `vscode.ChatSessionStatus`. */
 export type SessionState = "in-progress" | "completed" | "failed";
@@ -151,6 +176,16 @@ export interface OmpAdvertisedModel {
 	readonly label: string;
 	readonly available: boolean;
 	readonly reason?: string;
+	/** OMP's advertised input window, when it reports one (tokens). */
+	readonly contextWindow?: number;
+	/** OMP's advertised output budget, when it reports one (tokens). */
+	readonly maxOutputTokens?: number;
+}
+
+/** The session's context occupancy as OMP reports it in `get_state.contextUsage`. */
+export interface OmpContextUsage {
+	readonly tokens: number;
+	readonly contextWindow?: number;
 }
 
 /** Minimal login-provider shape needed to mark `needs_auth` honestly. */
@@ -222,14 +257,40 @@ export function normalizeOmpModels(value: unknown): OmpAdvertisedModel[] {
 		const provider = nonEmpty(item.provider);
 		const label = nonEmpty(item.label) ?? nonEmpty(item.name) ?? (provider ? `${provider} / ${id}` : id);
 		const reason = nonEmpty(item.reason);
+		// Size numbers are advertised, never derived: a model that does not report a
+		// window stays unknown (0 = neutral unknown downstream) instead of guessing.
+		const contextWindow = positiveNumber(item.contextWindow);
+		const maxOutputTokens = positiveNumber(item.maxTokens) ?? positiveNumber(item.maxOutputTokens);
 		return [{
 			id,
 			...(provider ? { provider } : {}),
 			label,
 			available: item.available !== false,
 			...(reason ? { reason } : {}),
+			...(contextWindow !== undefined ? { contextWindow } : {}),
+			...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}),
 		}];
 	});
+}
+
+/** A positive finite number, or undefined for anything else (never NaN/Infinity/0). */
+function positiveNumber(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+/**
+ * Read OMP's current context occupancy from a `get_state` ack/result
+ * (`data.contextUsage = { tokens, contextWindow, percent }`). Returns undefined
+ * when OMP does not report it rather than inventing a size.
+ */
+export function contextUsageFromOmpState(value: unknown): OmpContextUsage | undefined {
+	const data = asRecord(unwrapData(value));
+	const usage = asRecord(data?.contextUsage);
+	if (!usage) return undefined;
+	const tokens = typeof usage.tokens === "number" && Number.isFinite(usage.tokens) && usage.tokens >= 0 ? usage.tokens : undefined;
+	if (tokens === undefined) return undefined;
+	const contextWindow = positiveNumber(usage.contextWindow);
+	return { tokens, ...(contextWindow !== undefined ? { contextWindow } : {}) };
 }
 
 /**
@@ -310,6 +371,116 @@ export function getAvailableModelsRequest(session: Session, commandId: string): 
 	return { commandId, incarnation: session.incarnation, command: "get_available_models", payload: {} };
 }
 
+export function getModelRolesRequest(session: Session, commandId: string): CommandRequest {
+	return { commandId, incarnation: session.incarnation, command: "caret_get_model_roles", payload: {} };
+}
+
+export function setModelRoleRequest(session: Session, role: string, modelId: string | null, commandId: string): CommandRequest {
+	return { commandId, incarnation: session.incarnation, command: "caret_set_model_role", payload: { role, modelId } };
+}
+
+/** One configured model role as OMP reports it: which model does which job. */
+export interface OmpModelRole {
+	readonly role: string;
+	/** `provider/model` selector, or `@otherRole` when the role aliases another. */
+	readonly modelId: string;
+	/** Layer the effective value came from, for an honest provenance display. */
+	readonly source: string;
+}
+
+/** Roles plus the order the model switcher steps through, as OMP resolves them. */
+export interface OmpModelRoles {
+	readonly cycleOrder: readonly string[];
+	readonly roles: readonly OmpModelRole[];
+	readonly storage?: string;
+}
+
+/**
+ * Normalize a `caret_get_model_roles` ack/result. Roles without an id are
+ * dropped rather than invented, and `cycleOrder` keeps only entries that also
+ * resolved to a role so the picker cannot step onto an empty slot.
+ */
+export function normalizeOmpModelRoles(value: unknown): OmpModelRoles {
+	const data = asRecord(unwrapData(value));
+	const rawRoles = Array.isArray(data?.roles) ? data.roles : [];
+	const roles = rawRoles.flatMap((entry): OmpModelRole[] => {
+		const item = asRecord(entry);
+		const role = nonEmpty(item?.role);
+		const modelId = nonEmpty(item?.modelId);
+		if (!role || !modelId) return [];
+		return [{ role, modelId, source: nonEmpty(item?.source) ?? "default" }];
+	});
+	const known = new Set(roles.map(role => role.role));
+	const rawOrder = Array.isArray(data?.cycleOrder) ? data.cycleOrder : [];
+	const cycleOrder = rawOrder.flatMap(entry => {
+		const role = nonEmpty(entry);
+		return role && known.has(role) ? [role] : [];
+	});
+	const storage = nonEmpty(data?.storage);
+	return { cycleOrder, roles, ...(storage ? { storage } : {}) };
+}
+
+/**
+ * The display label for a role, matching the vocabulary OMP's own carousel uses
+ * (`MODEL_ROLES` in the OMP source: smol is "Fast", slow is "Thinking", plan is
+ * "Architect"). An unknown custom role shows its own id rather than a guess.
+ */
+const MODEL_ROLE_LABELS: Record<string, string> = {
+	default: "Default",
+	smol: "Fast",
+	slow: "Thinking",
+	vision: "Vision",
+	plan: "Architect",
+	commit: "Commit",
+	tiny: "Tiny",
+	task: "Subtask",
+	advisor: "Advisor",
+};
+
+export function modelRoleLabel(role: string): string {
+	return MODEL_ROLE_LABELS[role] ?? role;
+}
+
+/**
+ * Name the roles each catalog model holds, keyed by `provider/modelId`.
+ *
+ * A role selector may be another role (`@slow`) rather than a concrete model, so
+ * an alias is resolved through the same map before grouping — otherwise the
+ * aliased role would silently vanish and the user would see a role that exists in
+ * OMP but nowhere in Caret. A role that resolves to nothing is dropped instead of
+ * listed against a model it does not own.
+ *
+ * The key is provider-qualified because a bare id is ambiguous: OMP's catalog can
+ * carry the same short id under two providers, and matching on the id alone would
+ * annotate the wrong row.
+ */
+export function rolesByModelSelector(roles: OmpModelRoles): ReadonlyMap<string, readonly string[]> {
+	const byRole = new Map(roles.roles.map(role => [role.role, role.modelId]));
+	const grouped = new Map<string, string[]>();
+	for (const role of roles.roles) {
+		let selector = role.modelId;
+		// Follow `@role` aliases, bounded by the alias count so a cycle terminates.
+		for (let hop = 0; selector.startsWith("@") && hop < roles.roles.length; hop++) {
+			selector = byRole.get(selector.slice(1)) ?? "";
+		}
+		if (!selector || selector.startsWith("@")) continue;
+		const labels = grouped.get(selector);
+		if (labels) labels.push(modelRoleLabel(role.role));
+		else grouped.set(selector, [modelRoleLabel(role.role)]);
+	}
+	return grouped;
+}
+
+/**
+ * Build one picker group per configured role, so a role's model can be chosen
+ * where models are chosen.
+ *
+ * Each item's id is `role\u0000modelSelector`, because the write-back handler
+ * receives only the group id and the picked value: encoding both lets a single
+ * handler assign any role without guessing which group produced the value. The
+ * leading "clear" item is what makes an assignment removable, which is how a role
+ * returns to OMP's own default resolution instead of being pinned forever.
+ */
 export function getOmpStateRequest(session: Session, commandId: string): CommandRequest {
 	return { commandId, incarnation: session.incarnation, command: "get_state", payload: {} };
 }

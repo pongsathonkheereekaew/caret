@@ -8,8 +8,10 @@ import {
 	CARET_LIGHT_WORKBENCH_COLORS,
 	CARET_MIDNIGHT_ANCHORS,
 	CARET_MIDNIGHT_WORKBENCH_COLORS,
+	CARET_TOKENS,
 	CARET_WORKBENCH_COLORS,
 	VSCODE_COLOR_THEME_KIND,
+	caretTokenCss,
 	caretThemeKindFromVscode,
 	caretThemeKindFor,
 	caretWorkbenchColors,
@@ -54,8 +56,9 @@ describe("caret workbench palette", () => {
 	});
 
 	it("covers every variable the agent webview reads", () => {
-		// Mirrors the `--caret-*` token layer in src/webview.ts. A missing key
-		// means that surface keeps the engine colour while the rest changes.
+		// Mirrors the `--caret-*` token layer Caret declares in CARET_TOKENS. A
+		// missing key means that surface keeps the engine colour while the rest
+		// changes.
 		const required = [
 			"editor.background",            // --caret-bg
 			"sideBar.background",           // --caret-panel
@@ -238,5 +241,48 @@ describe("caret workbench palette", () => {
 		] as const) {
 			expect(`${kind}:${palette["statusBar.inactiveBackground"]}`).toBe(`${kind}:${palette["statusBar.background"]}`);
 		}
+	});
+});
+
+describe("Caret's own token scale", () => {
+	/*
+	 * These tokens used to live in the retired agent shell's stylesheet, where
+	 * the only way to read one was to regex-match a webview's CSS string. The
+	 * shell is on its way out; the scale is not, so it moved here and these
+	 * tests pin the properties a caller now depends on.
+	 */
+	it("declares every token the workbench palette is mapped onto", () => {
+		// The palette above is applied through workbench.colorCustomizations, so
+		// each surface role has to name a real token or the override lands on a
+		// variable nothing declares.
+		const mapped = [
+			"caret-bg", "caret-panel", "caret-panel-raised", "caret-input", "caret-text",
+			"caret-muted", "caret-border", "caret-control-border", "caret-focus", "caret-accent",
+			"caret-accent-text", "caret-link", "caret-selected-bg", "caret-selected-fg", "caret-hover-bg",
+		];
+		for (const token of mapped) expect(`${token}:${CARET_TOKENS[token] ?? "missing"}`).not.toEndWith(":missing");
+	});
+
+	it("declares the full spacing and radius steps the reference scale was measured for", () => {
+		for (const step of [4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 40, 44, 48]) {
+			expect(`${step}:${CARET_TOKENS[`caret-space-${step}`]}`).toBe(`${step}:${step}px`);
+		}
+		for (const radius of ["xs", "sm", "md", "xl", "2xl", "3xl", "4xl", "full"]) {
+			expect(`${radius}:${CARET_TOKENS[`caret-radius-${radius}`] ?? "missing"}`).not.toEndWith(":missing");
+		}
+	});
+
+	it("renders the declaration block from the same map, in order", () => {
+		// A renderer that hand-maintains its own block would drift from the map
+		// the parity gate reads, which is exactly the failure the move fixes.
+		const css = caretTokenCss();
+		expect(css.startsWith(":root {")).toBe(true);
+		expect(css.endsWith("}")).toBe(true);
+		expect(css).toContain("color-scheme: light dark;");
+		const names = [...css.matchAll(/--([a-z0-9-]+):/g)].map(match => match[1]!);
+		expect(names).toEqual(Object.keys(CARET_TOKENS));
+		// Every token appears exactly once, so no later declaration silently
+		// overrides an earlier one.
+		expect(new Set(names).size).toBe(names.length);
 	});
 });

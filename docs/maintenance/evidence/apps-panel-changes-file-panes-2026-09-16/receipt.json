@@ -1,0 +1,76 @@
+{
+  "slice": "agent-home-apps-panel",
+  "date": "2026-09-16",
+  "queueItem": "3b",
+  "reference": "Cursor 3.20.17 right-hand Apps panel (docs/maintenance/CARET-PLAN.md section 3)",
+  "runtime": {
+    "window": "Agents",
+    "app": "VSCode-darwin-arm64/Caret.app (ad-hoc signed by scripts/build-caret.ts --package)",
+    "launch": "open -n VSCode-darwin-arm64/Caret.app --args --password-store=basic --use-inmemory-secretstorage --remote-debugging-port=9343 --agents",
+    "bundleLoop": "cd desktop && node build/next/index.ts bundle --minify, cp -R desktop/out-vscode/. <app>/Contents/Resources/app/out/, CARET_HOST_NODE=... bun scripts/build-caret.ts --package",
+    "drivers": "CDP (renderer state + tab/pane geometry) and Computer Use @oai/sky (real clicks, AX tree)"
+  },
+  "problem": [
+    "changes and file were editor-group tabs: the strip ran workbench.action.agentSessions.newChangesTab and workbench.action.quickOpen, so their surface landed in the editor group outside the panel.",
+    "In an empty window both commands resolve without opening anything, so the two entries looked dead and the rail had nothing to mark for them."
+  ],
+  "change": {
+    "patch": "patches/desktop/0021-caret-agent-home-utility.patch (folded in, not a later patch: 0021 creates these files, so a follow-up patch could not pass its own reverse-check)",
+    "files": [
+      "src/vs/sessions/contrib/home/browser/appsPanelModel.ts",
+      "src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts",
+      "src/vs/sessions/contrib/home/browser/appsPanelReact.ts",
+      "src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css"
+    ],
+    "model": "AppsPanelTabKind = terminal | browser | changes | file; createChanges()/createFiles() are single-instance (the window owns one active session and one workspace, so a second tab would show the same surface twice) and return the open tab on a repeat request",
+    "pane": "LAUNCHERS carry `hosted` only (no commandId); createHostedPaneView() builds the two bodies; activateTab/layoutActiveInstance drive focus and layout; the rail's active mark moved from renderTabs into applyActiveTab so a switch to an open pane updates it",
+    "hostedSurfaces": {
+      "changes": "ChangesViewPane (the base's changes view) inside a PaneView; the panel calls pane.render() because no view container does",
+      "file": "EmptyFileEditor (the base's Files tab content: empty state + Search Files), created against the panel's editor group",
+      "notHosted": "the file tree stays the base's Files view - IExplorerService.registerView() keeps one `view` slot, so a second explorer in the panel would take it over from the window's own"
+    }
+  },
+  "verified": {
+    "cdp": [
+      "rail Changes on a fresh panel: tabs [Changes], rail marks Changes, .caret-apps-pane-changes 322x791 with .pane-header 'Changes' and body 'Changes / No changed files / Checks'",
+      "rail File: tabs [Changes, File], rail marks File, pane body 'Files / Select a file from the Files view / Search Files Cmd-P'",
+      "rail Changes again: switches in place, still two tabs",
+      "rail Browser: tabs [Changes, File, Browser], rail marks Browser, hosted browser with its address bar",
+      "after all four: the editor group still holds exactly one tab, 'Apps', and the group title strip is display:none - no Changes/File editor tabs"
+    ],
+    "realInput": [
+      "AX tree of the Agents window: rail = 4 toggle buttons Changes/Browser/Terminal/File + Open new tab menu + Toggle Pinned Summary; menu bar has no Selection/Go/Run/Terminal",
+      "real click + -> File: File tab selected, rail File = 1, body renders 'Files / Select a file from the Files view / Search Files (Command+P)'",
+      "real click + -> Changes: Changes tab selected, rail Changes = 1, body renders the changes view (CHANGES heading, actions toolbar, versions picker)",
+      "real clicks rail Changes/File/Changes: selection and rail marks follow every switch, no extra tab",
+      "real click + -> Browser then + -> Browser again with a hosted page up: 1 then 2 Browser tabs (the instance path still works over a native view)",
+      "real clicks rail Changes then Browser: switches between a hosted pane and the hosted browser in both directions"
+    ],
+    "bugsFixedDuringVerification": [
+      "the rail's active mark was only written in renderTabs, so switching to an already-open pane left the mark on the previous pane; it is written in applyActiveTab now",
+      "a hosted ViewPane rendered an empty shell until the panel called pane.render(); a view container does that before handing a pane to its PaneView"
+    ],
+    "gates": [
+      "bun scripts/prepare-desktop.ts (28 patches, 18 removals)",
+      "bun test apps/macos/test/desktop-patch-set.test.ts (applies in manifest order, reproduces the checkout byte-for-byte)",
+      "cd desktop && npm run typecheck-client",
+      "bun test apps/macos/test (594 pass)",
+      "bun test packages/omp-adapter packages/relay apps/host apps/macos/test",
+      "bun run typecheck",
+      "bun scripts/cursor-parity-check.ts (340 keys, 0 mismatch)",
+      "node scripts/ci-validate.mjs"
+    ],
+    "testNeedles": "apps/macos/test/ide-native-workbench.test.ts: the two 0021 needles for `commandId: NEW_CHANGES_TAB_COMMAND_ID` / `commandId: QUICK_OPEN_COMMAND_ID` now pin the hosted panes (hosted: 'changes'/'file', caret-apps-pane-changes/-files, createInstance(EmptyFileEditor, this.group), createInstance(ChangesViewPane, {, new PaneView(container, { orientation: Orientation.VERTICAL }), layoutPanes)"
+  },
+  "notVerified": [
+    "the pixels: view_image answered HTTP 429 on the sky screenshot and on a window capture, so colour/type/spacing of the two panes were never looked at",
+    "the File pane hosts the base's Files empty state + Search Files, not the file tree (IExplorerService keeps one view slot)",
+    "the Changes pane hosts the base's changes view, not the multi-diff editor; which one the reference's panel shows under Changes is still open",
+    "no session was live in this run (the base's agent-host banner was up), so the Changes pane rendered its empty state rather than a session's files",
+    "surface ownership when the base's docked detail panel is visible too: this run's detail panel was display:none, so only the panel's Changes pane was live; if both are visible at once there are two changes views, which the SSOT rule forbids - decide the owner before calling the panel final",
+    "pre-existing and out of scope: the Agents window shows the base's 'Error: The Agent Host failed to start' banner, as it also did in log directories written before this change"
+  ],
+  "artifacts": {
+    "screenshot": "agents-window-3b.png (sky capture of the Agents window; not visually inspected - vision unavailable)"
+  }
+}

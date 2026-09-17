@@ -1,0 +1,45 @@
+{
+  "sourceImages": [
+    {
+      "name": "Screenshot 2569-09-14 at 21.33.09.png",
+      "surface": "agents-window",
+      "capturedSize": [
+        2048,
+        1331
+      ],
+      "approximateDividersCapturedPixels": {
+        "titlebarBottomY": 47,
+        "leftSidebarRightX": 320,
+        "auxiliaryPaneLeftX": 1587
+      },
+      "normalizedLayout": {
+        "leftSidebarWidth": 0.15625,
+        "centerWidth": 0.61865,
+        "auxiliaryWidth": 0.2251
+      },
+      "dominantSampleColors": {
+        "center": "#141415",
+        "navigation": "#161719",
+        "composer": "#212121"
+      }
+    },
+    {
+      "name": "Screenshot 2569-09-14 at 21.33.23.png",
+      "surface": "ide-window",
+      "capturedSize": [
+        2048,
+        1331
+      ],
+      "dominantSampleColors": {
+        "workbench": "#181818",
+        "titlebar": "#141414",
+        "raisedControl": "#242424"
+      }
+    }
+  ],
+  "notes": [
+    "Coordinates are approximate captured pixels from the supplied screenshots.",
+    "The screenshots appear to be Retina/2x captures; measure logical geometry in the frozen reference build.",
+    "Do not hardcode these values without platform and zoom calibration."
+  ]
+}

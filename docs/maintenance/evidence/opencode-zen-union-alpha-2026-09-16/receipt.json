@@ -1,0 +1,60 @@
+{
+  "slice": "OpenCode Zen's new free stealth model 'Union Alpha Free' (union-alpha) shows in OMP and runs",
+  "capturedAt": "2026-09-16T23:52:15+07:00",
+  "problem": {
+    "reported": "opencode zen have new model \"Union alpha\" please show in omp (+ the user's OpenCode workspace link)",
+    "whatOmpAlreadyHad": "The row was already there: opencode-zen and opencode-go are dynamicModelsAuthoritative providers, so the credential's live /v1/models list replaced the bundled slice and union-alpha appeared in the registry the picker reads (get_available_models -> rpc-mode.ts -> session.getAvailableModels()).",
+    "whatWasMissing": "The route. OMP's catalog routes a gateway-first id it carries no pin for to openai-completions, and the zen gateway answers 500 for union-alpha on /chat/completions and /responses; the model is served on /v1/messages (opencode.ai/docs/zen/#endpoints). The list was honest, the first turn would have failed with 500."
+  },
+  "measured": {
+    "gatewayLists": "GET https://opencode.ai/zen/v1/models and /zen/go/v1/models both list union-alpha for the user's key.",
+    "bundledCatalog": "upstream/omp/packages/catalog/src/models.json opencode-zen slice = 90 rows, no union-alpha.",
+    "ompResolverBefore": "OMP's own resolveProviderModels (pinned 00085d4e7, live gateways, user key): opencode-zen 71 rows with union-alpha api=openai-completions base=https://opencode.ai/zen/v1; opencode-go 38 rows with union-alpha api=openai-completions base=https://opencode.ai/zen/go/v1.",
+    "gatewayResponses": {
+      "zen /v1/chat/completions Bearer+session": 500,
+      "zen /v1/responses": 500,
+      "go /v1/chat/completions": 500,
+      "go /v1/responses": 500,
+      "zen /v1/messages (x-api-key + x-opencode-session)": "200 {\"content\":[{\"type\":\"text\",\"text\":\"ok\"}],\"model\":\"union-alpha\",\"cost\":\"0\"}",
+      "zen /v1/messages without session header": "400 MissingSessionID: OpenCode's free tier can only be used in OpenCode",
+      "go /v1/messages with session header": "no response within 100 s (err=Operation timed out)"
+    },
+    "modelsDev": "catalog.stencil.so / api.json (live): opencode key carries union-alpha, name 'Union Alpha Free', npm @ai-sdk/anthropic, limit 262144/131072, reasoning+tool_call. It enriches metadata but does not set the route on the discovery path.",
+    "routePins": "packages/catalog/src/compat/rules/runtime/behavior.kdl api-routes drive both the models.dev descriptor path and the live-discovery mapper. union-alpha has no pin in the pinned revision; upstream main (60c9a115b2, via git ls-remote + git show FETCH_HEAD:...) pins muse-spark-, minimax-m3 and gpt-6-astra for opencode-zen, still no union-alpha."
+  },
+  "decision": {
+    "route": "Fix the route in the operator's ~/.omp/agent/models.yml instead of changing OMP or Caret.",
+    "why": "OMP owns the catalog and plan section 6 keeps patches/omp for surfaces OMP cannot expose (the model-role bridges); a route pin is upstream catalog policy, and upstream has not pinned this id either. The operator config is the only lever that does not fork the harness.",
+    "rejected": [
+      "patches/omp: the single consolidated patch adds surfaces the harness cannot expose; a route pin would make Caret's OMP answer differently from stock OMP about what a model is.",
+      "modelOverrides for the route: ModelPatch has no api/baseUrl field (model-patch.ts).",
+      "Declaring models: under the built-in opencode-zen id: models-config.ts requires a provider baseUrl when models are defined, and providerOverride.baseUrl then wins for every discovered zen row (mergeDiscoveredModel), moving the rest of the roster off the /v1 paths its transports build.",
+      "A custom provider id: x-opencode-session is set only for provider === 'opencode-go' || 'opencode-zen' (packages/ai/src/providers/inference-headers.ts). A different id loses the header and the free tier answers 400 MissingSessionID."
+    ]
+  },
+  "implemented": {
+    "file": "/Users/pond/.omp/agent/models.yml (operator config, outside the repo)",
+    "backup": "/Users/pond/.omp/agent/models.yml.bak-20260916164053",
+    "block": "opencode-zen: baseUrl https://opencode.ai/zen/v1 (the built-in value, repeated because a models: list requires one), apiKey (the key the go provider already carried), models: [{ id: union-alpha, name: 'Union Alpha Free', api: anthropic-messages, reasoning: true, input: [text, image], contextWindow: 262144, maxTokens: 131072, cost 0 }]",
+    "whyTheBaseIsRight": "normalizeAnthropicBaseUrl strips a trailing /v1, so the Anthropic transport builds https://opencode.ai/zen/v1/messages - the exact call that answered 200.",
+    "settingsFile": {
+      "path": "/Users/pond/.omp/agent/config.yml (symlink into the cedia project; backup config.yml.bak-20260917010508)",
+      "change": "At the user's request the retry: block was removed - the automatic model fallback (retry.fallbackChains.default -> opencode-go/muse-spark-1.3-contributor, opencode-go/deepseek-v4.1-flash). retry.modelFallback was left true so a chain written later (the user plans to set it from a Caret surface) works without a second edit.",
+      "readBack": "Settings.init() -> retry.fallbackChains = {}, retry.modelFallback = true; enabledModels and disabledProviders untouched.",
+      "pickerVisibility": "enabledModels is an allow-list (6 rows) and disabledProviders carries opencode-zen, so opencode-zen/union-alpha appears only after the user edits those two keys themselves."
+    },
+    "repoCode": "none; this receipt and one plan line are the repo-side artifacts"
+  },
+  "verified": {
+    "liveTurn": "./dist/omp/omp --model opencode-zen/union-alpha --no-tools --no-rules --no-skills --session-dir <scratchpad> -p \"Reply with exactly: caret-union-ok\" -> caret-union-ok (real gateway, free lane, cost 0)",
+    "liveConfigThroughRegistry": "new ModelRegistry(auth) with the user's default discovery: opencode-zen 71 rows, union-alpha api=anthropic-messages base=https://opencode.ai/zen/v1 name='Union Alpha Free'; other zen rows keep their catalog route; registry.getApiKey(union) resolves.",
+    "candidateMeasuredFirst": "The same block was measured on a copy (scratch models.json + scratch cache db) before the live file was touched: zen 71 rows, union-alpha anthropic-messages, other rows unchanged, go twin untouched.",
+    "treeState": "upstream/omp has no leftover probe files (git status shows only the applied Caret patch); the user's models.db was only warmed, never seeded by the probes (probes used a scratch cache db)."
+  },
+  "notYetConfirmed": [
+    "opencode-go/union-alpha remains a dead row: OMP routes it to chat completions (500) and its messages lane did not answer in 100 s. Closes only by OMP's catalog gaining a pin (upstream) or a pin bump - see plan section 10.",
+    "The zen credential brings zen's whole live roster (71 rows) into the picker; trimming it is OMP's own settings surface, not part of this slice.",
+    "The row was not read off the running app's picker: no host was running, so the evidence is the registry get_available_models projects from. The app shows it after a registry refresh (open a session / restart).",
+    "Only the zen lane was proven end to end; the go lane was probed, not used."
+  ]
+}

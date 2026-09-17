@@ -1,0 +1,43 @@
+{
+  "slice": "S4 — the desktop patch set describes the tree again, and the user's theme reaches the Agents window",
+  "capturedAt": "2026-09-16T00:20:00+07:00",
+  "branch": "main",
+  "method": "worktree at the pinned base ea1912fd6a0 + patch re-cut from the working tree; bun scripts/prepare-desktop.ts; bun run typecheck; node scripts/ci-validate.mjs; bun scripts/cursor-parity-check.ts; bun test packages/omp-adapter packages/relay apps/host apps/macos/test; packaged app (bun scripts/build-caret.ts --package) read over CDP at 127.0.0.1:9343",
+  "problem": {
+    "patches": "bun scripts/prepare-desktop.ts was red: prepare-desktop reverse-checks each patch on its own, so any patch whose post-image is not in the checkout fails. The working tree had moved past three of them.",
+    "drift": [
+      "src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts - the strip entries open an instance of their own; 0021 still carried the earlier pane-selector shape",
+      "src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css - the Agents window's context-menu surface",
+      "build/next/index.ts - inlineReactPlugin() plus process.env.NODE_ENV, uncovered by any patch"
+    ],
+    "theme": "the Agents window resolved workbench.colorTheme to the stock theme. Two causes: (a) ExtensionEnablementService._isDisabledBySessionsWindow -> canExecuteOnSessionsWindow returns false for any manifest with main/browser, and Catppuccin ships dist/main.cjs next to its themes contribution, so its declarative theme is never registered; (b) the window reads its settings from its own workspace file (agentSessionsWorkspace = agent-sessions.code-workspace), not from the agents profile's settings.json - AGENTS_WINDOW_PROFILE_FLAGS.settings is true, so that profile's settingsResource is the default profile's file and profiles/builtin/agents/settings.json is read by nobody."
+  },
+  "change": {
+    "patches": "0021-caret-agent-home-utility.patch re-cut from the checkout (digest 24df135a6782655e8c8ea03726f7fb629e0df222ae86998acbaa576043ab81a0); new 0028-caret-inline-react-in-client-bundles.patch carries the React inlining; new 0029-caret-agents-no-account-widget.patch takes the account control out of the Agents window title bar; manifest.json lists all three; patches/desktop/README.md documents 0027, 0028, 0029 and the re-cut.",
+    "bundleRule": "the app's workbench bundle is a separate artefact from the Caret extension: node build/next/index.ts bundle --minify, then copy desktop/out-vscode over Contents/Resources/app/out/, then re-run build-caret.ts --package so the app is signed again. Editing desktop sources without that step leaves the app running the previous workbench - which is what hid the rail fix from the user.",
+    "reCutRule": "the preceding patches are applied with git apply --index so the diff is taken against the state the patch is applied to. Without --index, git diff still compares against the base commit, which silently produces a base-relative patch - visible as a conflict on sessions.common.main.ts, which 0005 edits first.",
+    "theme": "apps/macos/src/workbench-mode.ts gains AGENTS_WINDOW_WORKSPACE, AGENTS_WINDOW_SUPPORT_SETTING, themeProvidingExtensionIds() and mergeAgentsWindowWorkspaceSettings(); apps/macos/src/extension.ts gains syncAgentsWindowTheme(), called at activation and on every change to the theme settings. It merges into the Agents window's own workspace file: the theme keys, the user's own extensions.supportAgentsWindow entries, and one entry per extension that provides a selected theme (matched by theme id or picker label), keeping the folder list and every setting already in the document.",
+    "discardedAttempt": "the first implementation wrote the same keys to profiles/builtin/agents/settings.json. The packaged app proved that file is never read (the window kept the stock theme), so the write was retargeted and the file removed."
+  },
+  "verified": {
+    "prepareDesktop": "bun scripts/prepare-desktop.ts -> 'Caret desktop patches applied (27 patches, 18 removals)' (green; was red on 0021)",
+    "applyClean": "all 26 patches applied in manifest order onto a fresh worktree at ea1912fd6a0 plus 18 removals: no conflicts",
+    "reproduces": "that worktree vs /Users/pond/caret/desktop: byte-identical for src/vs/sessions/** and build/next/index.ts; the only remaining differences are the branding/build artefacts scripts/build-caret.ts writes",
+    "typecheck": "bun run typecheck -> 0 errors",
+    "ciValidate": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10 doc-links=69 md=88",
+    "parity": "bun scripts/cursor-parity-check.ts -> cursor-parity: OK (340 keys checked, 32 authored by Caret, 0 mismatches)",
+    "suites": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test -> 734 pass / 0 fail",
+    "newTests": "bun test apps/macos/test/workbench-mode.test.ts -> 20 pass / 0 fail",
+    "themeOnScreen": "packaged app, --agents, CDP read of the Agents window: theme class Catppuccin-catppuccin-vsc-themes-mocha-json, --vscode-editor-background #1e1e2e, 2 Catppuccin style elements",
+    "carrierProof": "with extensions.supportAgentsWindow and workbench.colorTheme removed from agent-sessions.code-workspace by hand, the same launch falls back to vscode-theme-defaults-themes-2026-light-json (editor bg #ffffff); with them present it resolves Catppuccin",
+    "appsPanelOnScreen": "packaged app, CDP: rail [Changes, Browser, Terminal, File]; the + menu lists the same four with readable text; two rail clicks on Browser leave 2 instance tabs"
+    ,
+    "appsPanelAfterBundleRebuild": "packaged app (workbench bundle rebuilt and copied), CDP: one rail click leaves 1 browser tab and each further rail or + click adds one (4 tabs after 2 rail + 2 + clicks), the newest tab is the active one and exactly one instance container is visible",
+    "accountWidgetRemoved": "packaged app, CDP: .sessions-account-titlebar-widget count 0 and no 'signed out' title bar label (was 1 before the patch; 0029 pins it in apps/macos/test/ide-native-workbench.test.ts)"
+  },
+  "notVerified": [
+    "The theme in the light slot, and a live theme switch from the IDE window while both windows are open; the runs were cold starts.",
+    "The rail is still a rail plus a tab row, not the reference's single-pane switcher; changes/file still open editor-group tabs rather than living in the panel.",
+    "R3 (sidebar Projects/Repositories/Search as a React surface) was not started in this slice."
+  ]
+}

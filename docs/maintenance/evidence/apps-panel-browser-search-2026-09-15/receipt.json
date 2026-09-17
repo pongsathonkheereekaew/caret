@@ -12,7 +12,7 @@
     "engine": "https://www.google.com/search?q= (the search box's placeholder and the reference browser's engine), with the term percent-encoded"
   },
   "verified": {
-    "search": "CDP on the running window: opening the Apps panel's Browser tab and typing 'cats and dogs' then Enter produced a page target titled 'cats and dogs - ค้นหาด้วย Google' at https://www.google.com/search?q=cats%20and%20dogs",
+    "search": "CDP on the running window: opening the Apps panel's Browser tab and typing 'cats and dogs' then Enter produced a page target titled 'cats and dogs - Google Search (the engine's localised title)' at https://www.google.com/search?q=cats%20and%20dogs",
     "url": "typing 'example.com' then Enter produced the 'Example Domain' page at https://example.com/ - a bare host is still a URL, not a search",
     "unitTests": "apps/macos/test/ide-native-workbench.test.ts pins the search endpoint and the encoded-term return in the 0021 patch text, alongside the address bar it belongs to",
     "patchAgreement": "0021 regenerated for its own file only, digest updated, 24/24 patches apply from the pinned base and the produced tree equals the checkout",

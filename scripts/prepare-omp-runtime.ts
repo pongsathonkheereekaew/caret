@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { buildOmpNative } from "./lib/omp-native-build.ts";
+import { OMP_BASELINE_VERSION } from "../packages/omp-adapter/src/types.ts";
 import { verifyOmpSource, launcherText, fileSha256, attestOmpRuntime } from "./lib/omp-runtime-integrity.ts";
 
 const root = resolve(import.meta.dir, "..");
@@ -33,7 +34,9 @@ run(process.execPath, ["install", "--frozen-lockfile", "--ignore-scripts"], sour
 const nativeTarget = buildOmpNative(source, sourceTree);
 run(process.execPath, ["packages/collab-web/scripts/build-tool-views.ts"], source);
 const cli = join(source, "packages/coding-agent/src/cli.ts");
-if (run(process.execPath, [cli, "--version"], source).trim() !== "omp/18.1.18") throw new Error("Prepared OMP version check failed");
+// The shipped runtime is the baseline exactly: this script builds it from the pinned
+// source, so a different version means the pin moved and the manifest has to move with it.
+if (run(process.execPath, [cli, "--version"], source).trim() !== `omp/${OMP_BASELINE_VERSION}`) throw new Error("Prepared OMP version check failed");
 const standalone = process.argv.includes("--standalone");
 const output = join(root, standalone ? "dist/omp-standalone/omp" : "dist/omp/omp");
 mkdirSync(dirname(output), { recursive: true });
@@ -48,6 +51,6 @@ if (standalone && !reuseStandalone) {
 } else if (!standalone) writeFileSync(output, launcherText(process.execPath, source), { mode: 0o755 });
 chmodSync(output, 0o755);
 if (verifyOmpSource(root, source, manifest) !== sourceTree) throw new Error("OMP source changed during preparation");
-if (standalone && run(output, ["--version"], root).trim() !== "omp/18.1.18") throw new Error("Standalone OMP version check failed");
+if (standalone && run(output, ["--version"], root).trim() !== `omp/${OMP_BASELINE_VERSION}`) throw new Error("Standalone OMP version check failed");
 writeFileSync(join(dirname(output), "runtime.json"), JSON.stringify({ revision: manifest.revision, patches: manifest.patches, source, sourceTree, executable: output, executableSha256: fileSha256(output), bun: process.execPath, bunSha256: fileSha256(process.execPath), nativePath: nativeTarget, nativeSha256: fileSha256(nativeTarget), developmentRuntime: !standalone, standaloneRuntime: standalone }, null, 2) + "\n");
 console.log(`Prepared pinned Caret OMP ${standalone ? "standalone" : "development"} runtime: ${output}`);

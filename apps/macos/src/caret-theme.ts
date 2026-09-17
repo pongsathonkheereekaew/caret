@@ -525,3 +525,161 @@ export function isCaretWorkbenchPalette(value: unknown): boolean {
 		|| carriesEveryKey(candidate, CARET_MIDNIGHT_WORKBENCH_COLORS)
 		|| carriesEveryKey(candidate, CARET_LIGHT_COLORBLIND_WORKBENCH_COLORS);
 }
+
+/** Caret's own `--caret-*` token scale, named without the leading dashes.
+ *
+ * Why this file holds it: these values are the layout and type knowledge the
+ * reference product was measured for, so they belong with the palettes rather
+ * than inside whatever surface happens to render them. They lived in the
+ * retired agent shell's stylesheet, which meant `check:cursor-parity` could
+ * only read them by regex-matching a webview's CSS string, and any surface
+ * that wanted them had to import the shell. The shell is gone; the scale
+ * stays, and it is now the single source both the gate and any renderer read.
+ *
+ * They are declared as `--<name>` custom properties by `caretTokenCss()`.
+ */
+export const CARET_TOKENS: Readonly<Record<string, string>> = {
+	// Surface roles. The `var(--vscode-*, fallback)` form keeps one token layer
+	// over the workbench palette above, so both follow the same theme.
+	"caret-bg": "var(--vscode-editor-background, #202124)",
+	"caret-panel": "var(--vscode-sideBar-background, #252526)",
+	"caret-panel-raised": "var(--vscode-editorWidget-background, #2d2d30)",
+	"caret-input": "var(--vscode-input-background, #313131)",
+	"caret-text": "var(--vscode-foreground, #e7e7e7)",
+	"caret-muted": "var(--vscode-descriptionForeground, #a8a8a8)",
+	"caret-border": "var(--vscode-panel-border, #3d3d40)",
+	"caret-control-border": "var(--vscode-input-border, var(--vscode-contrastBorder, #3d3d40))",
+	"caret-focus": "var(--vscode-focusBorder, #6cb6ff)",
+	"caret-accent": "var(--vscode-button-background, #0e639c)",
+	"caret-accent-text": "var(--vscode-button-foreground, #fff)",
+	"caret-link": "var(--vscode-textLink-foreground, #6cb6ff)",
+	"caret-selected-bg": "var(--vscode-list-activeSelectionBackground, #094771)",
+	"caret-selected-fg": "var(--vscode-list-activeSelectionForeground, #fff)",
+	"caret-hover-bg": "var(--vscode-list-hoverBackground, #2a2d2e)",
+	"caret-danger": "var(--vscode-errorForeground, #f48771)",
+	"caret-warning": "var(--vscode-editorWarning-foreground, #cca700)",
+	"caret-success": "var(--vscode-testing-iconPassed, #73c991)",
+
+	// Type scale. Cursor's UI roles: metadata xs/sm, sidebar sm, controls base,
+	// transcript lg.
+	"caret-font-xs": "11px",
+	"caret-font-sm": "12px",
+	"caret-font-base": "13px",
+	"caret-font-lg": "14px",
+	"caret-lh-xs": "14px",
+	"caret-lh-sm": "16px",
+	"caret-lh-base": "18px",
+	"caret-lh-lg": "22px",
+	"caret-height-xs": "20px",
+	"caret-height-sm": "24px",
+	"caret-height-base": "28px",
+	"caret-height-lg": "32px",
+
+	// Sidebar row height. The reference's own agent CSS sets
+	// `--ui-sidebar-menu-button-min-height` and `--ui-tray-row-min-height` to
+	// `--cursor-height-base` (28px), but its rendered row BOX measures 30px:
+	// the "New Chat" row's highlight fill spans y48..77 of a 1073px window and
+	// the sidebar's text-row pitch measures ~30.7px over ~20 rows. A min-height
+	// of 28 with zero padding cannot produce that, so the rendered box is what
+	// a user sees (hover height, list rhythm) and Caret matches the box. Set
+	// this back to 28px to reproduce only the token; `check:cursor-parity`
+	// asserts both numbers so that choice stays visible.
+	"caret-row": "30px",
+	// Reference `--ui-sidebar-action-icon-size` = spacing-3-25 = 13px.
+	"caret-sidebar-icon": "13px",
+
+	"caret-space-4": "4px",
+	"caret-space-6": "6px",
+	"caret-space-8": "8px",
+	"caret-space-10": "10px",
+	"caret-space-12": "12px",
+	"caret-space-16": "16px",
+	"caret-space-20": "20px",
+	"caret-space-24": "24px",
+	"caret-space-28": "28px",
+	"caret-space-32": "32px",
+	"caret-space-40": "40px",
+	"caret-space-44": "44px",
+	"caret-space-48": "48px",
+
+	"caret-radius-xs": "2px",
+	"caret-radius-sm": "4px",
+	"caret-radius-md": "6px",
+	"caret-radius": "8px",
+	"caret-radius-xl": "12px",
+	"caret-radius-2xl": "14px",
+	"caret-radius-3xl": "16px",
+	"caret-radius-4xl": "18px",
+	"caret-radius-full": "9999px",
+
+	// Control radius = the reference's radius-base (6). A composer is not one
+	// radius in the reference: compact is radius-full, dynamic island is
+	// radius-3xl (16), and expanded - a multi-line composer with a toolbar,
+	// which is what Caret's is - is radius-4xl (18). Caret used 10px then 12px,
+	// neither of which is a composer radius in the reference's scale.
+	"caret-control-radius": "6px",
+	"caret-composer-radius": "18px",
+	// Reference `--prompt-input-editor-min-height` = spacing-9 = 36px and
+	// `--prompt-input-editor-max-height` = 200px.
+	"caret-composer-editor-min": "36px",
+	"caret-composer-editor-max": "200px",
+
+	// Composer surface. The reference paints the prompt input with
+	// `--prompt-input-container-bg` = `--cursor-bg-input-surface` =
+	// color-mix(in srgb, var(--cursor-base) 6%, transparent): one 6% step above
+	// the page, not a raised panel. Measured in the reference's live light
+	// window the card reads #FCFCFC (the same value as editor.background) on a
+	// page that reads #F5F5F6, and its own token
+	// `--prompt-input-container-shadow` is none. Caret painted the card with
+	// the chrome colour (#F3F3F3), one step BELOW the page: the opposite
+	// direction from the reference.
+	"caret-composer-surface": "color-mix(in srgb, #fff 6%, var(--caret-bg))",
+
+	// Transcript / composer column. Measured directly: with the SAME 1710px
+	// window as the reference, the reference's empty-draft prompt-input card
+	// spans x679..1286 = 608px (its 1px border included), centred in the main
+	// pane. The 437px Caret shipped came from a proportional guess (41.8% of
+	// the pane) off a 1224px render, and a same-size render disproves it:
+	// Caret's own card is 397px at both 1224px and 1710px windows, i.e. the
+	// column is fixed, not proportional, and Caret's number was simply short.
+	// Still open: whether the reference's 608 is itself fixed or 41.8% of the
+	// pane (that reading gives 639 in Caret's pane). 608 is the only value
+	// measured on the reference at a like-for-like window size.
+	"caret-transcript-column": "608px",
+	"caret-composer-column": "608px",
+	"caret-composer-column-outer": "calc(var(--caret-composer-column) + 2 * var(--caret-gutter))",
+
+	"caret-sidebar": "180px",
+	"caret-panel-w": "360px",
+	"caret-panel-h": "40vh",
+	"caret-gutter": "24px",
+	// Lane reserved for the floating connection / mode cluster in a task
+	// header. The cluster is positioned over the header row, so the row must
+	// stop before it or the resource links underneath become unclickable.
+	"caret-top-cluster": "124px",
+	"caret-elevate-1": "0 2px 8px rgb(0 0 0 / .32)",
+	"caret-elevate-2": "0 12px 36px rgb(0 0 0 / .24)",
+
+	// Motion. These must equal DEFAULT_MOTION_TOKENS (ui-a11y.ts) or a surface
+	// animates with one timing before the first host snapshot and a different
+	// one after. The values are the reference product's own motion scale
+	// (`--cursor-duration-*` / `--cursor-easing-out-cubic`); tests pin them.
+	"caret-motion-instant": "50ms",
+	"caret-motion-feedback": "100ms",
+	"caret-motion-surface-in": "150ms",
+	"caret-motion-surface-out": "100ms",
+	"caret-motion-drawer-in": "200ms",
+	"caret-motion-drawer-out": "150ms",
+	"caret-motion-curve": "cubic-bezier(0.215, 0.61, 0.355, 1)",
+};
+
+/** The `:root` custom-property block for `CARET_TOKENS`, in declaration order.
+ *
+ * Order is preserved because later declarations of the same property win in
+ * CSS; keeping the authoring order means a re-rendered block is byte-identical
+ * to the one the values were measured against.
+ */
+export function caretTokenCss(): string {
+	const declarations = Object.entries(CARET_TOKENS).map(([name, value]) => `\t--${name}: ${value};`);
+	return `:root {\n\tcolor-scheme: light dark;\n${declarations.join("\n")}\n}`;
+}

@@ -1,0 +1,19 @@
+diff --git a/src/vs/sessions/contrib/accountMenu/browser/account.contribution.ts b/src/vs/sessions/contrib/accountMenu/browser/account.contribution.ts
+index 41e9af727ea..36f70b45cdc 100644
+--- a/src/vs/sessions/contrib/accountMenu/browser/account.contribution.ts
++++ b/src/vs/sessions/contrib/accountMenu/browser/account.contribution.ts
+@@ -1020,7 +1020,13 @@ registerAction2(class extends Action2 {
+ 				id: Menus.TitleBarRightLayout,
+ 				group: 'navigation',
+ 				order: 100,
+-				when: IsAuxiliaryWindowContext.toNegated(),
++				// Caret: there is no account here, so the title bar has nothing to show. The Agents
++				// window is fed by the local host, which is authenticated by the descriptor it
++				// publishes, and no sign-in provider ships with this fork - the entry could only
++				// draw a Copilot-flavoured "signed out" avatar over the workbench. A false `when`
++				// keeps the action (and the view item registered below) unreachable instead of
++				// leaving a control the product cannot honour.
++				when: ContextKeyExpr.false(),
+ 			}
+ 		});
+ 	}

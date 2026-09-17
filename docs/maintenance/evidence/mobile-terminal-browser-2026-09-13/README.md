@@ -1,11 +1,13 @@
-# Mobile terminal browser fixture — 13 กันยายน 2026
+# Mobile terminal browser fixture — 2026-09-13
 
-Desktop Chromium เปิด `scripts/mobile-terminal-browser-smoke.ts` ที่ `http://127.0.0.1:63175/` แล้วกด Replay / Live / Send status queries รวม OSC `?;?` และ OSC 4
+Desktop Chromium opened `scripts/mobile-terminal-browser-smoke.ts` at `http://127.0.0.1:63175/`
+and pressed Replay / Live / Send status queries, including OSC `?;?` and OSC 4.
 
-ผล:
+Result:
 
-- iframe แสดง `Initial screen` และ `Live output continues`
-- renderer messages มีแค่ `ready` ของ `browser-fixture` ไม่มี `input` หลัง status queries
-- ไม่ใช่ iPhone / cellular และไม่ใช่ checkpoint/full scrollback restoration
+- the iframe showed `Initial screen` and `Live output continues`
+- the renderer messages contained only the `browser-fixture` `ready` message and no `input` after
+  the status queries
+- this is not an iPhone or cellular run, and it is not checkpoint or full-scrollback restoration
 
-หลักฐาน: [`receipt.json`](./receipt.json), [`fixture.png`](./fixture.png)
+Evidence: [`receipt.json`](./receipt.json), [`fixture.png`](./fixture.png)

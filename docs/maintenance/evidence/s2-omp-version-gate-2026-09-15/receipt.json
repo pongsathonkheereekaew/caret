@@ -1,0 +1,32 @@
+{
+  "slice": "S2 — OMP runtime version gate accepts the pinned minor line",
+  "capturedAt": "2026-09-15T13:40:00+07:00",
+  "branch": "main",
+  "method": "code change + bun test apps/host packages/omp-adapter apps/macos/test + CARET_OMP_BINARY=/Users/pond/.local/bin/omp bun scripts/omp-smoke.ts and omp-g1-smoke.ts (real OMP, no provider calls)",
+  "problem": {
+    "symptom": "the Agent Home composer could not start a task on a machine whose OMP is a patch ahead of the pin",
+    "detail": "apps/host/src/service.ts compared the reported version to the literal omp/18.1.18 and threw HostError unsupported_omp before the session was mutated, so runTurn never reached sendCommand. The machine has omp/18.1.22.",
+    "also": "the same literal was repeated in three smoke scripts and twice in scripts/prepare-omp-runtime.ts, and the host health payload hardcoded 18.1.18"
+  },
+  "change": {
+    "policy": "packages/omp-adapter/src/types.ts now owns the policy: OMP_BASELINE_VERSION (18.1.18, unchanged), OMP_SUPPORTED_MAJOR_MINOR (18.1) and isSupportedOmpVersion(): accepts the baseline or a later patch of the same minor line, rejects an older patch, another minor line, or malformed output.",
+    "whyThisShape": "a later patch inside a minor keeps the RPC envelope, and refusing it made Caret unable to run at all on a slightly newer runtime; a different minor can change the envelope, so it must move the baseline rather than widen the predicate. The baseline stays what a release bundles and what prepare-omp-runtime.ts builds from the pinned source.",
+    "hostGate": "apps/host/src/service.ts uses isSupportedOmpVersion and reports the accepted line in the error message.",
+    "probeEnvironment": "the version probe now runs with the same environment the runtime is spawned with ({...process.env, ...ompEnv}) - a launcher that selects a binary through ompEnv must be judged by the version it reports under that environment.",
+    "healthPayload": "apps/host/src/router.ts reads OMP_BASELINE_VERSION instead of a literal and is documented as the build baseline, not a claim about the binary on disk.",
+    "smokes": "scripts/omp-smoke.ts, omp-g1-smoke.ts and omp-ui-smoke.ts accept the supported line; scripts/prepare-omp-runtime.ts stays exact because it builds the shipped bundle from the pinned source."
+  },
+  "verified": {
+    "unitTests": "packages/omp-adapter/test/version.test.ts - baseline and later patches accepted, older patch / other minor / malformed rejected",
+    "hostTests": "apps/host/test/service.test.ts - 'OMP runtime version gate': a launcher reporting omp/18.1.22 starts a session (status idle), omp/18.2.0 is refused with unsupported_omp naming 18.1.x and leaves the session idle, non-version output is refused",
+    "realOmp": "apps/host 'real OMP session ownership' (spawns the machine's real OMP through CaretHost) now passes - it was the test that failed on the version gate",
+    "realAdapter": "CARET_OMP_BINARY=/Users/pond/.local/bin/omp bun scripts/omp-smoke.ts - PASS against omp/18.1.22 (ready handshake, 9 responses, 6 extension_ui_request, available_commands_update, 2 prompt_result, 12 tool names)",
+    "hostDispatcher": "CARET_OMP_BINARY=/Users/pond/.local/bin/omp bun scripts/omp-g1-smoke.ts - PASS (host_tool_call, host_uri_request x3, uriWrites 1, modelRequests 13, cancellableToolAborted true)",
+    "suites": "bun test apps/host packages/omp-adapter apps/macos/test -> 691 pass / 0 fail, 3690 expect() calls",
+    "ciValidate": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10"
+  },
+  "notVerified": [
+    "A live turn in the running Agents window (composer -> OMP -> transcript) still needs a configured model provider/model in the host; the adapter and dispatcher are proven against the real binary, but no provider call was made in this slice.",
+    "The 18.1.22 binary is not the bundled baseline: a release still ships the pinned 18.1.18 from upstream/omp (prepare-omp-runtime.ts enforces exactly that)."
+  ]
+}

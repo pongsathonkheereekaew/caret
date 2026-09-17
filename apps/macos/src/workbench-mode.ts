@@ -44,21 +44,113 @@ export function isAgentsWindow(workspaceFile?: { fsPath?: string; path?: string 
 	return isCaretAgentsWindow(workspaceFile) || isCopilotAgentsWindow(workspaceFile);
 }
 
-export function serializeCaretAgentsWorkspace(folderPath?: string): string {
+/**
+ * The Agents window's workspace file.
+ *
+ * `themeSettings` exists because that window runs on its own profile: the theme the user picked in
+ * the IDE (`workbench.colorTheme`, or the `preferred*ColorTheme` pair when
+ * `window.autoDetectColorScheme` is on) does not reach it, so the two windows disagreed on colour.
+ * Caret copies those keys in here instead of painting a palette of its own, which means changing
+ * the theme once changes both windows.
+ */
+export function serializeCaretAgentsWorkspace(folderPath?: string, themeSettings?: Readonly<Record<string, unknown>>): string {
 	return `${JSON.stringify({
 		folders: folderPath ? [{ path: folderPath }] : [],
-		settings: CARET_AGENTS_WINDOW_SETTINGS,
+		settings: { ...CARET_AGENTS_WINDOW_SETTINGS, ...(themeSettings ?? {}) },
 	}, null, "\t")}\n`;
 }
 
-export function agentsWindowOpenMode(input: {
-	readonly inAgentsWindow: boolean;
-	readonly hasWorkspaceFolder: boolean;
-	readonly explicitNewWindow?: boolean;
-}): "shell" | "reuse-window" | "new-window" {
-	if (input.explicitNewWindow) return "new-window";
-	if (input.inAgentsWindow) return "shell";
-	return "shell";
+/**
+ * The Agents window's own workspace file, which is where its settings have to land.
+ *
+ * Upstream opens `IAgentSessionsWorkspace` (`agent-sessions.code-workspace` in the user data home)
+ * for that window, and pins it to the internal `agents` profile, which *shares the default
+ * profile's settings file* (`AGENTS_WINDOW_PROFILE_FLAGS.settings` is on). That was measured, not
+ * assumed: a file written to `profiles/builtin/agents/settings.json` is never read - the window
+ * kept resolving the stock theme with the override sitting in it - while the same keys in this
+ * workspace file take effect. So this file is the carrier for what the window has to know.
+ */
+export const AGENTS_WINDOW_WORKSPACE = COPILOT_AGENTS_WORKSPACE;
+
+/** The one switch that lets an extension run in the Agents window against upstream's default. */
+export const AGENTS_WINDOW_SUPPORT_SETTING = "extensions.supportAgentsWindow";
+
+export interface ThemeProvidingExtension {
+	/** Extension id, as the marketplace writes it (`publisher.name`). */
+	readonly id: string;
+	/** The manifest, shaped like `vscode.Extension.packageJSON` hands it over. */
+	readonly packageJSON?: { readonly contributes?: { readonly themes?: readonly unknown[] } & Readonly<Record<string, unknown>> } | undefined;
+}
+
+/**
+ * The extensions that paint the themes the user selected.
+ *
+ * The Agents window is a second workbench with its own extension enablement, and upstream turns
+ * every extension there off unless it ships no code at all
+ * (`canExecuteOnSessionsWindow`: `manifest.main`/`browser` disqualifies immediately). Theme
+ * extensions that add their own settings section ship code, so their declarative `themes`
+ * contribution is never registered in that window and `workbench.colorTheme` silently falls back
+ * to the stock theme — which is exactly how the two windows stopped matching. Naming the
+ * providers lets those extensions, and only those, run there.
+ *
+ * A theme is named by id or by the label the picker shows, and the setting may hold either.
+ */
+export function themeProvidingExtensionIds(
+	themeIds: readonly (string | undefined)[],
+	extensions: readonly ThemeProvidingExtension[],
+): string[] {
+	const wanted = new Set(themeIds.filter((id): id is string => typeof id === "string" && id.length > 0));
+	if (wanted.size === 0) return [];
+	const ids: string[] = [];
+	for (const extension of extensions) {
+		const themes = extension.packageJSON?.contributes?.themes;
+		if (!Array.isArray(themes)) continue;
+		const provides = themes.some(theme => {
+			if (!theme || typeof theme !== "object") return false;
+			const entry = theme as { id?: unknown; label?: unknown };
+			return (typeof entry.id === "string" && wanted.has(entry.id)) || (typeof entry.label === "string" && wanted.has(entry.label));
+		});
+		if (provides) ids.push(extension.id.toLowerCase());
+	}
+	return ids.sort();
+}
+
+/**
+ * Merge the theme and the extensions that paint it into the Agents window's workspace settings.
+ *
+ * Keeps the folder list and every setting that is already there, because the sessions workbench
+ * writes its own keys (`chat.disableAIFeatures`) into the same document. A file that no longer
+ * parses (hand-edited) is replaced rather than allowed to stop the window from opening.
+ */
+export function mergeAgentsWindowWorkspaceSettings(existing: string | undefined, settings: Readonly<Record<string, unknown>> = {}, support: Readonly<Record<string, boolean>> = {}): string {
+	let current: Record<string, unknown> = {};
+	if (existing) {
+		try {
+			const parsed: unknown = JSON.parse(existing);
+			if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) current = parsed as Record<string, unknown>;
+		} catch {
+			current = {};
+		}
+	}
+	const folders = Array.isArray(current["folders"]) ? current["folders"] : [];
+	const previousSettings = current["settings"];
+	const previous = previousSettings && typeof previousSettings === "object" && !Array.isArray(previousSettings)
+		? previousSettings as Record<string, unknown>
+		: {};
+	const previousSupport = previous[AGENTS_WINDOW_SUPPORT_SETTING];
+	return `${JSON.stringify({
+		...current,
+		folders,
+		settings: {
+			...previous,
+			// `settings` wins over whatever is there: it is the theme the user is looking at now.
+			...settings,
+			[AGENTS_WINDOW_SUPPORT_SETTING]: {
+				...((previousSupport && typeof previousSupport === "object" && !Array.isArray(previousSupport)) ? previousSupport as Record<string, unknown> : {}),
+				...support,
+			},
+		},
+	}, null, "\t")}\n`;
 }
 
 export type WorkbenchMode = "agents" | "ide";

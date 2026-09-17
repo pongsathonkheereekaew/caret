@@ -1,30 +1,37 @@
 # Caret documentation
 
-แผนและสเปกที่มีอำนาจมี **ไฟล์เดียว**: [maintenance/CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md)
+There is exactly **one** authoritative plan and spec:
+[maintenance/CARET-PLAN.md](maintenance/CARET-PLAN.md)
 
-Checkout คือ `/Users/pond/caret` บน branch `main`
-เขียนเมื่อ 2026-09-14 หลังรวมเอกสารทั้งหมดเป็นฉบับเดียวและย้ายของเก่าเข้า archive
+Checkout is `/Users/pond/caret` on branch `main`.
 
-## ต้นทางปัจจุบัน
+## Current sources
 
-| เรื่อง | ไฟล์ |
+| Topic | File |
 |---|---|
-| กฎเอเจนต์ทุกเทิร์น | [AGENTS.md](../AGENTS.md) |
-| **นิยามผลิตภัณฑ์ + สถาปัตยกรรม + Cursor parity contract + SSOT + แผน S1–S5** | [maintenance/CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md) |
-| ใบเสร็จรันจริง (สคริปต์เขียนที่นี่) | [maintenance/evidence/](maintenance/evidence/) |
-| pin ของ desktop / OMP (ต้องอยู่ที่เดิม — `ci-validate` อ่านไฟล์นี้) | [UPSTREAM-LOCK.md](UPSTREAM-LOCK.md) |
-| identifier 198 parents / 75 UI families | [../backlog/requirement-graph.json](../backlog/requirement-graph.json) |
-| เอกสารเก่าทั้งหมด | [archive/README.md](archive/README.md) |
+| Per-turn agent rules | [AGENTS.md](../AGENTS.md) |
+| **Product definition + architecture + Cursor parity contract + SSOT + steps S1-S5 + open work** | [maintenance/CARET-PLAN.md](maintenance/CARET-PLAN.md) |
+| Runtime receipts (scripts write here) | [maintenance/evidence/](maintenance/evidence/) |
+| Desktop / OMP pins (`ci-validate` reads this file) | [UPSTREAM-LOCK.md](UPSTREAM-LOCK.md) |
+| Parity identifiers: 198 parents / 75 UI families | [../backlog/requirement-graph.json](../backlog/requirement-graph.json) |
+| Per-item evidence referenced by that graph | [../backlog/](../backlog/) |
 
-## ลำดับเมื่อเริ่มงานใหม่
+## Where to start
 
-1. [AGENTS.md](../AGENTS.md) — กฎและ invariant ของโปรเจกต์
-2. [CARET-PLAN-2026-09-14.th.md](maintenance/CARET-PLAN-2026-09-14.th.md) — เริ่มที่ §0 นิยาม แล้วตาม §6 SSOT และ §7 แผน
-3. เปิด archive เฉพาะเมื่อต้องการ identifier เก่า, การวัด Cursor ฉบับเต็ม, หรือหลักฐานย้อนหลัง
+1. [AGENTS.md](../AGENTS.md) — project rules and invariants.
+2. [CARET-PLAN.md](maintenance/CARET-PLAN.md) — §0 for the definition, then §6 (SSOT), §8 (plan)
+   and §10 (what is open right now).
+3. The receipts the plan cites, under `maintenance/evidence/`.
 
-## กติกาเอกสาร
+## Documentation rules
 
-- เอกสารนี้และ `CARET-PLAN` เท่านั้นที่ตัดสินงานใหม่ ถ้าแผนเปลี่ยน ให้แก้ที่ `CARET-PLAN` แล้วอัปเดตตารางนี้ถ้าจำเป็น
-- ห้ามสร้างเอกสารแผน/สเปกใหม่ใน `docs/` โดยไม่ย้ายของเดิมเข้า archive ก่อน — เพื่อไม่ให้มีสองเจ้าของความจริง
-- ใบเสร็จ (evidence) อยู่ที่ `maintenance/evidence/` เสมอ เพราะสคริปต์และเทสต์อ้างพาธนี้
-- เอกสารที่ย้ายเข้า archive แล้ว **ไม่มีอำนาจ** แม้เนื้อหาจะดูทันสมัย
+- **Everything here is written in English.** There are no `.th.md` files and no mixed-language
+  sections; a Thai `.th.md` name is a defect, not a convention. User-facing product copy may still
+  be localized — documentation may not.
+- `CARET-PLAN.md` is the only document that decides new work. If the plan changes, change it there.
+- **Do not create a second plan or spec anywhere in this repository.** Superseded documents are
+  deleted, not archived: git history is the archive, and a live tree with two owners of truth is
+  the failure this rule exists to prevent.
+- Receipts live in `maintenance/evidence/` permanently, because scripts and tests reference those
+  paths by name.
+- Any document other than the plan has **no authority**, even if it reads as current.

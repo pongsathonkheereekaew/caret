@@ -69,7 +69,7 @@ rendering. No GUI automation harness exists here; manual script below
   / `stopped` without waiting for network; warnings should appear in
   status, not only as a flood of tool rows.
 
-### Observed 2026-09-11 11:27 (human: pond — "ใช้ได้")
+### Observed 2026-09-11 11:27 (human: pond — "works")
 
 Screenshot of Caret Agents + Review diff on `/tmp/caret-click`:
 

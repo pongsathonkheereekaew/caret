@@ -1,9 +1,24 @@
+diff --git a/package.json b/package.json
+index 6cb4debf317..8633b9f6c77 100644
+--- a/package.json
++++ b/package.json
+@@ -115,6 +115,10 @@
+     "@parcel/watcher": "^2.5.6",
+     "@types/semver": "^7.5.8",
+     "@vscode/codicons": "^0.0.46-39",
++    "react": "18.3.1",
++    "react-dom": "18.3.1",
++    "@types/react": "18.3.12",
++    "@types/react-dom": "18.3.1",
+     "@vscode/copilot-api": "^0.5.2",
+     "@vscode/deviceid": "^0.1.1",
+     "@vscode/diff": "0.0.2-7",
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeUtility.contribution.ts b/src/vs/sessions/contrib/home/browser/agentHomeUtility.contribution.ts
 new file mode 100644
-index 00000000000..60538efa597
+index 00000000000..341bddd38b9
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeUtility.contribution.ts
-@@ -0,0 +1,163 @@
+@@ -0,0 +1,178 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -13,7 +28,7 @@ index 00000000000..60538efa597
 +import { Disposable } from '../../../../base/common/lifecycle.js';
 +import { localize, localize2 } from '../../../../nls.js';
 +import { Action2, registerAction2 } from '../../../../platform/actions/common/actions.js';
-+import { ContextKeyExpr, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
++import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 +import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 +import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 +import { Registry } from '../../../../platform/registry/common/platform.js';
@@ -139,9 +154,17 @@ index 00000000000..60538efa597
 +registerWorkbenchContribution2(AgentHomeUtilityContribution.ID, AgentHomeUtilityContribution, WorkbenchPhase.AfterRestored);
 +
 +/**
-+ * The reference window offers `Show Apps`, but the base only ships the hide half. In
-+ * this single-pane group a browser, search or file tab replaces the panel rather than
-+ * sitting beside it, so without a show command the panel would be a dead end.
++ * The base only ships the hide half of the panel control (`Hide Apps` in the panel header,
++ * which names the reference's own control) and in this single-pane group a browser, search
++ * or file tab replaces the panel rather than sitting beside it, so a show command is what
++ * keeps the panel from being a dead end.
++ *
++ * It is a command only, deliberately: it was also a title-bar icon, and measured on
++ * 2026-09-16 (packaged app, CDP) the icon did nothing - it can only close the panel when
++ * the Apps editor happens to be the active editor and is a no-op otherwise, because the
++ * editor it would "open" is already in the group. The reference window has no such
++ * control either; its panel header carries `Hide Apps`, `Enter Full Screen` and
++ * `Open new tab menu`, so the title bar keeps only `Show Apps`' neighbours.
 + */
 +class ShowAppsAction extends Action2 {
 +
@@ -162,6 +185,13 @@ index 00000000000..60538efa597
 +		const editorGroupsService = accessor.get(IEditorGroupsService);
 +		const instantiationService = accessor.get(IInstantiationService);
 +		const group = editorGroupsService.mainPart.activeGroup;
++		// The panel is one editor of the single-pane group, so the command has to close it
++		// again as well; otherwise opening it would be a one-way door.
++		const active = group.activeEditor;
++		if (active instanceof AgentHomeUtilityInput) {
++			await editorService.closeEditors([{ groupId: group.id, editor: active }]);
++			return;
++		}
 +		await editorService.openEditor(instantiationService.createInstance(AgentHomeUtilityInput), { pinned: true }, group);
 +	}
 +}
@@ -169,10 +199,10 @@ index 00000000000..60538efa597
 +registerAction2(ShowAppsAction);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts b/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts
 new file mode 100644
-index 00000000000..51ad2b85a73
+index 00000000000..426f8995870
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeUtilityEditor.ts
-@@ -0,0 +1,660 @@
+@@ -0,0 +1,806 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -181,6 +211,8 @@ index 00000000000..51ad2b85a73
 +import './media/agentHomeUtility.css';
 +import { getZoomFactor } from '../../../../base/browser/browser.js';
 +import { $, addDisposableListener, append, clearNode, Dimension, EventType } from '../../../../base/browser/dom.js';
++import { PaneView } from '../../../../base/browser/ui/splitview/paneview.js';
++import { Orientation } from '../../../../base/browser/ui/splitview/splitview.js';
 +import { mainWindow } from '../../../../base/browser/window.js';
 +import { Action } from '../../../../base/common/actions.js';
 +import { Codicon } from '../../../../base/common/codicons.js';
@@ -190,49 +222,72 @@ index 00000000000..51ad2b85a73
 +import { localize } from '../../../../nls.js';
 +import { ICommandService } from '../../../../platform/commands/common/commands.js';
 +import { IContextMenuService } from '../../../../platform/contextview/browser/contextView.js';
++import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
 +import { IStorageService } from '../../../../platform/storage/common/storage.js';
 +import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 +import { IThemeService } from '../../../../platform/theme/common/themeService.js';
 +import { EditorPane } from '../../../../workbench/browser/parts/editor/editorPane.js';
 +import { IEditorGroup } from '../../../../workbench/services/editor/common/editorGroupsService.js';
 +import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
-+import { NEW_CHANGES_TAB_COMMAND_ID } from '../../editor/browser/addTabActions.js';
++import { ChangesViewPane } from '../../changes/browser/changesView.js';
++import { CHANGES_VIEW_ID } from '../../changes/common/changes.js';
++import { EmptyFileEditor } from '../../editor/browser/emptyFileEditor.js';
 +import { AgentHomeUtilityInput } from './agentHomeUtilityInput.js';
-+import { IAppsPanelModel, IAppsPanelTab } from './appsPanelModel.js';
-+
-+const QUICK_OPEN_COMMAND_ID = 'workbench.action.quickOpen';
++import { AppsPanelTabKind, IAppsPanelModel, IAppsPanelTab } from './appsPanelModel.js';
++import { mountAppsEmptyState, mountAppsTabStrip, type IAppsEmptyStateHandle, type IAppsLauncherCard, type IAppsTabStripHandle } from './appsPanelReact.js';
++import { mountAppsLauncherRail, mountAppsStripActions, mountAppsSummary, type IAppsLauncherEntry, type IAppsStripActionsHandle, type IAppsSummaryHandle } from './appsPanelReact.js';
 +
 +/**
 + * The reference app strip: `Review · Browser · Terminal · File`, in that order.
 + *
-+ * The strip entry and `+` share these entries, so an entry never opens its surface
-+ * somewhere else: Browser and Terminal are hosted by the panel (one tab per instance),
-+ * Review and File run the real commands this window already has.
++ * Every entry is a pane of this panel, which is what makes the strip a pane switcher: the four
++ * ids name the four surfaces the reference's panel holds, and none of them opens its surface
++ * somewhere else in the window. Browser and Terminal are instances (one tab each, `+` adds
++ * another); Changes and File are the window's single-instance panes, whose content the panel
++ * hosts from the base's own surfaces.
 + */
 +interface IAppsLauncher {
 +	readonly id: string;
 +	readonly label: string;
 +	readonly icon: ThemeIcon;
-+	readonly commandId?: string;
-+	readonly hosted?: 'terminal' | 'browser';
++	readonly hosted: AppsPanelTabKind;
 +}
 +
 +const LAUNCHERS: readonly IAppsLauncher[] = [
-+	{ id: 'review', label: localize('caret.agentHome.utility.review', "Review"), icon: Codicon.gitCompare, commandId: NEW_CHANGES_TAB_COMMAND_ID },
++	// The reference's own strip order and wording, measured from its window: the first entry is
++	// `Changes` (the id stays `review` because it is what `caret.apps.open.*` already ships).
++	{ id: 'review', label: localize('caret.agentHome.utility.review', "Changes"), icon: Codicon.gitCompare, hosted: 'changes' },
 +	{ id: 'browser', label: localize('caret.agentHome.utility.browser', "Browser"), icon: Codicon.globe, hosted: 'browser' },
 +	{ id: 'terminal', label: localize('caret.agentHome.utility.terminal', "Terminal"), icon: Codicon.terminal, hosted: 'terminal' },
-+	{ id: 'file', label: localize('caret.agentHome.utility.file', "File"), icon: Codicon.fileCode, commandId: QUICK_OPEN_COMMAND_ID },
++	{ id: 'file', label: localize('caret.agentHome.utility.file', "File"), icon: Codicon.fileCode, hosted: 'file' },
 +];
++
++/** The launcher list as the plain data the React card surface takes. */
++function launcherCards(): IAppsLauncherCard[] {
++	return LAUNCHERS.map(launcher => ({ id: launcher.id, label: launcher.label, iconId: launcher.icon.id }));
++}
++
++/** The same list as the strip entries React renders, with what each id switches to. */
++function launcherEntries(): IAppsLauncherEntry[] {
++	return LAUNCHERS.map(launcher => ({
++		id: launcher.id,
++		label: launcher.label,
++		iconId: launcher.icon.id,
++		kind: launcher.hosted,
++	}));
++}
 +
 +/** The DOM a tab owns while the panel is on screen. */
 +interface IAppsTabView {
-+	readonly button: HTMLButtonElement;
-+	readonly labelElement: HTMLElement;
 +	readonly container: HTMLElement;
 +	/** The element the browser overlay is laid out to (below the address bar). */
 +	readonly view: HTMLElement;
 +	readonly urlInput: HTMLInputElement | undefined;
 +	readonly disposables: DisposableStore;
++	/** A hosted view pane (Changes) sizes itself; the panel calls this with its own bounds. */
++	readonly layoutPanes?: (width: number, height: number) => void;
++	/** Focus the hosted pane's own control, if it has one. */
++	readonly focusPanes?: () => void;
 +}
 +
 +/**
@@ -250,19 +305,39 @@ index 00000000000..51ad2b85a73
 +	static readonly ID = AgentHomeUtilityInput.EDITOR_ID;
 +
 +	private readonly views = new Map<string, IAppsTabView>();
-+	private newTabButton: HTMLButtonElement | undefined;
 +	private tabsElement: HTMLElement | undefined;
 +	private bodyElement: HTMLElement | undefined;
 +	private summaryElement: HTMLElement | undefined;
-+	private summaryToggle: HTMLButtonElement | undefined;
++	private stripActions: IAppsStripActionsHandle | undefined;
 +	private activeTabId: string | undefined;
 +	private renderedTabCount = 0;
++	/**
++	 * The React root for the empty-state cards, or `undefined` while instance tabs exist.
++	 * The reference's agent UI is React (see `appsPanelReact.ts`), and this pane is where
++	 * Caret starts moving to it: the model stays in this class, the cards are React's.
++	 */
++	private emptyState: IAppsEmptyStateHandle | undefined;
++	/** React owns the instance tab buttons; the pane keeps each tab's body. */
++	private tabStrip: IAppsTabStripHandle | undefined;
++	/** React owns the summary markup; the pane keeps the observables that feed it. */
++	private summaryView: IAppsSummaryHandle | undefined;
++	/** The `.caret-apps-panel` root, which carries the pinned-summary state class. */
++	private panelElement: HTMLElement | undefined;
++	/** React owns the strip entries; the pane keeps what each one does. */
++	private launcherRail: IAppsEmptyStateHandle | undefined;
++	/**
++	 * Whether the pane itself is on screen. A hosted browser page is a native view drawn
++	 * ABOVE this window's DOM, so it must never be shown for a pane the workbench has
++	 * hidden behind another editor; the pane's own `layout()` is what shows it again.
++	 */
++	private isEditorVisible = true;
 +
 +	constructor(
 +		group: IEditorGroup,
 +		@ITelemetryService telemetryService: ITelemetryService,
 +		@IThemeService themeService: IThemeService,
 +		@IStorageService storageService: IStorageService,
++		@IInstantiationService private readonly instantiationService: IInstantiationService,
 +		@ICommandService private readonly commandService: ICommandService,
 +		@IContextMenuService private readonly contextMenuService: IContextMenuService,
 +		@IAppsPanelModel private readonly panelModel: IAppsPanelModel,
@@ -273,31 +348,34 @@ index 00000000000..51ad2b85a73
 +
 +	protected override createEditor(parent: HTMLElement): void {
 +		const root = append(parent, $('.caret-apps-panel'));
++		this.panelElement = root;
 +
 +		const strip = append(root, $('.caret-apps-strip'));
 +		const launchers = append(strip, $('.caret-apps-launchers'));
-+		for (const launcher of LAUNCHERS) {
-+			this.createLauncherButton(launchers, launcher, 'strip');
-+		}
++		// The strip entries are React now, in the reference's own order (Changes · Browser ·
++		// Terminal · File); the pane keeps what each id does (`runLauncher`).
++		this.launcherRail = mountAppsLauncherRail(launchers, launcherEntries(), id => {
++			const launcher = LAUNCHERS.find(candidate => candidate.id === id);
++			if (launcher) {
++				// The rail selects a pane: it shows the one that is already there.
++				this.runLauncher(launcher, 'reuse');
++			}
++		});
 +
 +		this.tabsElement = append(strip, $('.caret-apps-tabs'));
-+		const newTab = append(strip, $<HTMLButtonElement>('button.caret-apps-new'));
-+		newTab.type = 'button';
-+		newTab.classList.add('codicon', `codicon-${Codicon.add.id}`, 'caret-apps-icon-button');
-+		newTab.setAttribute('aria-label', localize('caret.agentHome.utility.newInstance', "Open in Apps panel"));
-+		newTab.setAttribute('title', localize('caret.agentHome.utility.newInstance', "Open in Apps panel"));
-+		newTab.setAttribute('aria-haspopup', 'menu');
-+		this.newTabButton = newTab;
-+		this._register(addDisposableListener(newTab, EventType.CLICK, () => this.openNewTabMenu()));
-+
-+		const summaryToggle = append(strip, $<HTMLButtonElement>('button.caret-apps-summary-toggle'));
-+		summaryToggle.type = 'button';
-+		summaryToggle.classList.add('codicon', `codicon-${Codicon.pin.id}`, 'caret-apps-icon-button');
-+		summaryToggle.setAttribute('aria-label', localize('caret.agentHome.utility.toggleSummary', "Toggle Pinned Summary"));
-+		summaryToggle.setAttribute('aria-pressed', 'false');
-+		summaryToggle.setAttribute('title', localize('caret.agentHome.utility.toggleSummary', "Toggle Pinned Summary"));
-+		this.summaryToggle = summaryToggle;
-+		this._register(addDisposableListener(summaryToggle, EventType.CLICK, () => this.toggleSummary()));
++		// React owns the tab buttons; the pane owns every tab's body (a terminal attaches an
++		// instance, a browser lays a native view over its own element).
++		this.tabStrip = mountAppsTabStrip(this.tabsElement, {
++			onSelect: id => this.activateTab(id),
++			onClose: id => this.panelModel.closeTab(id),
++		});
++		// The strip's two icon buttons are React's too, so the whole strip is one renderer; the
++		// host is `display: contents` so they stay two flex items of the strip itself.
++		const actions = append(strip, $('.caret-apps-actions'));
++		this.stripActions = mountAppsStripActions(actions, {
++			onOpenMenu: anchor => this.openNewTabMenu(anchor),
++			onToggleSummary: () => this.toggleSummary(),
++		});
 +
 +		this.summaryElement = append(root, $('.caret-apps-summary'));
 +		this.bodyElement = append(root, $('.caret-apps-body'));
@@ -312,62 +390,76 @@ index 00000000000..51ad2b85a73
 +
 +	// --- Strip entries -----------------------------------------------------
 +
-+	private createLauncherButton(parent: HTMLElement, launcher: IAppsLauncher, mode: 'strip' | 'card'): HTMLButtonElement {
-+		const button = append(parent, $<HTMLButtonElement>(mode === 'card' ? 'button.caret-agent-home-utility-card' : 'button.caret-apps-launcher'));
-+		button.type = 'button';
-+
-+		const icon = append(button, $(mode === 'card' ? 'span.caret-agent-home-utility-card-icon' : 'span.caret-apps-launcher-icon'));
-+		icon.classList.add('codicon', `codicon-${launcher.icon.id}`);
-+		icon.setAttribute('aria-hidden', 'true');
-+
-+		// The column is narrow, so the strip entry is the icon with its name as the
-+		// accessible name and tooltip; the labelled form of the same entry is the card in
-+		// the empty body.
-+		button.setAttribute('aria-label', launcher.label);
-+		if (mode === 'card') {
-+			const label = append(button, $('span.caret-agent-home-utility-card-label'));
-+			label.textContent = launcher.label;
-+		} else {
-+			button.setAttribute('title', launcher.label);
-+		}
-+		this._register(addDisposableListener(button, EventType.CLICK, () => this.runLauncher(launcher)));
-+		return button;
-+	}
-+
-+	private runLauncher(launcher: IAppsLauncher): void {
++	/**
++	 * `reuse` is what separates the strip's entries from its `+` menu, and it is the reference's
++	 * own split: the strip is a pane switcher, so picking a pane that is already open shows it
++	 * (and marks it), while `+` is what opens an additional instance. Both go through here so the
++	 * two halves cannot drift apart on what "Browser" means.
++	 */
++	private runLauncher(launcher: IAppsLauncher, mode: 'reuse' | 'new'): void {
 +		if (launcher.hosted === 'terminal') {
++			const existing = mode === 'reuse' ? this.panelModel.tabs.find(tab => tab.kind === 'terminal') : undefined;
++			if (existing) {
++				this.activateTab(existing.id);
++				return;
++			}
 +			void this.panelModel.createTerminal();
 +			return;
 +		}
 +		if (launcher.hosted === 'browser') {
++			const existing = mode === 'reuse' ? this.panelModel.tabs.find(tab => tab.kind === 'browser') : undefined;
++			if (existing) {
++				this.activateTab(existing.id);
++				return;
++			}
 +			void this.panelModel.createBrowser();
 +			return;
 +		}
-+		if (!launcher.commandId) {
-+			return;
-+		}
-+		// A command whose surface is unavailable in the current state (Changes before a
-+		// session exists, for example) resolves without opening anything instead of throwing.
-+		void Promise.resolve(this.commandService.executeCommand(launcher.commandId)).catch(() => undefined);
++		// Changes and Files have nothing to multiply: the window owns one of each, so both modes
++		// mean the same thing here - show the pane, opening it only while it is not there yet.
++		const tab = launcher.hosted === 'changes' ? this.panelModel.createChanges() : this.panelModel.createFiles();
++		this.activateTab(tab.id);
 +	}
 +
 +	/** `+` lists the apps, anchored to the button rather than centred in the window. */
-+	private openNewTabMenu(): void {
-+		const anchor = this.newTabButton?.getBoundingClientRect();
-+		if (!anchor) {
-+			return;
-+		}
++	private openNewTabMenu(button: HTMLElement): void {
++		const anchor = button.getBoundingClientRect();
++		// A hosted page is a native view drawn above this window's DOM, so a menu anchored to the
++		// strip opens *behind* the page it belongs to: with one browser tab already open the user
++		// sees `+`, clicks a row, and the click lands on the page instead - the menu looks broken
++		// from the second tab onward. The page gives the popup room while the menu is up.
++		this.hideBrowserForPopup();
 +		this.contextMenuService.showContextMenu({
 +			getAnchor: () => ({ x: anchor.left, y: anchor.bottom, width: anchor.width, height: anchor.height }),
 +			getActions: () => LAUNCHERS.map(launcher => new Action(
 +				`caret.apps.open.${launcher.id}`,
 +				launcher.label,
-+				launcher.icon,
++				// `Action`'s third parameter is CSS class names, not an icon object: passing the
++				// ThemeIcon put a non-class string on the element (`tsc` rejected it), so the
++				// menu entries never drew their codicon.
++				ThemeIcon.isThemeIcon(launcher.icon) ? `codicon codicon-${launcher.icon.id}` : undefined,
 +				true,
-+				() => this.runLauncher(launcher),
++				// `+` is the instance opener, not a pane switch.
++				() => this.runLauncher(launcher, 'new'),
 +			)),
 +			getActionsContext: () => undefined,
++			onHide: () => this.restoreAfterPopup(),
 +		});
++	}
++
++	/**
++	 * Take the hosted page out of the way of a DOM popup this pane opened.
++	 *
++	 * Only the active browser tab has a view on screen, and `applyActiveTab` puts it back with
++	 * the bounds the pane last measured, so hiding and restoring is the whole of it.
++	 */
++	private hideBrowserForPopup(): void {
++		const tab = this.panelModel.tabs.find(candidate => candidate.id === this.activeTabId);
++		void tab?.browser?.setVisible(false);
++	}
++
++	private restoreAfterPopup(): void {
++		this.applyActiveTab();
 +	}
 +
 +	// --- Instance tabs -----------------------------------------------------
@@ -383,9 +475,8 @@ index 00000000000..51ad2b85a73
 +		const live = new Set<string>();
 +		for (const tab of this.panelModel.tabs) {
 +			live.add(tab.id);
-+			const existing = this.views.get(tab.id);
-+			if (existing) {
-+				this.setTabLabel(existing, tab.title);
++			// A label change is a React re-render below, not a DOM edit here.
++			if (this.views.has(tab.id)) {
 +				continue;
 +			}
 +			this.views.set(tab.id, this.createTabView(tab));
@@ -396,7 +487,6 @@ index 00000000000..51ad2b85a73
 +				continue;
 +			}
 +			view.disposables.dispose();
-+			view.button.remove();
 +			view.container.remove();
 +			this.views.delete(id);
 +		}
@@ -410,6 +500,11 @@ index 00000000000..51ad2b85a73
 +			this.activeTabId = last?.id;
 +		}
 +		this.renderedTabCount = this.panelModel.tabs.length;
++		this.applySummaryPinned();
++		this.tabStrip?.update(
++			this.panelModel.tabs.map(tab => ({ id: tab.id, title: tab.title, kind: tab.kind })),
++			this.activeTabId,
++		);
 +		this.applyActiveTab();
 +	}
 +
@@ -418,37 +513,19 @@ index 00000000000..51ad2b85a73
 +		const bodyElement = this.bodyElement!;
 +		const disposables = new DisposableStore();
 +
++		// Changes and Files are panes of this panel now, so they build their bodies here rather
++		// than sending the user to an editor tab opened somewhere else in the window.
++		if (tab.kind === 'changes' || tab.kind === 'file') {
++			return this.createHostedPaneView(tab, bodyElement, disposables);
++		}
++
 +		const container = append(bodyElement, $(tab.kind === 'browser' ? '.caret-apps-instance.caret-apps-browser' : '.caret-apps-instance.terminal-overflow-guard.terminal-editor'));
-+		const button = append(tabsElement, $<HTMLButtonElement>('button.caret-apps-tab'));
-+		button.type = 'button';
-+		button.setAttribute('role', 'tab');
-+		button.setAttribute('aria-label', tab.title);
-+
-+		const icon = append(button, $('span.caret-apps-tab-icon'));
-+		icon.classList.add('codicon', `codicon-${tab.kind === 'browser' ? Codicon.globe.id : Codicon.terminal.id}`);
-+		icon.setAttribute('aria-hidden', 'true');
-+
-+		const labelElement = append(button, $('span.caret-apps-tab-label'));
-+		labelElement.textContent = tab.title;
-+
-+		const close = append(button, $('span.caret-apps-tab-close'));
-+		close.classList.add('codicon', `codicon-${Codicon.close.id}`);
-+		close.setAttribute('role', 'button');
-+		close.setAttribute('aria-label', localize('caret.agentHome.utility.closeInstance', "Close Tab"));
-+
-+		disposables.add(addDisposableListener(button, EventType.CLICK, event => {
-+			if (event.target !== close) {
-+				this.activateTab(tab.id);
-+			}
-+		}));
-+		disposables.add(addDisposableListener(close, EventType.CLICK, event => {
-+			event.stopPropagation();
-+			this.panelModel.closeTab(tab.id);
-+		}));
++		// The tab's button lives in React (`appsPanelReact.ts`); this is the body only.
++		void tabsElement;
 +
 +		if (tab.kind === 'terminal') {
 +			tab.instance?.attachToElement(container);
-+			return { button, labelElement, container, view: container, urlInput: undefined, disposables };
++			return { container, view: container, urlInput: undefined, disposables };
 +		}
 +
 +		// A browser tab carries its own address bar: the hosted view has no chrome of its
@@ -589,7 +666,53 @@ index 00000000000..51ad2b85a73
 +			sync();
 +		}
 +
-+		return { button, labelElement, container, view, urlInput, disposables };
++		return { container, view, urlInput, disposables };
++	}
++
++	/**
++	 * The two panes of the panel whose surface the base already owns.
++	 *
++	 * Changes and Files used to be editor-group tabs: picking either one in the strip ran the
++	 * command that opens that editor, so the strip could not switch to it in place and the rail
++	 * had nothing to mark for those two entries. The panel hosts the same surfaces here instead -
++	 * the base's changes view for Changes, and the base's Files surface for File - so all four
++	 * entries of the strip are panes of one panel, which is what the reference's strip is.
++	 *
++	 * The panel drives the hosted view's layout because the pane owns its element rather than a
++	 * part: nothing else is going to size it.
++	 */
++	private createHostedPaneView(tab: IAppsPanelTab, bodyElement: HTMLElement, disposables: DisposableStore): IAppsTabView {
++		const container = append(bodyElement, $('.caret-apps-instance.caret-apps-pane'));
++		container.classList.add(tab.kind === 'changes' ? 'caret-apps-pane-changes' : 'caret-apps-pane-files');
++
++		if (tab.kind === 'file') {
++			// The base's Files surface: the same content the Files tab shows (its empty state and
++			// the Search Files command), hosted in the panel instead of in an editor tab. The file
++			// tree itself stays the base's Files view - `IExplorerService` holds one view, so a
++			// second explorer built here would take that view over from the first.
++			const files = disposables.add(this.instantiationService.createInstance(EmptyFileEditor, this.group));
++			files.create(container);
++			return { container, view: container, urlInput: undefined, disposables };
++		}
++
++		// The changes view is a ViewPane, whose home is a PaneView (a split view with one pane).
++		const paneView = disposables.add(new PaneView(container, { orientation: Orientation.VERTICAL }));
++		const changes = disposables.add(this.instantiationService.createInstance(ChangesViewPane, {
++			id: CHANGES_VIEW_ID,
++			title: localize('caret.agentHome.utility.review', "Changes"),
++		}));
++		// A ViewPane builds its header and body in `render()`, which the view container calls
++		// before it hands the pane to its PaneView; this host has to do the same explicitly.
++		changes.render();
++		paneView.addPane(changes, 1);
++		return {
++			container,
++			view: container,
++			urlInput: undefined,
++			disposables,
++			layoutPanes: (width, height) => paneView.layout(height, width),
++			focusPanes: () => changes.focus(),
++		};
 +	}
 +
 +	private createBrowserAction(parent: HTMLElement, icon: ThemeIcon, label: string, run: () => void): HTMLButtonElement {
@@ -602,11 +725,6 @@ index 00000000000..51ad2b85a73
 +		return button;
 +	}
 +
-+	private setTabLabel(view: IAppsTabView, label: string): void {
-+		view.labelElement.textContent = label;
-+		view.button.setAttribute('aria-label', label);
-+	}
-+
 +	private activateTab(id: string): void {
 +		this.activeTabId = id;
 +		this.applyActiveTab();
@@ -616,6 +734,8 @@ index 00000000000..51ad2b85a73
 +			tab.instance.focus();
 +		} else if (tab?.browser) {
 +			void tab.browser.focus();
++		} else if (view?.focusPanes) {
++			view.focusPanes();
 +		} else {
 +			view?.urlInput?.focus();
 +		}
@@ -624,8 +744,6 @@ index 00000000000..51ad2b85a73
 +	private applyActiveTab(): void {
 +		for (const [id, view] of this.views) {
 +			const active = id === this.activeTabId;
-+			view.button.classList.toggle('active', active);
-+			view.button.setAttribute('aria-selected', String(active));
 +			view.container.classList.toggle('active', active);
 +			const tab = this.panelModel.tabs.find(candidate => candidate.id === id);
 +			tab?.instance?.setVisible(active);
@@ -633,12 +751,40 @@ index 00000000000..51ad2b85a73
 +				void tab.browser.setVisible(active);
 +			}
 +		}
++		// A selection can change without the model changing (`activateTab`), so the strip is
++		// re-rendered here too and React stays the only writer of the tab buttons.
++		this.tabStrip?.update(
++			this.panelModel.tabs.map(tab => ({ id: tab.id, title: tab.title, kind: tab.kind })),
++			this.activeTabId,
++		);
++		// The rail marks the pane that is on screen. The reference switches between panes, so its
++		// strip shows which one you are looking at - and now all four entries can report it,
++		// because Changes and File are panes of this panel too. This sits here rather than in
++		// `renderTabs` because a switch to a pane that is already open changes no model.
++		const activeTab = this.panelModel.tabs.find(tab => tab.id === this.activeTabId);
++		this.launcherRail?.update(
++			launcherEntries().map(entry => ({ ...entry, active: entry.kind === activeTab?.kind })),
++		);
 +		this.updateEmptyState();
 +		this.layoutActiveInstance();
 +	}
 +
 +	/** The pane is going away: keep the instances, drop their DOM. */
 +	private detachInstances(): void {
++		// No DOM is left to place a browser over, so a later layout must not show one.
++		this.isEditorVisible = false;
++		// React owns the empty-state markup, so the root has to come down before the pane
++		// drops the element that hosts it.
++		this.emptyState?.dispose();
++		this.emptyState = undefined;
++		this.tabStrip?.dispose();
++		this.tabStrip = undefined;
++		this.launcherRail?.dispose();
++		this.launcherRail = undefined;
++		this.summaryView?.dispose();
++		this.summaryView = undefined;
++		this.stripActions?.dispose();
++		this.stripActions = undefined;
 +		for (const view of this.views.values()) {
 +			view.disposables.dispose();
 +		}
@@ -658,28 +804,39 @@ index 00000000000..51ad2b85a73
 +		if (!body || !root) {
 +			return;
 +		}
-+		const empty = root.querySelector<HTMLElement>('.caret-apps-empty');
-+		if (this.panelModel.tabs.length === 0) {
-+			if (!empty) {
-+				const cards = append(append(body, $('.caret-apps-empty')), $('.caret-agent-home-utility-grid'));
-+				for (const launcher of LAUNCHERS) {
-+					this.createLauncherButton(cards, launcher, 'card');
++		const isEmpty = this.panelModel.tabs.length === 0;
++		if (isEmpty && !this.emptyState) {
++			// The launcher cards are the first surface React renders here; the pane keeps the
++			// model and the commands, React owns the markup. See `appsPanelReact.ts`.
++			const host = append(body, $('.caret-apps-empty'));
++			this.emptyState = mountAppsEmptyState(host, launcherCards(), id => {
++				const launcher = LAUNCHERS.find(candidate => candidate.id === id);
++				if (launcher) {
++					// A card starts a surface from an empty panel, so nothing is open to reuse yet.
++					this.runLauncher(launcher, 'new');
 +				}
-+			}
-+		} else {
-+			empty?.remove();
++			});
++		} else if (!isEmpty && this.emptyState) {
++			this.emptyState.dispose();
++			this.emptyState = undefined;
++			body.querySelector<HTMLElement>('.caret-apps-empty')?.remove();
 +		}
-+		root.classList.toggle('empty', this.panelModel.tabs.length === 0);
++		root.classList.toggle('empty', isEmpty);
 +	}
 +
 +	// --- Pinned summary ----------------------------------------------------
 +
 +	private toggleSummary(): void {
-+		const panel = this.summaryElement?.parentElement;
-+		const pinned = !panel?.classList.contains('summary-pinned');
-+		panel?.classList.toggle('summary-pinned', pinned);
-+		this.summaryToggle?.classList.toggle('active', pinned);
-+		this.summaryToggle?.setAttribute('aria-pressed', String(pinned));
++		// The pin belongs to the window's model, not to this pane's DOM: the pane is re-created
++		// whenever the layout collapses the editor area, and a class on it would go with it.
++		this.panelModel.toggleSummaryPinned();
++	}
++
++	/** The summary strip and its button are drawn from the model, so a rebuilt pane agrees with it. */
++	private applySummaryPinned(): void {
++		this.panelElement?.classList.toggle('summary-pinned', this.panelModel.summaryPinned);
++		// React draws the button, so its pressed state is re-rendered rather than patched here.
++		this.stripActions?.update(this.panelModel.summaryPinned);
 +	}
 +
 +	private renderSummary(): void {
@@ -687,20 +844,18 @@ index 00000000000..51ad2b85a73
 +		if (!summary) {
 +			return;
 +		}
-+		const title = append(summary, $('.caret-apps-summary-title'));
-+		const meta = append(summary, $('.caret-apps-summary-meta'));
++		const view = mountAppsSummary(summary);
++		this.summaryView = view;
 +		this._register(autorun(reader => {
 +			const session = this.sessionsService.activeSession.read(reader);
 +			if (!session) {
-+				title.textContent = localize('caret.agentHome.summary.empty', "No active session");
-+				meta.textContent = '';
++				view.update({ title: localize('caret.agentHome.summary.empty', "No active session"), meta: '' });
 +				return;
 +			}
 +			const sessionTitle = session.title.read(reader);
 +			const status = session.status.read(reader);
 +			const branch = session.workspace.read(reader)?.folders[0]?.gitRepository?.branchName;
-+			title.textContent = sessionTitle;
-+			meta.textContent = branch ? `${status} · ${branch}` : String(status);
++			view.update({ title: sessionTitle, meta: branch ? `${status} · ${branch}` : String(status) });
 +		}));
 +	}
 +
@@ -717,6 +872,12 @@ index 00000000000..51ad2b85a73
 +			return;
 +		}
 +		const { clientWidth, clientHeight } = view.container;
++		if (view.layoutPanes) {
++			if (clientWidth > 0 && clientHeight > 0) {
++				view.layoutPanes(clientWidth, clientHeight);
++			}
++			return;
++		}
 +		if (clientWidth > 0 && clientHeight > 0) {
 +			tab.instance?.layout({ width: clientWidth, height: clientHeight });
 +		}
@@ -740,8 +901,19 @@ index 00000000000..51ad2b85a73
 +			return;
 +		}
 +		const rect = viewElement.getBoundingClientRect();
++		// The page is only ever shown for the tab the user is looking at.
++		const active = this.isEditorVisible && this.activeTabId === tab.id;
 +		if (rect.width < 1 || rect.height < 1) {
-+			void model.setVisible(false);
++			// A pane that was just created has not been laid out yet, so its view element
++			// reads a zero rect. Hiding the ACTIVE tab here used to be permanent: the only
++			// other writers of visibility are `applyActiveTab` (a tab switch) and
++			// `setEditorVisible` (a pane reveal), and neither runs again for a browser
++			// opened into a fresh pane - so the tab appeared and the site never did.
++			// Hide only a tab the user is not looking at; the pane's `layout()` shows the
++			// active one once it has real bounds.
++			if (!active) {
++				void model.setVisible(false);
++			}
 +			return;
 +		}
 +		const overlay = viewElement.parentElement?.querySelector<HTMLElement>('.caret-apps-browser-suggest');
@@ -755,7 +927,9 @@ index 00000000000..51ad2b85a73
 +			zoomFactor: getZoomFactor(mainWindow),
 +			cornerRadius: 0,
 +		};
-+		void model.layout(bounds).then(() => {
++		// Visibility first, then bounds: showing a view that has never been laid out
++		// leaves it at the wrong size until the next resize.
++		void model.setVisible(active).then(() => model.layout(bounds)).then(() => {
 +			// A view that is hidden keeps its bounds; the pane records what it pushed so a
 +			// receipt capture can read it back.
 +			viewElement.dataset.appsBrowserBounds = JSON.stringify(bounds);
@@ -766,6 +940,8 @@ index 00000000000..51ad2b85a73
 +	/** Switching away from the App pane must take the overlays with it. */
 +	protected override setEditorVisible(visible: boolean): void {
 +		super.setEditorVisible(visible);
++		// `layoutBrowserTab` reads this, so record it before any tab is laid out.
++		this.isEditorVisible = visible;
 +		for (const [id, view] of this.views) {
 +			const tab = this.panelModel.tabs.find(candidate => candidate.id === id);
 +			if (!tab?.browser) {
@@ -908,10 +1084,10 @@ index 00000000000..273770c32e2
 +}
 diff --git a/src/vs/sessions/contrib/home/browser/appsPanelModel.ts b/src/vs/sessions/contrib/home/browser/appsPanelModel.ts
 new file mode 100644
-index 00000000000..05ee2fdc38f
+index 00000000000..108e888a6bc
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/appsPanelModel.ts
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,204 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -920,16 +1096,28 @@ index 00000000000..05ee2fdc38f
 +import { Emitter } from '../../../../base/common/event.js';
 +import { Disposable, DisposableStore, toDisposable } from '../../../../base/common/lifecycle.js';
 +import { generateUuid } from '../../../../base/common/uuid.js';
++import { localize } from '../../../../nls.js';
 +import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 +import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 +import { TerminalExitReason } from '../../../../platform/terminal/common/terminal.js';
 +import { IBrowserViewModel, IBrowserViewWorkbenchService } from '../../../../workbench/contrib/browserView/common/browserView.js';
 +import { ITerminalInstance, ITerminalService } from '../../../../workbench/contrib/terminal/browser/terminal.js';
 +
-+/** One instance tab of the Apps panel: either a terminal or a hosted browser view. */
++/**
++ * What a tab of the Apps panel shows.
++ *
++ * `browser` carries its own view model and `terminal` its own instance, so those two multiply
++ * (one tab per instance). `changes` and `file` are the panel's two single-instance panes: the
++ * surfaces behind them belong to this window (one active session, one workspace), so there is
++ * nothing to open a second copy of - the tab is what makes them panes of the panel instead of
++ * editor tabs somewhere else.
++ */
++export type AppsPanelTabKind = 'terminal' | 'browser' | 'changes' | 'file';
++
++/** One tab of the Apps panel: a terminal, a hosted browser view, or a single-instance pane. */
 +export interface IAppsPanelTab {
 +	readonly id: string;
-+	readonly kind: 'terminal' | 'browser';
++	readonly kind: AppsPanelTabKind;
 +	readonly title: string;
 +	readonly instance: ITerminalInstance | undefined;
 +	readonly browser: IBrowserViewModel | undefined;
@@ -939,9 +1127,16 @@ index 00000000000..05ee2fdc38f
 +	readonly _serviceBrand: undefined;
 +	readonly onDidChange: import('../../../../base/common/event.js').Event<void>;
 +	readonly tabs: readonly IAppsPanelTab[];
++	/** Whether the session summary strip above the body is showing. */
++	readonly summaryPinned: boolean;
 +	createTerminal(): Promise<IAppsPanelTab | undefined>;
 +	createBrowser(url?: string): Promise<IAppsPanelTab | undefined>;
++	/** The Changes pane: the active session's changes. Single instance - see {@link IAppsPanelTab}. */
++	createChanges(): IAppsPanelTab;
++	/** The Files pane: the workspace's files. Single instance - see {@link IAppsPanelTab}. */
++	createFiles(): IAppsPanelTab;
 +	closeTab(id: string): void;
++	toggleSummaryPinned(): void;
 +}
 +
 +export const IAppsPanelModel = createDecorator<IAppsPanelModel>('caretAppsPanelModel');
@@ -962,6 +1157,9 @@ index 00000000000..05ee2fdc38f
 +
 +	private readonly tabsByInstance: IAppsPanelTab[] = [];
 +	private readonly storeByTabId = new Map<string, DisposableStore>();
++	/** The pin is window state, not pane state: a layout that re-creates the pane - collapsing the
++	 * editor area, or a switch to the IDE and back - must not silently unpin the summary. */
++	private pinnedSummary = false;
 +	private readonly _onDidChange = this._register(new Emitter<void>());
 +	readonly onDidChange = this._onDidChange.event;
 +
@@ -974,6 +1172,15 @@ index 00000000000..05ee2fdc38f
 +
 +	get tabs(): readonly IAppsPanelTab[] {
 +		return this.tabsByInstance;
++	}
++
++	get summaryPinned(): boolean {
++		return this.pinnedSummary;
++	}
++
++	toggleSummaryPinned(): void {
++		this.pinnedSummary = !this.pinnedSummary;
++		this._onDidChange.fire();
 +	}
 +
 +	async createTerminal(): Promise<IAppsPanelTab | undefined> {
@@ -1014,6 +1221,33 @@ index 00000000000..05ee2fdc38f
 +		if (url) {
 +			await model.loadURL(url).catch(() => undefined);
 +		}
++		return tab;
++	}
++
++	createChanges(): IAppsPanelTab {
++		return this.ensureSingletonPane('changes', localize('caret.agentHome.utility.review', "Changes"));
++	}
++
++	createFiles(): IAppsPanelTab {
++		return this.ensureSingletonPane('file', localize('caret.agentHome.utility.file', "File"));
++	}
++
++	/**
++	 * A pane this window owns a single one of.
++	 *
++	 * Two of the reference's four entries have nothing to multiply: the Changes pane reads the
++	 * one active session and the Files pane the one workspace. Asking for one that is already
++	 * open therefore means "show that pane", which is what the caller does with the tab it gets
++	 * back.
++	 */
++	private ensureSingletonPane(kind: 'changes' | 'file', title: string): IAppsPanelTab {
++		const existing = this.tabsByInstance.find(tab => tab.kind === kind);
++		if (existing) {
++			return existing;
++		}
++		const tab: IAppsPanelTab = { id: generateUuid(), kind, title, instance: undefined, browser: undefined };
++		this.tabsByInstance.push(tab);
++		this._onDidChange.fire();
 +		return tab;
 +	}
 +
@@ -1058,12 +1292,360 @@ index 00000000000..05ee2fdc38f
 +}
 +
 +registerSingleton(IAppsPanelModel, AppsPanelModel, InstantiationType.Delayed);
+diff --git a/src/vs/sessions/contrib/home/browser/appsPanelReact.ts b/src/vs/sessions/contrib/home/browser/appsPanelReact.ts
+new file mode 100644
+index 00000000000..e60ebc26c9b
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/appsPanelReact.ts
+@@ -0,0 +1,342 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import { createElement, Fragment, type FunctionComponent } from 'react';
++import { createRoot, type Root } from 'react-dom/client';
++import { localize } from '../../../../nls.js';
++
++/**
++ * The first React surface in the Agents window.
++ *
++ * Why: the reference's agent UI is React (its own `react-runtime` ships next to
++ * `workbench.glass.main.js`, and its Apps panel is a component tree - see
++ * `docs/maintenance/evidence/cursor-agent-surface-decision-2026-09-15/`). Caret's panes were
++ * hand-built DOM instead, which is why every panel change was another `append`/`classList`
++ * edit. The empty Apps panel is the smallest real thing to move first: its data is already a
++ * list of launchers, so the pane keeps the model and React owns the pixels from there.
++ *
++ * `createElement` rather than JSX on purpose: the pinned base's `src/tsconfig.json` sets no
++ * `jsx` option, and turning JSX on for the whole workbench is a separate, reviewable change.
++ * The rendered markup keeps the pane's existing class names, so the Caret token layer and the
++ * parity gate see exactly what they saw before.
++ */
++
++/** One launcher card: the subset of the pane's launcher entry a card needs. */
++export interface IAppsLauncherCard {
++	readonly id: string;
++	readonly label: string;
++	readonly iconId: string;
++}
++
++/**
++ * The strip's entry for one app.
++ *
++ * `kind` is what the reference's strip switches on: `changes` opens the Changes editor, and
++ * `browser` / `terminal` are hosted here, one tab per instance.
++ */
++export interface IAppsLauncherEntry extends IAppsLauncherCard {
++	readonly kind: 'changes' | 'browser' | 'terminal' | 'file';
++	/** The reference marks the entry whose surface is the one on screen. */
++	readonly active?: boolean;
++}
++
++export interface IAppsEmptyStateHandle {
++	/** Re-render with a new card set. */
++	update(cards: readonly IAppsLauncherCard[]): void;
++	/** Tear the root down. The pane calls this when it drops its DOM. */
++	dispose(): void;
++}
++
++interface IAppsEmptyStateProps {
++	readonly cards: readonly IAppsLauncherCard[];
++	readonly onPick: (id: string) => void;
++}
++
++const AppsEmptyState: FunctionComponent<IAppsEmptyStateProps> = ({ cards, onPick }) =>
++	createElement(
++		'div',
++		{ className: 'caret-apps-empty' },
++		createElement(
++			'div',
++			{ className: 'caret-agent-home-utility-grid' },
++			cards.map(card => createElement(
++				'button',
++				{
++					key: card.id,
++					type: 'button',
++					className: 'caret-agent-home-utility-card',
++					'aria-label': card.label,
++					onClick: () => onPick(card.id),
++				},
++				createElement('span', {
++					key: 'icon',
++					className: `caret-agent-home-utility-card-icon codicon codicon-${card.iconId}`,
++					'aria-hidden': true,
++				}),
++				createElement('span', { key: 'label', className: 'caret-agent-home-utility-card-label' }, card.label),
++			)),
++		),
++	);
++
++/**
++ * Mount the empty-state cards into `host`.
++ *
++ * `host` has to be a fresh, empty element: React owns everything inside it from then on, and
++ * the pane removes `host` itself when it disposes the handle.
++ */
++export function mountAppsEmptyState(host: HTMLElement, cards: readonly IAppsLauncherCard[], onPick: (id: string) => void): IAppsEmptyStateHandle {
++	const root: Root = createRoot(host);
++	root.render(createElement(AppsEmptyState, { cards, onPick }));
++	return {
++		update: next => root.render(createElement(AppsEmptyState, { cards: next, onPick })),
++		// React 18 complains if a root is left mounted on a detached node, so unmount before
++		// the pane drops the host element.
++		dispose: () => root.unmount(),
++	};
++}
++
++export interface IAppsStripActionsHandlers {
++	/** The pane anchors the apps context menu to the button that opened it. */
++	onOpenMenu(anchor: HTMLElement): void;
++	onToggleSummary(): void;
++}
++
++export interface IAppsStripActionsHandle {
++	update(pinned: boolean): void;
++	dispose(): void;
++}
++
++interface IAppsStripActionsProps {
++	readonly pinned: boolean;
++	readonly handlers: IAppsStripActionsHandlers;
++}
++
++/**
++ * The strip's two icon buttons: `+` (the reference's "Open new tab menu") and the pinned-summary
++ * toggle.
++ *
++ * With these the whole Apps panel strip - rail entries, instance tabs and both buttons - is
++ * React, and the pane is left with bodies and the model. The `+` reports the element that was
++ * clicked rather than a stored reference, because the pane anchors a context menu to it.
++ */
++const AppsStripActions: FunctionComponent<IAppsStripActionsProps> = ({ pinned, handlers }) =>
++	createElement(
++		Fragment,
++		null,
++		createElement('button', {
++			key: 'new',
++			type: 'button',
++			className: 'caret-apps-new caret-apps-icon-button codicon codicon-add',
++			'aria-label': localize('caret.agentHome.utility.newInstance', "Open new tab menu"),
++			title: localize('caret.agentHome.utility.newInstance', "Open new tab menu"),
++			'aria-haspopup': 'menu',
++			onClick: (event: MouseEvent) => handlers.onOpenMenu(event.currentTarget as HTMLElement),
++		}),
++		createElement('button', {
++			key: 'summary',
++			type: 'button',
++			className: `caret-apps-summary-toggle caret-apps-icon-button codicon codicon-pin${pinned ? ' active' : ''}`,
++			'aria-label': localize('caret.agentHome.utility.toggleSummary', "Toggle Pinned Summary"),
++			title: localize('caret.agentHome.utility.toggleSummary', "Toggle Pinned Summary"),
++			'aria-pressed': String(pinned),
++			onClick: () => handlers.onToggleSummary(),
++		}),
++	);
++
++/**
++ * Mount the strip's icon buttons into `host`.
++ *
++ * `host` takes part in the strip's own flex layout, so the caller makes it `display: contents`
++ * - otherwise the two buttons would be one flex item instead of two and the strip would space
++ * them wrong.
++ */
++export function mountAppsStripActions(host: HTMLElement, handlers: IAppsStripActionsHandlers): IAppsStripActionsHandle {
++	host.style.display = 'contents';
++	const root: Root = createRoot(host);
++	root.render(createElement(AppsStripActions, { pinned: false, handlers }));
++	return {
++		update: pinned => root.render(createElement(AppsStripActions, { pinned, handlers })),
++		dispose: () => root.unmount(),
++	};
++}
++
++/** The pinned summary as the pane can read it: plain strings, no observables. */
++export interface IAppsSummaryState {
++	readonly title: string;
++	readonly meta: string;
++}
++
++export interface IAppsSummaryHandle {
++	update(state: IAppsSummaryState): void;
++	dispose(): void;
++}
++
++/**
++ * The pinned summary panel.
++ *
++ * Same split as the rest of this module: React owns the markup, the pane keeps the observable
++ * wiring (it is the only thing that has the services). The panel used to write `textContent`
++ * into two elements it created by hand.
++ */
++const AppsSummary: FunctionComponent<{ readonly state: IAppsSummaryState }> = ({ state }) =>
++	createElement(
++		'div',
++		{ className: 'caret-apps-summary' },
++		createElement('span', { className: 'caret-apps-summary-title' }, state.title),
++		createElement('span', { className: 'caret-apps-summary-meta' }, state.meta),
++	);
++
++export function mountAppsSummary(host: HTMLElement): IAppsSummaryHandle {
++	const root: Root = createRoot(host);
++	root.render(createElement(AppsSummary, { state: { title: '', meta: '' } }));
++	return {
++		update: state => root.render(createElement(AppsSummary, { state })),
++		dispose: () => root.unmount(),
++	};
++}
++
++/** One instance tab as the strip needs it: the pane's `IAppsPanelTab` minus its instances. */
++export interface IAppsTab {
++	readonly id: string;
++	readonly title: string;
++	readonly kind: 'terminal' | 'browser' | 'changes' | 'file';
++}
++
++/**
++ * The icon a tab wears, keyed by what it shows.
++ *
++ * All four kinds reach the strip as tabs now - the rail's own entries are the reference's four
++ * pane buttons in its order, and picking one switches to (or opens) that pane, so the tab row
++ * has to name the pane a tab stands for, not just browser-or-terminal.
++ */
++function tabIconId(kind: IAppsTab['kind']): string {
++	switch (kind) {
++		case 'browser': return 'globe';
++		case 'changes': return 'git-compare';
++		case 'file': return 'file-code';
++		default: return 'terminal';
++	}
++}
++
++export interface IAppsTabStripHandlers {
++	onSelect(id: string): void;
++	onClose(id: string): void;
++}
++
++export interface IAppsTabStripHandle {
++	update(tabs: readonly IAppsTab[], activeId: string | undefined): void;
++	dispose(): void;
++}
++
++interface IAppsTabStripProps {
++	readonly tabs: readonly IAppsTab[];
++	readonly activeId: string | undefined;
++	readonly handlers: IAppsTabStripHandlers;
++}
++
++/**
++ * The instance tabs.
++ *
++ * These were the most churn-prone markup in the pane - one button, icon, label and close
++ * affordance rebuilt by hand every time the model changed, with the active state toggled by
++ * `classList` from a second place. The tab row is also what the user asked to be aligned like
++ * the reference's. React owns the row now; the pane still owns every tab's body, because a
++ * terminal attaches a real instance and a browser lays a native view over its own element.
++ */
++const AppsTabStrip: FunctionComponent<IAppsTabStripProps> = ({ tabs, activeId, handlers }) =>
++	createElement(
++		Fragment,
++		null,
++		tabs.map(tab => {
++			const active = tab.id === activeId;
++			return createElement(
++				'button',
++				{
++					key: tab.id,
++					type: 'button',
++					role: 'tab',
++					className: active ? 'caret-apps-tab active' : 'caret-apps-tab',
++					'aria-label': tab.title,
++					'aria-selected': String(active),
++					onClick: () => handlers.onSelect(tab.id),
++				},
++				createElement('span', {
++					key: 'icon',
++					className: `caret-apps-tab-icon codicon codicon-${tabIconId(tab.kind)}`,
++					'aria-hidden': true,
++				}),
++				createElement('span', { key: 'label', className: 'caret-apps-tab-label' }, tab.title),
++				createElement('span', {
++					key: 'close',
++					className: 'caret-apps-tab-close codicon codicon-close',
++					role: 'button',
++					'aria-label': localize('caret.agentHome.utility.closeInstance', "Close Tab"),
++					onClick: (event: MouseEvent) => { event.stopPropagation(); handlers.onClose(tab.id); },
++				}),
++			);
++		}),
++	);
++
++/**
++ * Mount the tab buttons into `host`, which is the pane's own `.caret-apps-tabs` element.
++ *
++ * The element itself stays the pane's: it sits between the launcher entries and the `+` in one
++ * strip, so React renders the buttons into it rather than the container around them. The pane
++ * removes the element only after disposing this handle.
++ */
++export function mountAppsTabStrip(host: HTMLElement, handlers: IAppsTabStripHandlers): IAppsTabStripHandle {
++	const root: Root = createRoot(host);
++	root.render(createElement(AppsTabStrip, { tabs: [], activeId: undefined, handlers }));
++	return {
++		update: (tabs, activeId) => root.render(createElement(AppsTabStrip, { tabs, activeId, handlers })),
++		dispose: () => root.unmount(),
++	};
++}
++
++interface IAppsLauncherRailProps {
++	readonly entries: readonly IAppsLauncherEntry[];
++	readonly onPick: (id: string) => void;
++}
++
++/**
++ * The strip entries the reference always shows, in its order: Changes · Browser · Terminal ·
++ * File. They were the last hand-built markup in the strip; the pane keeps the container and
++ * the behaviour behind each id, React owns the buttons.
++ */
++const AppsLauncherRail: FunctionComponent<IAppsLauncherRailProps> = ({ entries, onPick }) =>
++	createElement(
++		Fragment,
++		null,
++		entries.map(entry => createElement(
++			'button',
++			{
++				key: entry.id,
++				type: 'button',
++				// The strip is narrow, so the entry is its icon with the name as the accessible
++				// name and tooltip; the labelled form of the same entry is the card in the empty
++				// body.
++				className: entry.active ? 'caret-apps-launcher active' : 'caret-apps-launcher',
++				'aria-label': entry.label,
++				title: entry.label,
++				'aria-pressed': String(entry.active === true),
++				onClick: () => onPick(entry.id),
++			},
++			createElement('span', {
++				key: 'icon',
++				className: `caret-apps-launcher-icon codicon codicon-${entry.iconId}`,
++				'aria-hidden': true,
++			}),
++		)),
++	);
++
++/** Mount the strip entries into the pane's `.caret-apps-launchers` element. */
++export function mountAppsLauncherRail(host: HTMLElement, entries: readonly IAppsLauncherEntry[], onPick: (id: string) => void): IAppsEmptyStateHandle {
++	const root: Root = createRoot(host);
++	root.render(createElement(AppsLauncherRail, { entries, onPick }));
++	return {
++		update: next => root.render(createElement(AppsLauncherRail, { entries: next as readonly IAppsLauncherEntry[], onPick })),
++		dispose: () => root.unmount(),
++	};
++}
 diff --git a/src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css b/src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css
 new file mode 100644
-index 00000000000..7bdba00d83b
+index 00000000000..523b7f18652
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/media/agentHomeUtility.css
-@@ -0,0 +1,385 @@
+@@ -0,0 +1,455 @@
 +/* Caret: the Agent Home utility area - the reference's right-hand Apps panel.
 + *
 + * The reference panel is a strip of app entries above a body of four app tiles, and it
@@ -1092,12 +1674,21 @@ index 00000000000..7bdba00d83b
 +/* --- Strip: the four app entries of the reference, then one tab per open instance --- */
 +
 +.caret-apps-strip {
++	/* One control size and one gap for everything in the strip. The rail buttons were 24x26, the
++	 * instance tabs 24 tall and the two icon buttons 22x22, so a browser tab and a terminal tab
++	 * sat on slightly different baselines and the `+`/pin did not line up with either. */
++	/* The Caret token scale's own value with a literal fallback: the workbench does not inject
++	 * `--caret-*` yet, so the fallback is what renders today - and the repo test asserts the
++	 * fallback equals `CARET_TOKENS['caret-height-sm']`, so the Agents window cannot drift off
++	 * the scale the parity gate measures. */
++	--caret-apps-control-size: var(--caret-height-sm, 24px);
++	--caret-apps-gap: 2px;
 +	display: flex;
 +	align-items: center;
 +	flex: 0 0 auto;
 +	height: 35px;
-+	padding: 0 6px;
-+	gap: 2px;
++	padding: 0 var(--caret-space-6, 6px);
++	gap: var(--caret-apps-gap);
 +	border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
 +	overflow: hidden;
 +}
@@ -1105,7 +1696,7 @@ index 00000000000..7bdba00d83b
 +.caret-apps-launchers {
 +	display: flex;
 +	align-items: center;
-+	gap: 2px;
++	gap: var(--caret-apps-gap);
 +	flex: 0 0 auto;
 +}
 +
@@ -1113,12 +1704,12 @@ index 00000000000..7bdba00d83b
 +	display: flex;
 +	align-items: center;
 +	justify-content: center;
-+	height: 24px;
-+	width: 26px;
++	height: var(--caret-apps-control-size);
++	width: var(--caret-apps-control-size);
 +	margin: 0;
 +	padding: 0;
 +	border: none;
-+	border-radius: 4px;
++	border-radius: var(--caret-radius-sm, 4px);
 +	background: transparent;
 +	color: var(--vscode-descriptionForeground, var(--vscode-foreground));
 +	cursor: pointer;
@@ -1126,6 +1717,16 @@ index 00000000000..7bdba00d83b
 +}
 +
 +.caret-apps-launcher:hover {
++	background: var(--vscode-list-hoverBackground);
++}
++
++/* The pane this entry stands for is the one on screen, like the reference's own strip. */
++.caret-apps-launcher.active {
++	background: var(--vscode-editorGroupHeader-tabsBackground, var(--vscode-editorWidget-background));
++	color: var(--vscode-foreground);
++}
++
++.caret-apps-launcher-icon {
 +	background: var(--vscode-list-hoverBackground);
 +	color: var(--vscode-foreground);
 +}
@@ -1146,8 +1747,9 @@ index 00000000000..7bdba00d83b
 +	display: flex;
 +	align-items: center;
 +	flex: 1 1 auto;
-+	gap: 2px;
-+	margin-left: 6px;
++	gap: var(--caret-apps-gap);
++	/* The rail and the tab row are separated by the strip's own gap, not a second magic offset. */
++	margin-left: var(--caret-apps-gap);
 +	overflow: hidden;
 +}
 +
@@ -1155,13 +1757,13 @@ index 00000000000..7bdba00d83b
 +	display: flex;
 +	align-items: center;
 +	flex: 0 0 auto;
-+	gap: 6px;
-+	height: 24px;
++	gap: var(--caret-space-6, 6px);
++	height: var(--caret-apps-control-size);
 +	max-width: 180px;
 +	margin: 0;
-+	padding: 0 4px 0 8px;
++	padding: 0 var(--caret-space-4, 4px) 0 var(--caret-space-8, 8px);
 +	border: none;
-+	border-radius: 4px;
++	border-radius: var(--caret-radius-sm, 4px);
 +	background: transparent;
 +	color: var(--vscode-descriptionForeground, var(--vscode-foreground));
 +	cursor: pointer;
@@ -1179,7 +1781,7 @@ index 00000000000..7bdba00d83b
 +}
 +
 +.caret-apps-tab-icon {
-+	font-size: 13px;
++	font-size: var(--caret-font-base, 13px);
 +	flex: 0 0 auto;
 +}
 +
@@ -1197,7 +1799,7 @@ index 00000000000..7bdba00d83b
 +	width: 16px;
 +	height: 16px;
 +	border-radius: 3px;
-+	font-size: 12px;
++	font-size: var(--caret-font-sm, 12px);
 +	visibility: hidden;
 +}
 +
@@ -1222,7 +1824,7 @@ index 00000000000..7bdba00d83b
 +	flex: 0 0 auto;
 +	flex-direction: column;
 +	gap: 2px;
-+	padding: 8px 10px;
++	padding: var(--caret-space-8, 8px) var(--caret-space-10, 10px);
 +	border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
 +}
 +
@@ -1276,14 +1878,45 @@ index 00000000000..7bdba00d83b
 +	display: flex;
 +}
 +
++/* --- Hosted panes: the base's Changes and Files surfaces, drawn inside the panel --- *
++ *
++ * These two entries of the strip used to send the user to an editor tab in the same group, so
++ * the strip could not switch to them and the rail had nothing to mark. They are panes of this
++ * panel now, and the pane only has to give the base's own view the whole body: the view brings
++ * its layout (the changes view is a PaneView, the Files surface is an editor pane's content).
++ */
++
++.caret-apps-instance.caret-apps-pane {
++	position: absolute;
++	inset: 0;
++	flex-direction: column;
++	min-height: 0;
++	background-color: var(--vscode-editor-background);
++}
++
++.caret-apps-instance.caret-apps-pane.active {
++	display: flex;
++}
++
++/* The hosted view is the body: nothing else sizes it, so it takes the whole pane. */
++.caret-apps-pane > .monaco-pane-view {
++	flex: 1 1 auto;
++	min-height: 0;
++	width: 100%;
++}
++
++.caret-apps-pane .monaco-pane-view > .split-view-view {
++	overflow: hidden;
++}
++
 +.caret-apps-browser-bar {
 +	position: relative;
 +	display: flex;
 +	align-items: center;
 +	flex: 0 0 auto;
 +	gap: 2px;
-+	height: 32px;
-+	padding: 0 6px;
++	height: var(--caret-height-lg, 32px);
++	padding: 0 var(--caret-space-6, 6px);
 +	border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
 +}
 +
@@ -1292,9 +1925,9 @@ index 00000000000..7bdba00d83b
 +	min-width: 0;
 +	height: 22px;
 +	margin: 0 2px;
-+	padding: 0 8px;
++	padding: 0 var(--caret-space-8, 8px);
 +	border: 1px solid var(--vscode-input-border, transparent);
-+	border-radius: 4px;
++	border-radius: var(--caret-radius-sm, 4px);
 +	background: var(--vscode-input-background);
 +	color: var(--vscode-input-foreground);
 +	font-family: inherit;
@@ -1315,10 +1948,10 @@ index 00000000000..7bdba00d83b
 +	z-index: 20;
 +	display: flex;
 +	flex-direction: column;
-+	margin: 0 6px;
-+	padding: 4px 0;
++	margin: 0 var(--caret-space-6, 6px);
++	padding: var(--caret-space-4, 4px) 0;
 +	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-+	border-radius: 6px;
++	border-radius: var(--caret-radius-md, 6px);
 +	background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
 +	box-shadow: 0 4px 12px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
 +	overflow: hidden;
@@ -1331,7 +1964,7 @@ index 00000000000..7bdba00d83b
 +.caret-apps-browser-suggest-row {
 +	display: block;
 +	width: 100%;
-+	padding: 4px 10px;
++	padding: var(--caret-space-4, 4px) var(--caret-space-10, 10px);
 +	border: none;
 +	background: transparent;
 +	color: var(--vscode-foreground);
@@ -1355,16 +1988,16 @@ index 00000000000..7bdba00d83b
 +	align-items: center;
 +	justify-content: center;
 +	flex: 0 0 auto;
-+	width: 22px;
-+	height: 22px;
++	width: var(--caret-apps-control-size);
++	height: var(--caret-apps-control-size);
 +	margin: 0;
 +	padding: 0;
 +	border: none;
-+	border-radius: 4px;
++	border-radius: var(--caret-radius-sm, 4px);
 +	background: transparent;
 +	color: var(--vscode-icon-foreground);
 +	cursor: pointer;
-+	font-size: 13px;
++	font-size: var(--caret-font-base, 13px);
 +}
 +
 +.caret-apps-icon-button:hover:not(:disabled) {
@@ -1389,7 +2022,7 @@ index 00000000000..7bdba00d83b
 +	display: none;
 +	align-items: center;
 +	justify-content: center;
-+	padding: 16px;
++	padding: var(--caret-space-16, 16px);
 +	box-sizing: border-box;
 +}
 +
@@ -1401,7 +2034,7 @@ index 00000000000..7bdba00d83b
 +	display: grid;
 +	grid-template-columns: repeat(2, minmax(0, 1fr));
 +	grid-auto-rows: 1fr;
-+	gap: 8px;
++	gap: var(--caret-space-8, 8px);
 +	width: 100%;
 +	max-width: 320px;
 +	aspect-ratio: 1 / 1;
@@ -1412,11 +2045,11 @@ index 00000000000..7bdba00d83b
 +	flex-direction: column;
 +	align-items: center;
 +	justify-content: center;
-+	gap: 6px;
++	gap: var(--caret-space-6, 6px);
 +	margin: 0;
-+	padding: 8px;
++	padding: var(--caret-space-8, 8px);
 +	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-+	border-radius: 8px;
++	border-radius: var(--caret-radius, 8px);
 +	background: var(--vscode-editorWidget-background);
 +	color: var(--vscode-foreground);
 +	cursor: pointer;
@@ -1449,8 +2082,27 @@ index 00000000000..7bdba00d83b
 +	margin-left: auto;
 +	margin-right: auto;
 +}
++/* The Agents window paints its context menu on a pure black surface, which is invisible against
++ * the near-black panel and leaves the entries hard to read. Give this window's menus the raised
++ * surface the reference uses, without touching the IDE's own menus. */
++.agent-sessions-workbench .context-view,
++.agent-sessions-workbench .context-view .monaco-menu-container,
++.agent-sessions-workbench .context-view .monaco-menu {
++	/* `!important` on purpose: the workbench's own menu rule has the same specificity and is
++	 * loaded later, so a plain declaration loses and the menu stays pure black. */
++	/* An explicit raised surface, not a theme variable: every menu-ish token in this window's
++	 * theme resolves to black (`--vscode-editorSuggestWidget-background` and friends), so a
++	 * var-based rule applied but still painted black. #2d2d30 is Caret's own panel-raised value
++	 * (`CARET_TOKENS['caret-panel-raised']`), i.e. one step above the #0a0a0a surface. */
++	background-color: #2d2d30 !important;
++}
++
++.agent-sessions-workbench .context-view .monaco-menu .action-label,
++.agent-sessions-workbench .context-view .monaco-menu .action-item .action-label {
++	color: var(--vscode-editorSuggestWidget-foreground, var(--vscode-foreground, #e7e7e7));
++}
 diff --git a/src/vs/sessions/sessions.common.main.ts b/src/vs/sessions/sessions.common.main.ts
-index 5e17a99cfb3..df1403a895d 100644
+index 60c9854188c..df1403a895d 100644
 --- a/src/vs/sessions/sessions.common.main.ts
 +++ b/src/vs/sessions/sessions.common.main.ts
 @@ -481,6 +481,7 @@ import './services/sessions/browser/sessionSectionOrderService.js';

@@ -55,7 +55,7 @@
   },
   "complianceReview": {
     "trigger": "the user asked whether the working tree still follows the planned UI docs that were written from the Cursor computer-use inspection",
-    "finding": "The interim round moved the reference goal toward Cursor-only values without amending the spec, which the plan documents forbid: D17 'ไม่ย้าย reference goal เป็น Cursor-only เงียบ ๆ' with Codex as the primary reference (CX-01 still reference-blocked), coverage section 8 (Codex visual reference cannot be marked solved by Cursor screenshot or inferred parity) and section 9 (no Cursor/Codex parity claim), and validation lines 46-56 (reference capture is supporting evidence, not a Caret pass).",
+    "finding": "The interim round moved the reference goal toward Cursor-only values without amending the spec, which the plan documents forbid: D17 'do not quietly move the reference goal to Cursor-only values' with Codex as the primary reference (CX-01 still reference-blocked), coverage section 8 (Codex visual reference cannot be marked solved by Cursor screenshot or inferred parity) and section 9 (no Cursor/Codex parity claim), and validation lines 46-56 (reference capture is supporting evidence, not a Caret pass).",
     "decision": "Restore the Caret decisions in D01/D02/C01 and keep the Cursor-informed IA. If Cursor values are wanted later, amend D01/D02 explicitly with a new receipt instead of letting the code drift."
   },
   "method": {

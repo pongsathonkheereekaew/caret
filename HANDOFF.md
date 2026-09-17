@@ -2,13 +2,16 @@
 
 Status, next actions and the acceptance contract all live in the one authoritative plan:
 
-[docs/maintenance/CARET-PLAN-2026-09-14.th.md](docs/maintenance/CARET-PLAN-2026-09-14.th.md)
+[docs/maintenance/CARET-PLAN.md](docs/maintenance/CARET-PLAN.md)
 
-Document map: [docs/README.md](docs/README.md)
+Documentation map: [docs/README.md](docs/README.md)
 
-Earlier handoffs are history only, with no authority:
+- §0 - product definition
+- §3 - Cursor parity contract and measured values
+- §6 - SSOT and the retirement ledger
+- §8 - steps S1-S5
+- §9 - landed work, with a receipt for each
+- §10 - **what is open right now**; the only authoritative list of unfinished work
 
-[13 September 2026](docs/archive/2026-09-14-pre-ssot/CARET-HANDOFF-2026-09-13.th.md),
-[12 September 2026](docs/archive/2026-09-12/CARET-HANDOFF-2026-09-12.th.md),
-and the 10 September 2026 control-repo brief
-[docs/archive/2026-09-09/HANDOFF-2026-09-10.md](docs/archive/2026-09-09/HANDOFF-2026-09-10.md).
+Superseded handoffs were deleted, not archived: git history holds them, and keeping them in the
+tree would create a second owner of truth.

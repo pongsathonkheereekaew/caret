@@ -1,0 +1,60 @@
+{
+  "slice": "s2-agents-window-live-turn",
+  "date": "2026-09-16",
+  "queueItem": "S2 (composer send on screen)",
+  "reference": "docs/maintenance/CARET-PLAN.md section 10",
+  "runtime": {
+    "window": "Agents",
+    "app": "VSCode-darwin-arm64/Caret.app (ad-hoc signed by scripts/build-caret.ts --package)",
+    "launch": "open -n VSCode-darwin-arm64/Caret.app --args --password-store=basic --use-inmemory-secretstorage --remote-debugging-port=9343 --log trace",
+    "buildLoop": "bun scripts/build-caret.ts --desktop, cd desktop && node build/next/index.ts bundle --minify, cp -R desktop/out-vscode/. <app>/Contents/Resources/app/out/, cp desktop/product.json <app>/Contents/Resources/app/product.json, CARET_HOST_NODE=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun scripts/build-caret.ts --package",
+    "drivers": "Computer Use @oai/sky (real clicks and typing in the packaged window) plus the app's own trace log (`--log trace`); node_repl in this session has no WebSocket, so CDP was not used"
+  },
+  "problem": [
+    "Wall 1 - no sender at all: every composer send was rejected before any provider ran (`sendRequest No default agent for location panel`), because ChatServiceImpl.sendRequest requires a *default* agent for the location and upstream that agent is Copilot Chat's participant, which S1 removed.",
+    "Wall 2 - no model for the request: with a default agent in place the request entered the chat model and came back as `Language model unavailable`; the extension host always builds vscode.ChatRequest.model and this window had no language model provider at all (`[LM] selected language models {extension: caret.caret} []`).",
+    "Wall 3 - the vendor did not exist: registering the provider failed with `Chat model provider uses UNKNOWN vendor caret-omp` until the workbench declared the vendor descriptor, and the pickers handed back bare OMP ids that `getLanguageModelByIdentifier` cannot resolve."
+  ],
+  "change": {
+    "defaultAgent": {
+      "patches/desktop/0003-caret-agents-window-proposals.patch": "caret.caret may use defaultChatParticipant and chatProvider (sha256 07b78ad6f3612b1e866d3da4eb970f02c72f0f1f275a2d3d44174af929e7306d)",
+      "apps/macos/package.json": "the caret.omp participant is isDefault with modes [ask, edit, agent]; enabledApiProposals gain defaultChatParticipant and chatProvider (sha256 4e9435295995c36d90cee0f03ef9d66d0fb02643372642a355625015cd6f14a1)",
+      "apps/macos/src/chat-sessions.ts": "the participant handler resolves the session from context.chatSessionContext and runs the turn with runTurn, the same host path the content provider's requestHandler delegates to; the option-group write-through strips the picker's vendor prefix before `set_model`; the provider-level catalog fetch now logs its size (sha256 c5cf0360ee5233ed7f02d39dab1a40d2e6da976ff0ffd65f39965841699dba95)",
+      "apps/macos/src/omp-language-models.ts": "new: registers the OMP catalogue as vendor caret-omp via lm.registerLanguageModelChatProvider, announces once so the workbench resolves it, and refuses to generate (OMP owns the turn) (sha256 5fba3a8d5e1038ab2cd6dd7427c12fdb3d5c451cff3d11cb8beefd3612695b56)"
+    },
+    "vendorAndIdentifiers": {
+      "patches/desktop/0010-caret-sessions-bridge.patch": "declares the caret-omp vendor descriptor (deltaLanguageModelChatProviderDescriptors) and prefixes the sessions-picker identifiers with it (sha256 b5777739f3ffa06f3cd268216f3dd38e3dba5387b25dd8fa5d56b02d8fca7ea3)",
+      "patches/desktop/0011-caret-sessions-model-picker.patch": "prefixes the chat-widget picker identifiers with the same vendor so `getLanguageModelByIdentifier` can resolve the request's model (sha256 545649284794f8c6980563ab53fe50b3a6dc60bb46962b7dc4f177a17dce0e51)"
+    },
+    "whyThisLayer": "the extension host only resolves a model that belongs to the requesting extension, so the catalogue has to be registered by caret.caret (an extension-side provider, not a workbench one); the workbench side only declares the vendor and hands back the matching identifier"
+  },
+  "evidence": {
+    "before": [
+      "2026-09-16 10:07:00.176 [error] CodeExpectedError: No default agent contributed (logs/20260916T100657)",
+      "2026-09-16 10:12:04.177 [warning] sendRequest No default agent for location panel (one per click)",
+      "2026-09-16 10:50:01.809 [trace] [LM] selected language models {\"extension\":{\"value\":\"caret.caret\"}} [] then `Language model unavailable` in the transcript"
+    ],
+    "after": [
+      "11:21:46.766 exthost: `Caret language models: 6 advertised by OMP.`",
+      "11:21:46.767 renderer: `[LM] Resolved language models for vendor caret-omp [...]` - the model chip then reads `DeepSeek V4.1 Flash`",
+      "11:22:30.602 exthost: `Caret participant turn for session 94e8b9bd-a9f9-4f46-a909-adda72d0cdfb` (the handler only runs on a real send)",
+      "host journal `~/Library/Application Support/Caret/host/sessions/94e8b9bd-.../session.jsonl` (sha256 859420d8ff7e5ab489750ce5840be89cbfaf6c9a12b974bdb063df0b5eb29318) now ends with: user 'Reply with exactly this and nothing else: caret-ui-turn-ok-2' / assistant 'caret-ui-turn-ok-2'",
+      "Agents window transcript (AX, Computer Use): user 'Reply with exactly this and nothing else: caret-ui-turn-ok-2' - Sent 9/16/2026 11:23 AM, then 'caret-ui-turn-ok-2' - Completed 11:23 AM, elapsed 4s"
+    ],
+    "tests": [
+      "bun run test: 749 pass / 0 fail",
+      "bun run typecheck: 0 errors",
+      "cd desktop && npm run typecheck-client: 0 errors",
+      "node scripts/ci-validate.mjs: CI-OK",
+      "bun test apps/macos/test/desktop-patch-set.test.ts: the patch set rebuilds the checkout from the pinned base byte-for-byte"
+    ]
+  },
+  "result": {
+    "closed": "S2 at the UI level: a prompt typed into the packaged Agents window composer reaches OMP and OMP's answer streams back into the transcript",
+    "stillOpen": [
+      "the first provider-level catalogue fetch at startup can lose a race with the host's session refresh and log `Caret could not list OMP models: Refresh the task before submitting this command`, leaving the option-group picker at 0 models; the language model provider's later resolve covers the picker today, but the option path should be retried or refreshed",
+      "this turn used no tool call, permission prompt, approval, attachment or multi-turn continuity - those remain the rest of the S2/parity backlog"
+    ]
+  },
+  "limitations": "One prompt per send on this Mac against the operator's own OMP configuration; two accidental sends during the session (`---` and `hi`, both answered by OMP) show up in the same journal and are not part of the claimed evidence. Real provider credit was spent on all three turns."
+}

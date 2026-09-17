@@ -1,0 +1,28 @@
+diff --git a/src/tsconfig.json b/src/tsconfig.json
+index 815c7bfe183..2f113b8025c 100644
+--- a/src/tsconfig.json
++++ b/src/tsconfig.json
+@@ -9,6 +9,7 @@
+ 		"resolveJsonModule": true,
+ 		"isolatedModules": false,
+ 		"skipLibCheck": true,
++		"jsx": "react-jsx",
+ 		"outDir": "../out/vs",
+ 		"types": [
+ 			"@webgpu/types",
+@@ -30,10 +31,14 @@
+ 		"./*.ts",
+ 		"./typings",
+ 		"./vs/**/*.ts",
++		"./vs/**/*.tsx",
+ 		"./vscode-dts/vscode.proposed.*.d.ts",
+ 		"./vscode-dts/vscode.d.ts"
+ 	],
+ 	"exclude": [
+-		"vs/workbench/contrib/webview/browser/pre/service-worker.js"
++		"vs/workbench/contrib/webview/browser/pre/service-worker.js",
++		// Deliberately malformed samples the diffing tests read as text; now that `.tsx` is in the
++		// program they would be type-checked as real sources and fail on their missing packages.
++		"vs/editor/test/node/diffing/fixtures"
+ 	]
+ }

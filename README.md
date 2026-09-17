@@ -4,9 +4,9 @@ The AI-native code editor you own. OMP runs on your Mac; Caret provides the
 workspace and a planned iPhone client. External model providers and optional
 remote transport handle data according to the configuration you choose.
 
-Current work: the plan is a single authoritative document again -
-[CARET-PLAN-2026-09-14.th.md](docs/maintenance/CARET-PLAN-2026-09-14.th.md) holds the product
-definition, the Cursor parity contract, the SSOT rules and steps S1-S5. The feature list below
+Current work: the plan is a single authoritative document -
+[CARET-PLAN.md](docs/maintenance/CARET-PLAN.md) holds the product definition, the Cursor parity
+contract, the SSOT rules, steps S1-S5 and the list of what is open. The feature list below
 describes the product target, not a release certification.
 
 > This repository is private. Caret is in active personal development for macOS and is not publicly distributed yet.
@@ -23,8 +23,9 @@ describes the product target, not a release certification.
 Development builds run on macOS. There is no public download yet.
 
 1. Clone this repository.
-2. Read [docs/README.md](docs/README.md) for the living specification map.
-3. Read [HANDOFF.md](HANDOFF.md) for the current status pointer.
+2. Read [docs/README.md](docs/README.md) for the documentation map.
+3. Read [docs/maintenance/CARET-PLAN.md](docs/maintenance/CARET-PLAN.md) for the current plan,
+   §0 for the definition and §10 for open work.
 
 ## Built on VS Code
 
@@ -39,14 +40,14 @@ One git repo. Folders are module boundaries, not separate remotes.
 - `apps/ios` - iPhone client
 - `packages/protocol`, `packages/omp-adapter`, `packages/relay` - shared libraries
 - `desktop/` and `upstream/` - ignored pinned checkouts, not source of truth
-- [docs/README.md](docs/README.md) - living specification map
-- [HANDOFF.md](HANDOFF.md) - pointer to current status
-- [backlog/](backlog) - per-item evidence
+- [docs/README.md](docs/README.md) - documentation map
+- [docs/maintenance/CARET-PLAN.md](docs/maintenance/CARET-PLAN.md) - the plan and spec
+- [backlog/](backlog) - parity identifiers and per-item evidence
 - [scripts/](scripts) - repo checks
 
 ## Development
 
-The new adapter uses Node-compatible TypeScript and Bun for development tests:
+The adapter uses Node-compatible TypeScript and Bun for development tests:
 
 ```bash
 bun install --frozen-lockfile
@@ -72,13 +73,16 @@ Run the repo gate before pushing:
 node scripts/ci-validate.mjs
 ```
 
-See [docs/README.md](docs/README.md) for the living specification map.
+See [docs/README.md](docs/README.md) for the documentation map.
 
 ## Documentation
 
-- Specification map: [docs/README.md](docs/README.md)
-- Current status: [HANDOFF.md](HANDOFF.md)
-- Dated snapshots: [docs/archive/](docs/archive/README.md)
+- Documentation map: [docs/README.md](docs/README.md)
+- Plan and spec: [docs/maintenance/CARET-PLAN.md](docs/maintenance/CARET-PLAN.md)
+- Parity identifiers and evidence: [backlog/](backlog)
+
+All documentation in this repository is written in English. Superseded plans are
+deleted rather than archived, so git history is the only archive.
 
 ## Security
 

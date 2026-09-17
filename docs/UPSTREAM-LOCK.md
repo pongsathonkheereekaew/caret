@@ -1,54 +1,40 @@
-# Caret — Upstream Lock Manifest (M0)
+# Caret — upstream lock
 
-> Historical September 9 baseline. New G0 source selection is pinned in
-> [`../upstream-lock.json`](../upstream-lock.json), with retained notices under
-> `docs/upstream-notices/`. The current direction supersedes the driver/backend
-> roles below; keep this table as historical evidence for the original graph.
+Every external revision Caret builds against is pinned here as a full 40-hex SHA. Re-pin
+explicitly before a release; never float. `scripts/ci-validate.mjs` parses this file and rejects a
+short or non-hex revision, so the format below is load-bearing.
 
-Pinned 2026-09-09. Every `HEAD` below is a full SHA observed on that date via
-`git ls-remote`; re-pin explicitly before release, never float. Snapshots from
-planning research are NOT production locks — this file is the lock (R02).
+Machine-readable pins live in [`../upstream-lock.json`](../upstream-lock.json) and are consumed by
+`scripts/build-caret.ts`. This document is the human-readable half and the single list of every
+pinned external source; there is no second lock file anywhere in the repo.
 
-| Component | Repo | Pinned revision | Role in Caret | License (verify file at use) |
+## Pinned sources
+
+| Component | Repository | Revision | Role | License |
 |---|---|---|---|---|
-| Code-OSS | `microsoft/vscode` | `3e078a39dc95d262123da38f916225a126fb1ccf` (main HEAD) | Desktop fork base (checkout `~/caret-work/desktop`) | MIT |
-| Synara | `Emanuele-web04/synara` | `59db80a170a0abe7c8710ae247f15097ec46cd68` (main HEAD = assessed revision) | UI start + preferred backend candidate (checkout `~/caret-work/upstream-synara`) | MIT (retain T3 Tools Inc. + Emanuele Di Pietro notices) |
-| Paseo | `getpaseo/paseo` | `433e67b18b7964a92d593bdc78c518143accfc8b` (main HEAD) | Fallback backend only | Apache-2.0 per LICENSE file w/ third-party exceptions (GitHub metadata says NOASSERTION — check the file, not the metadata) |
-| Codex engine | `openai/codex` | `4f2449b4b21988d5015ce6edf755fbd6a37a4908` (HEAD) | Reference driver (official app-server, ChatGPT login) | Apache-2.0 |
-| OpenCode engine | `anomalyco/opencode` | `f69beceaffca94bed05a7669af93602125c37248` (HEAD) | Coverage driver first (Go/OpenRouter/DeepSeek via config) | MIT |
-| Gitea | `go-gitea/gitea` | `92f2f6161b4c4e5c91c38a3615ce8e5711f9457b` (HEAD, M10 scope) | Origin-equivalent forge service | MIT |
+| OMP | `can1357/oh-my-pi` | `00085d4e7dfdcfbf302c122fa2682b410a0f43d1` | The harness: execution and transcript owner, RPC and tool contract | MIT |
+| Caret Code-OSS fork | `pongsathonkheereekaew/caret` | `ea1912fd6a05b80a56b2ad9b955075211deea521` | Mac IDE build baseline; `patches/desktop/manifest.json` pins the same revision as `baseRevision` | MIT |
+| Paseo | `getpaseo/paseo` | `d1b705a0cd91617a5707fae25d80cb0be3057950` | Relay E2EE primitives only, via `@getpaseo/relay 0.8.0`; no other Paseo source is vendored | Apache-2.0, per-file with third-party exceptions |
 
-## Checkout locations (2026-09-10; control repo moved here same day)
+Retained license texts: `docs/upstream-notices/omp-LICENSE.txt`,
+`docs/upstream-notices/caret-native-LICENSE.txt`, and `packages/relay/LICENSES/` (Paseo Apache-2.0
+plus `tweetnacl`, `base64-js` and `ws`).
 
-Everything lives under space-free `~/caret-work/` — the control repo used
-to sit at a path containing a space (`LLM Projects/`), which breaks
-`node-gyp`/`make` native builds (`@vscode/fs-copyfile` failed with an
-unquoted include path, F01 evidence 2026-09-10); it moved to
-`~/caret-work/caret` on 2026-09-10. Record: Caret itself MUST
-handle space/Unicode paths (IDE-01) — the editor runtime does, the upstream
-build scripts do not.
+## Runtime baseline
 
-| Checkout | Path | Revision |
-| Code-OSS fork base | `~/caret-work/desktop` | `3e078a3` |
-| Synara candidate | `~/caret-work/upstream-synara` | `59db80a` |
-| Caret daemon (`caret-adapter` branch) | `~/caret-work/upstream-synara/apps/caret-daemon` | `ee2fb05` on pinned `59db80a` (session facade, worktrees, MCP client, proofs) |
+- OMP baseline: **18.1.18**. `isSupportedOmpVersion()` in `packages/omp-adapter/src/types.ts`
+  accepts the baseline or a newer patch in the same minor line, and rejects other minors, older
+  versions and non-version strings. `scripts/prepare-omp-runtime.ts` still pins the exact revision
+  because it builds the artifact that ships.
+- Caret Code-OSS: pinned `ea1912fd…`; `scripts/prepare-desktop.ts` verifies the base revision and
+  every patch digest before applying.
 
-Notes:
+## Rules
 
-- Code-OSS has no usable stable release tag in its tag list (390 tags, newest
-  are legacy `0.4x`/tooling tags), so main HEAD is pinned and F01 must verify
-  a clean build + launch on each OS family before it becomes the fork base.
-- Synara manifests state `0.8.3`; not confirmed as a published stable release.
-  Treat as source snapshot, tag Caret releases with their own version support.
-- Never mix client/protocol/server revisions across components; handshake
-  rejects incompatible major protocol before any mutation (J5).
-
-## Build environment observed 2026-09-09 (this machine)
-
-| Tool | Version | Needed for | Status |
-| node (system) | v26.7.0 | misc scripts | present; NOT for upstream builds |
-| bun | — | Synara monorepo scripts | MISSING — install at SYN-01 |
-| node | v24.18.0 | Code-OSS build, Synara server/web | present at `~/.caret-tools/node-v24.18.0-darwin-arm64` (repo path has a space; toolchain lives outside the repo) |
-| git | 2.50.1 | all | present |
-
-Missing toolchain installs are explicit prerequisites, not silent skips.
+- Never mix client, protocol and server revisions across components; the handshake rejects an
+  incompatible major protocol before any mutation.
+- A snapshot taken while researching is not a lock. Only this file and `upstream-lock.json` are.
+- Adding a component means adding a row here **and** an entry in `upstream-lock.json`, with its
+  retained license text.
+- This file is not a release SBOM and is not a third-party dependency license certification; the
+  dependency tree is covered by the package manifests and the retained notices above.

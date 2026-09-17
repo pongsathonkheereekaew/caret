@@ -42,25 +42,25 @@ index 0000000..1692231
 +registerWorkbenchContribution2(AgentHomeContextRowContribution.ID, AgentHomeContextRowContribution, WorkbenchPhase.AfterRestored);
 diff --git a/src/vs/sessions/contrib/home/browser/agentHomeContextRow.ts b/src/vs/sessions/contrib/home/browser/agentHomeContextRow.ts
 new file mode 100644
-index 0000000..bc29435
+index 00000000000..6b96170d822
 --- /dev/null
 +++ b/src/vs/sessions/contrib/home/browser/agentHomeContextRow.ts
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,121 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Caret. All rights reserved.
 + *  Licensed under the MIT License. See License.txt in the project root for license information.
 + *--------------------------------------------------------------------------------------------*/
 +
-+import { $, addDisposableListener, append, EventType } from '../../../../base/browser/dom.js';
-+import { renderIcon } from '../../../../base/browser/ui/iconLabel/iconLabels.js';
++import { $, append } from '../../../../base/browser/dom.js';
 +import { Codicon } from '../../../../base/common/codicons.js';
-+import { Disposable, DisposableStore, MutableDisposable } from '../../../../base/common/lifecycle.js';
++import { Disposable, MutableDisposable } from '../../../../base/common/lifecycle.js';
 +import { autorun } from '../../../../base/common/observable.js';
 +import { localize } from '../../../../nls.js';
 +import { ICommandService } from '../../../../platform/commands/common/commands.js';
 +import { IAgentHostConnectionsService } from '../../../../platform/agentHost/common/agentHostConnectionsService.js';
 +import { LOCAL_AGENT_HOST_PROVIDER_ID } from '../../../common/agentHostSessionsProvider.js';
 +import { ISessionsService } from '../../../services/sessions/browser/sessionsService.js';
++import { IAgentHomeContextModel, mountAgentHomeContextRow } from './agentHomeContextRowReact.js';
 +
 +/** The base's own copy-branch command, which takes the session as its argument. */
 +const COPY_SESSION_BRANCH_NAME_COMMAND_ID = 'sessionsViewPane.agentHost.copySessionBranchName';
@@ -79,7 +79,12 @@ index 0000000..bc29435
 + */
 +export class AgentHomeContextRow extends Disposable {
 +
-+	private readonly _chips = this._register(new MutableDisposable<DisposableStore>());
++	/** The React root and the wrapper it lives in; both go away when the composer rebuilds the row. */
++	private readonly _chips = this._register(new MutableDisposable<{
++		readonly wrapper: HTMLElement;
++		update(model: IAgentHomeContextModel): void;
++		dispose(): void;
++	}>());
 +
 +	private static readonly _rowSelector = '.new-session-workspace-picker-container .sessions-workspace-category-picker';
 +
@@ -118,44 +123,147 @@ index 0000000..bc29435
 +
 +		const row = document.querySelector<HTMLElement>(AgentHomeContextRow._rowSelector);
 +		if (!row) {
++			this._chips.value = undefined;
 +			return;
 +		}
 +
-+		// The composer rebuilds this row when its state changes, and this autorun re-runs
-+		// for the same reasons, so the chips are rebuilt from scratch each pass.
-+		const store = new DisposableStore();
-+		this._chips.value = store;
-+		for (const existing of row.querySelectorAll('.caret-agent-home-context-chip')) {
-+			existing.remove();
++		const model: IAgentHomeContextModel = {
++			// Nothing is rendered when there is no branch, so neither chip can be a control with
++			// nothing behind it.
++			branch: branch && session ? {
++				label: branch,
++				title: localize('caret.context.copyBranch', "Copy branch {0}", branch),
++				iconId: Codicon.gitBranch.id,
++			} : undefined,
++			runtime: runsLocally ? {
++				label: localize('caret.context.thisMac', "This Mac"),
++				title: localize('caret.context.localRuntime', "Runs on this Mac"),
++				iconId: Codicon.deviceDesktop.id,
++			} : undefined,
++		};
++
++		// The composer rebuilds this row when its state changes, which takes the chips' wrapper with
++		// it; a rebuilt row needs a new root rather than an update into a detached element.
++		const mounted = this._chips.value;
++		if (mounted && mounted.wrapper.isConnected && row.contains(mounted.wrapper)) {
++			mounted.update(model);
++			return;
 +		}
-+
-+		if (branch && session) {
-+			const chip = append(row, $<HTMLButtonElement>('button.caret-agent-home-context-chip.caret-agent-home-context-branch'));
-+			chip.type = 'button';
-+			const label = localize('caret.context.copyBranch', "Copy branch {0}", branch);
-+			chip.title = label;
-+			chip.setAttribute('aria-label', label);
-+
-+			const icon = append(chip, $('span.caret-agent-home-context-icon'));
-+			icon.appendChild(renderIcon(Codicon.gitBranch));
-+			icon.setAttribute('aria-hidden', 'true');
-+			append(chip, $('span.caret-agent-home-context-label')).textContent = branch;
-+
-+			store.add(addDisposableListener(chip, EventType.CLICK, () => void this.commandService.executeCommand(COPY_SESSION_BRANCH_NAME_COMMAND_ID, session)));
-+		}
-+
-+		if (runsLocally) {
-+			const label = localize('caret.context.localRuntime', "Runs on this Mac");
-+			const chip = append(row, $('span.caret-agent-home-context-chip.caret-agent-home-context-runtime'));
-+			chip.title = label;
-+			chip.setAttribute('aria-label', label);
-+
-+			const icon = append(chip, $('span.caret-agent-home-context-icon'));
-+			icon.appendChild(renderIcon(Codicon.deviceDesktop));
-+			icon.setAttribute('aria-hidden', 'true');
-+			append(chip, $('span.caret-agent-home-context-label')).textContent = localize('caret.context.thisMac', "This Mac");
-+		}
++		const wrapper = append(row, $('span.caret-agent-home-context-chips'));
++		const handle = mountAgentHomeContextRow(wrapper, model, {
++			onCopyBranch: () => {
++				if (session) {
++					void this.commandService.executeCommand(COPY_SESSION_BRANCH_NAME_COMMAND_ID, session);
++				}
++			},
++		});
++		this._chips.value = {
++			wrapper,
++			update: handle.update,
++			dispose: () => {
++				handle.dispose();
++				wrapper.remove();
++			},
++		};
 +	}
++}
+diff --git a/src/vs/sessions/contrib/home/browser/agentHomeContextRowReact.tsx b/src/vs/sessions/contrib/home/browser/agentHomeContextRowReact.tsx
+new file mode 100644
+index 00000000000..b733ee39931
+--- /dev/null
++++ b/src/vs/sessions/contrib/home/browser/agentHomeContextRowReact.tsx
+@@ -0,0 +1,92 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import { type FunctionComponent } from 'react';
++import { createRoot, type Root } from 'react-dom/client';
++
++/**
++ * The composer's context chips as a React surface.
++ *
++ * Last of the Caret-authored Agent Home pieces to move (`appsPanelReact.ts`,
++ * `agentHomeNavReact.ts`): the reference draws this region as part of its React tree, and these
++ * two chips were the remaining hand-built DOM. The contribution keeps the decisions - which chip
++ * exists, what the branch is, whether this window runs locally - and React owns the markup from
++ * that model, with the class names the stylesheet already targets.
++ *
++ * Written in JSX (hence `.tsx`) because that is how the reference writes its own components, and
++ * the workbench build now compiles it: `src/tsconfig.json` sets `jsx: react-jsx`, the bundler runs
++ * esbuild with `jsx: 'automatic'`, and `inlineReactPlugin` inlines `react/jsx-runtime` alongside
++ * `react` so the renderer can resolve it.
++ */
++
++export interface IAgentHomeContextChip {
++	/** Chip text. */
++	readonly label: string;
++	/** The accessible name, which spells out what the chip does. */
++	readonly title: string;
++	readonly iconId: string;
++}
++
++/** An absent member means "this chip is not shown"; the reference omits both in that case. */
++export interface IAgentHomeContextModel {
++	readonly branch?: IAgentHomeContextChip;
++	readonly runtime?: IAgentHomeContextChip;
++}
++
++export interface IAgentHomeContextHandlers {
++	readonly onCopyBranch: () => void;
++}
++
++export interface IAgentHomeContextHandle {
++	update(model: IAgentHomeContextModel): void;
++	dispose(): void;
++}
++
++const ChipIcon: FunctionComponent<{ readonly iconId: string }> = ({ iconId }) => (
++	<span className="caret-agent-home-context-icon" aria-hidden="true">
++		<span className={`codicon codicon-${iconId}`} />
++	</span>
++);
++
++const ContextRow: FunctionComponent<{ readonly model: IAgentHomeContextModel; readonly handlers: IAgentHomeContextHandlers }> = ({ model, handlers }) => (
++	<>
++		{model.branch ? (
++			<button
++				type="button"
++				className="caret-agent-home-context-chip caret-agent-home-context-branch"
++				title={model.branch.title}
++				aria-label={model.branch.title}
++				onClick={handlers.onCopyBranch}
++			>
++				<ChipIcon iconId={model.branch.iconId} />
++				<span className="caret-agent-home-context-label">{model.branch.label}</span>
++			</button>
++		) : null}
++		{model.runtime ? (
++			<span
++				className="caret-agent-home-context-chip caret-agent-home-context-runtime"
++				title={model.runtime.title}
++				aria-label={model.runtime.title}
++			>
++				<ChipIcon iconId={model.runtime.iconId} />
++				<span className="caret-agent-home-context-label">{model.runtime.label}</span>
++			</span>
++		) : null}
++	</>
++);
++
++/**
++ * `host` is a `display: contents` wrapper, so React's root element does not become a flex item of
++ * the composer's picker row - the chips have to sit in that row exactly as they did before.
++ */
++export function mountAgentHomeContextRow(host: HTMLElement, model: IAgentHomeContextModel, handlers: IAgentHomeContextHandlers): IAgentHomeContextHandle {
++	host.style.display = 'contents';
++	const root: Root = createRoot(host);
++	root.render(<ContextRow model={model} handlers={handlers} />);
++	return {
++		update: next => root.render(<ContextRow model={next} handlers={handlers} />),
++		dispose: () => root.unmount(),
++	};
 +}
 diff --git a/src/vs/sessions/contrib/home/browser/media/agentHomeContextRow.css b/src/vs/sessions/contrib/home/browser/media/agentHomeContextRow.css
 new file mode 100644

@@ -6,7 +6,10 @@
   "private": true,
   "enabledApiProposals": [
     "chatSessionsProvider",
-    "chatParticipantPrivate"
+    "chatParticipantPrivate",
+    "defaultChatParticipant",
+    "chatProvider",
+    "chatParticipantAdditions"
   ],
   "type": "module",
   "main": "./out/extension.js",
@@ -19,11 +22,6 @@
       {
         "command": "caret.openComposer",
         "title": "Focus Composer",
-        "category": "Caret"
-      },
-      {
-        "command": "caret.openTask",
-        "title": "Open Task Window",
         "category": "Caret"
       },
       {
@@ -112,16 +110,16 @@
         "title": "Open Terminal",
         "category": "Caret"
       },
-        {
-          "command": "caret.openSettings",
-          "title": "Open Settings",
-          "category": "Caret"
-        },
-        {
-          "command": "caret.ompSignIn",
-          "title": "OMP Sign In (/login)",
-          "category": "Caret"
-        },
+      {
+        "command": "caret.openSettings",
+        "title": "Open Settings",
+        "category": "Caret"
+      },
+      {
+        "command": "caret.ompSignIn",
+        "title": "OMP Sign In (/login)",
+        "category": "Caret"
+      },
       {
         "command": "caret.searchTasks",
         "title": "Search Tasks",
@@ -210,6 +208,11 @@
         "title": "Review the Caret Edit",
         "category": "Caret",
         "icon": "$(diff)"
+      },
+      {
+        "command": "caret.models.configureRoles",
+        "title": "Configure Model Roles...",
+        "category": "Caret"
       }
     ],
     "menus": {
@@ -350,12 +353,12 @@
       "view/title": [
         {
           "command": "caret.newTask",
-          "when": "view == caretComposerDock || view == caretComposer",
+          "when": "view == caretComposerDock",
           "group": "navigation@1"
         },
         {
           "command": "caret.showIde",
-          "when": "view == caretComposerDock || view == caretComposer",
+          "when": "view == caretComposerDock",
           "group": "navigation@2"
         }
       ],
@@ -428,13 +431,6 @@
       }
     ],
     "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "caretAgents",
-          "title": "Caret",
-          "icon": "media/caret.svg"
-        }
-      ],
       "secondarySidebar": [
         {
           "id": "caretDock",
@@ -444,13 +440,6 @@
       ]
     },
     "views": {
-      "caretAgents": [
-        {
-          "id": "caretComposer",
-          "name": "Tasks",
-          "type": "webview"
-        }
-      ],
       "caretDock": [
         {
           "id": "caretComposerDock",
@@ -459,36 +448,24 @@
         }
       ]
     },
-    "customEditors": [
-      {
-        "viewType": "caret.agentsShell",
-        "displayName": "Agents",
-        "selector": [
-          {
-            "filenamePattern": "*.caret-shell"
-          }
-        ],
-        "priority": "default"
-      }
-    ],
     "configuration": {
       "title": "Caret",
       "properties": {
         "caret.hostNodePath": {
           "type": "string",
           "default": "",
-          "description": "Advanced: absolute path to the Node runtime used to start the Caret host helper. To connect an iPhone, use Caret Settings \u2192 Devices.",
-          "markdownDescription": "Advanced host setting only; it is not the iPhone connection flow. To connect an iPhone, use Caret Settings \u2192 Devices and the Pair iPhone action."
+          "description": "Advanced: absolute path to the Node runtime used to start the Caret host helper. To connect an iPhone, use Caret Settings → Devices.",
+          "markdownDescription": "Advanced host setting only; it is not the iPhone connection flow. To connect an iPhone, use Caret Settings → Devices and the Pair iPhone action."
         },
         "caret.hostScriptPath": {
           "type": "string",
           "default": "",
-          "description": "Advanced: absolute path to the Caret host helper script; not the iPhone connection flow. To connect an iPhone, use Caret Settings \u2192 Devices."
+          "description": "Advanced: absolute path to the Caret host helper script; not the iPhone connection flow. To connect an iPhone, use Caret Settings → Devices."
         },
         "caret.hostStateDir": {
           "type": "string",
           "default": "",
-          "description": "Advanced: private Caret host state directory. To connect an iPhone, use Caret Settings \u2192 Devices. Defaults to ~/Library/Application Support/Caret/host so all Mac windows share one host."
+          "description": "Advanced: private Caret host state directory. To connect an iPhone, use Caret Settings → Devices. Defaults to ~/Library/Application Support/Caret/host so all Mac windows share one host."
         },
         "caret.hostRequestTimeoutMs": {
           "type": "number",
@@ -523,18 +500,21 @@
         "name": "omp",
         "fullName": "Caret",
         "description": "Run work in this workspace with OMP, Caret's only harness",
-        "isSticky": true
+        "isSticky": true,
+        "isDefault": true,
+        "modes": [
+          "ask",
+          "edit",
+          "agent"
+        ]
       }
     ]
   },
   "activationEvents": [
-    "onView:caretComposer",
     "onView:caretComposerDock",
     "onCommand:caret.openComposer",
-    "onCommand:caret.openTask",
     "onCommand:caret.showAgents",
     "onCommand:caret.showIde",
-    "onCustomEditor:caret.agentsShell",
     "onStartupFinished"
   ],
   "engines": {

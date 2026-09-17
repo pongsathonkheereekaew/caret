@@ -30,6 +30,7 @@
     "smoke:omp:ast": "bun scripts/omp-native-ast-smoke.ts",
     "smoke:omp:codeoss": "bun scripts/omp-codeoss-editor-smoke.ts",
     "prepare:desktop": "bun scripts/prepare-desktop.ts",
+    "smoke:omp:live": "bun scripts/omp-live-turn.ts",
     "check:terminal": "bun scripts/terminal-conformance.ts"
   },
   "devDependencies": {

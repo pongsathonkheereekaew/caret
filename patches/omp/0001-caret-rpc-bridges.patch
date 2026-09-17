@@ -1,5 +1,5 @@
 diff --git a/crates/pi-edit/src/engine.rs b/crates/pi-edit/src/engine.rs
-index 126e3d8..1b7f24a 100644
+index 126e3d859b..1b7f24ab4d 100644
 --- a/crates/pi-edit/src/engine.rs
 +++ b/crates/pi-edit/src/engine.rs
 @@ -8,7 +8,12 @@
@@ -36,7 +36,7 @@ index 126e3d8..1b7f24a 100644
  	}
  }
 diff --git a/crates/pi-edit/src/files.rs b/crates/pi-edit/src/files.rs
-index 0f47321..2eca8bc 100644
+index 0f473214bc..2eca8bc7d0 100644
 --- a/crates/pi-edit/src/files.rs
 +++ b/crates/pi-edit/src/files.rs
 @@ -35,6 +35,35 @@ pub struct FileRead {
@@ -201,7 +201,7 @@ index 0f47321..2eca8bc 100644
  
  	fn read(&mut self, authored: &str) -> EditResult<Arc<FileRead>> {
 diff --git a/crates/pi-edit/src/lib.rs b/crates/pi-edit/src/lib.rs
-index 7c861e5..5a6d78d 100644
+index 7c861e513f..5a6d78d8fa 100644
 --- a/crates/pi-edit/src/lib.rs
 +++ b/crates/pi-edit/src/lib.rs
 @@ -37,6 +37,7 @@ pub use engine::{
@@ -213,7 +213,7 @@ index 7c861e5..5a6d78d 100644
  pub use session::{
  	ApplyOutcome, ApplyRequest, EditWriter, FileOutcome, PreviewBatch, Session, WriteRequest,
 diff --git a/crates/pi-edit/src/session.rs b/crates/pi-edit/src/session.rs
-index c185498..257c9bd 100644
+index c185498a93..257c9bda5f 100644
 --- a/crates/pi-edit/src/session.rs
 +++ b/crates/pi-edit/src/session.rs
 @@ -12,7 +12,7 @@ use crate::{
@@ -286,7 +286,7 @@ index c185498..257c9bd 100644
  					.await?
  			};
 diff --git a/crates/pi-edit/tests/session.rs b/crates/pi-edit/tests/session.rs
-index ec28bc5..0318056 100644
+index ec28bc5ac0..0318056aa8 100644
 --- a/crates/pi-edit/tests/session.rs
 +++ b/crates/pi-edit/tests/session.rs
 @@ -4,10 +4,43 @@
@@ -542,7 +542,7 @@ index ec28bc5..0318056 100644
 +	assert_eq!(ws.read("b.txt").as_deref(), Some("disk\n"));
 +}
 diff --git a/crates/pi-natives/src/ast.rs b/crates/pi-natives/src/ast.rs
-index 0ede452..8db00bf 100644
+index 0ede452f86..8db00bfea4 100644
 --- a/crates/pi-natives/src/ast.rs
 +++ b/crates/pi-natives/src/ast.rs
 @@ -3,6 +3,7 @@
@@ -1250,7 +1250,7 @@ index 0ede452..8db00bf 100644
 +	}
  }
 diff --git a/crates/pi-natives/src/edit.rs b/crates/pi-natives/src/edit.rs
-index b3cf639..8c3f322 100644
+index b3cf6392de..8c3f322868 100644
 --- a/crates/pi-natives/src/edit.rs
 +++ b/crates/pi-natives/src/edit.rs
 @@ -30,6 +30,7 @@ use napi_derive::napi;
@@ -1393,7 +1393,7 @@ index b3cf639..8c3f322 100644
  	let read = std::fs::File::open(&absolute_path)
  		.and_then(|mut file| {
 diff --git a/packages/coding-agent/scripts/compile-binary.ts b/packages/coding-agent/scripts/compile-binary.ts
-index 02db57c..c76135e 100644
+index 02db57c9ce..c76135e34a 100644
 --- a/packages/coding-agent/scripts/compile-binary.ts
 +++ b/packages/coding-agent/scripts/compile-binary.ts
 @@ -42,6 +42,9 @@ export async function compileCodingAgent(options: CodingAgentCompileOptions): Pr
@@ -1407,7 +1407,7 @@ index 02db57c..c76135e 100644
  				"process.env.PI_TINY_TRANSFORMERS_VERSION": JSON.stringify(options.transformersVersion),
  				"process.env.PI_DOCS_EMBED": JSON.stringify((await buildDocsIndexPayload()).payload),
 diff --git a/packages/coding-agent/src/edit/index.ts b/packages/coding-agent/src/edit/index.ts
-index a622221..e297b3e 100644
+index a622221809..e297b3e6fe 100644
 --- a/packages/coding-agent/src/edit/index.ts
 +++ b/packages/coding-agent/src/edit/index.ts
 @@ -52,6 +52,7 @@ import { outputMeta } from "../tools/output-meta";
@@ -1750,7 +1750,7 @@ index a622221..e297b3e 100644
  		let preWriteBytes: Uint8Array | undefined;
  		if (request.op === "update") {
 diff --git a/packages/coding-agent/src/main.ts b/packages/coding-agent/src/main.ts
-index 7b4b64a..a075dfd 100644
+index 7b4b64ab9d..a075dfd0b5 100644
 --- a/packages/coding-agent/src/main.ts
 +++ b/packages/coding-agent/src/main.ts
 @@ -116,6 +116,7 @@ type RunRpcMode = (
@@ -1800,7 +1800,7 @@ index 7b4b64a..a075dfd 100644
  				const versionCheckPromise = checkForNewVersion(VERSION).catch(() => undefined);
  				const startupChangelog = await startupChangelogPromise;
 diff --git a/packages/coding-agent/src/modes/composer.ts b/packages/coding-agent/src/modes/composer.ts
-index 8435ef8..be7eb73 100644
+index 8435ef8d6b..be7eb732fd 100644
 --- a/packages/coding-agent/src/modes/composer.ts
 +++ b/packages/coding-agent/src/modes/composer.ts
 @@ -84,6 +84,8 @@ export interface ComposerStatusSnapshot {
@@ -1912,7 +1912,7 @@ index 8435ef8..be7eb73 100644
  
  	#handleInterrupt(): void {
 diff --git a/packages/coding-agent/src/modes/interactive-mode.ts b/packages/coding-agent/src/modes/interactive-mode.ts
-index 14d0ac8..78fa17e 100644
+index 14d0ac801a..78fa17e15e 100644
 --- a/packages/coding-agent/src/modes/interactive-mode.ts
 +++ b/packages/coding-agent/src/modes/interactive-mode.ts
 @@ -241,11 +241,15 @@ import { clearMermaidCache } from "./theme/mermaid-cache";
@@ -2179,7 +2179,7 @@ index 14d0ac8..78fa17e 100644
  			logger.warn("Failed to refresh slash command state for custom editor", { error: String(error) });
 diff --git a/packages/coding-agent/src/modes/rpc/caret-client-bridge.ts b/packages/coding-agent/src/modes/rpc/caret-client-bridge.ts
 new file mode 100644
-index 0000000..7e7efad
+index 0000000000..7e7efad2e4
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/caret-client-bridge.ts
 @@ -0,0 +1,749 @@
@@ -2933,7 +2933,7 @@ index 0000000..7e7efad
 +	return composed;
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 806ef87..9bbdb60 100644
+index 806ef87108..465c5d2474 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -11,6 +11,7 @@
@@ -2944,13 +2944,15 @@ index 806ef87..9bbdb60 100644
  import { getOAuthProviders } from "@oh-my-pi/pi-ai/oauth";
  import { toolWireSchema } from "@oh-my-pi/pi-ai/utils/schema";
  import { $env, isRecord, Snowflake } from "@oh-my-pi/pi-utils";
-@@ -34,17 +35,32 @@ import { type Theme, theme } from "../../modes/theme/theme";
+@@ -34,17 +35,34 @@ import { type Theme, theme } from "../../modes/theme/theme";
  import type { AgentSession } from "../../session/agent-session";
  import { SKILL_PROMPT_MESSAGE_TYPE, USER_INTERRUPT_LABEL } from "../../session/messages";
  import { executeAcpBuiltinSlashCommand } from "../../slash-commands/acp-builtins";
 +import { BUILTIN_SLASH_COMMANDS_INTERNAL, executeBuiltinSlashCommand } from "../../slash-commands/builtin-registry";
  import { buildAvailableSlashCommands } from "../../slash-commands/available-commands";
  import { defaultLoadModeForToolName } from "../../tools/essential-tools";
++import { getKnownRoleIds } from "../../config/model-roles";
++import type { Settings } from "../../config/settings";
  import type { EventBus } from "../../utils/event-bus";
  import { calculateTokensPerSecond } from "../../utils/token-rate";
  import { initializeExtensions } from "../runtime-init";
@@ -2977,15 +2979,16 @@ index 806ef87..9bbdb60 100644
  import type {
  	RpcCommand,
  	RpcExtensionUIRequest,
-@@ -59,6 +75,7 @@ import type {
+@@ -59,6 +77,8 @@ import type {
  	RpcHostUriRequest,
  	RpcHostUriResult,
  	RpcResponse,
++	RpcCaretModelRolesData,
 +	RpcCaretTerminalNegotiatedData,
  	RpcSessionState,
  	RpcSubagentSubscriptionLevel,
  } from "./rpc-types";
-@@ -447,11 +464,17 @@ export class RpcInputDispatcher {
+@@ -447,11 +467,17 @@ export class RpcInputDispatcher {
  				return;
  			}
  
@@ -3008,7 +3011,44 @@ index 806ef87..9bbdb60 100644
  			this.#tasks.add(task);
  			void task.finally(() => {
  				this.#tasks.delete(task);
-@@ -798,6 +821,7 @@ export async function runRpcMode(
+@@ -615,6 +641,36 @@ function shouldEmitRpcTitles(): boolean {
+ 	return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+ }
+ 
++/**
++ * Project the model roles a host needs to render "which model does which job".
++ *
++ * `getKnownRoleIds` is the authority on membership: it unions the built-ins with
++ * whatever `cycleOrder`, `modelRoles` and `modelTags` introduce, so a custom role
++ * the user configured is reported instead of silently dropped. Only roles that
++ * actually resolve to a model are listed — an empty role is not a capability, and
++ * reporting one would put an unusable row in front of the user. `cycleOrder`
++ * leads the list because that is the order the model switcher steps through;
++ * remaining configured roles follow in a stable sort so the same settings always
++ * render the same picker.
++ */
++function caretModelRoles(settings: Settings): RpcCaretModelRolesData {
++	const configured = settings.getModelRoles();
++	const cycleOrder = settings.get("cycleOrder").filter(role => configured[role] !== undefined);
++	const seen = new Set(cycleOrder);
++	const rest = getKnownRoleIds(settings)
++		.filter(role => configured[role] !== undefined && !seen.has(role))
++		.sort();
++	return {
++		cycleOrder,
++		roles: [...cycleOrder, ...rest].map(role => ({
++			role,
++			modelId: configured[role]!,
++			source: settings.getModelRoleProvenance(role),
++		})),
++		storage: settings.get("modelRoleStorage"),
++	};
++}
++
+ function isSubagentSubscriptionLevel(value: unknown): value is RpcSubagentSubscriptionLevel {
+ 	return value === "off" || value === "progress" || value === "events";
+ }
+@@ -798,6 +854,7 @@ export async function runRpcMode(
  	setToolUIContext?: (uiContext: ExtensionUIContext, hasUI: boolean) => void,
  	subagentEventBus?: EventBus,
  	input: ReadableStream<Uint8Array> = claimRpcInput(),
@@ -3016,7 +3056,7 @@ index 806ef87..9bbdb60 100644
  ): Promise<never> {
  	// Signal to RPC clients that the server is ready to accept commands
  	// Suppress terminal notifications: they write \x07 (BEL) or OSC sequences directly to
-@@ -805,6 +829,20 @@ export async function runRpcMode(
+@@ -805,6 +862,20 @@ export async function runRpcMode(
  	// breaks JSON.parse. In RPC mode stdout is the JSON protocol channel — nothing else
  	// may write there.
  	process.env.PI_NOTIFICATIONS = "off";
@@ -3037,17 +3077,21 @@ index 806ef87..9bbdb60 100644
  
  	const frameEncoder = new RpcFrameEncoder();
  	// Ordered stdout writer honoring backpressure: chunked v2 frames are produced
-@@ -828,6 +866,9 @@ export async function runRpcMode(
+@@ -828,6 +899,13 @@ export async function runRpcMode(
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
  			maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
 +			...(virtualUiRequested ? { caretVirtualUiVersion: CARET_VIRTUAL_UI_VERSION } : {}),
 +			...(nativePermissionRequested || nativeEditorRequested ? { caretNativeBridgeVersion: 1 } : {}),
 +			...(nativeEditorRequested ? { caretEditorBridgeVersion: 1 } : {}),
++			// Model roles ship in this patch unconditionally (no env opt-in): the
++			// command only reads and writes settings OMP already owns through a
++			// layer-aware API, and a host that does not know it is unaffected.
++			caretModelRolesVersion: 1,
  		}),
  	);
  	const output = (obj: RpcResponse | RpcExtensionUIRequest | object) => {
-@@ -854,14 +895,75 @@ export async function runRpcMode(
+@@ -854,14 +932,75 @@ export async function runRpcMode(
  
  	const extensionUserMessageTracker = new RpcExtensionUserMessageTracker();
  
@@ -3123,7 +3167,7 @@ index 806ef87..9bbdb60 100644
  	/**
  	 * Extension UI context that uses the RPC protocol.
  	 */
-@@ -912,8 +1014,23 @@ export async function runRpcMode(
+@@ -912,8 +1051,23 @@ export async function runRpcMode(
  			);
  		}
  
@@ -3149,7 +3193,7 @@ index 806ef87..9bbdb60 100644
  			return () => {};
  		}
  
-@@ -944,6 +1061,7 @@ export async function runRpcMode(
+@@ -944,6 +1098,7 @@ export async function runRpcMode(
  		}
  
  		setWidget(key: string, content: unknown, options?: ExtensionWidgetOptions): void {
@@ -3157,7 +3201,7 @@ index 806ef87..9bbdb60 100644
  			// Only support string arrays in RPC mode - factory functions are ignored
  			if (content === undefined || Array.isArray(content)) {
  				this.output({
-@@ -958,12 +1076,12 @@ export async function runRpcMode(
+@@ -958,12 +1113,12 @@ export async function runRpcMode(
  			// Component factories are not supported in RPC mode - would need TUI access
  		}
  
@@ -3174,7 +3218,7 @@ index 806ef87..9bbdb60 100644
  		}
  
  		setTitle(title: string): void {
-@@ -977,9 +1095,19 @@ export async function runRpcMode(
+@@ -977,9 +1132,19 @@ export async function runRpcMode(
  			} as RpcExtensionUIRequest);
  		}
  
@@ -3197,7 +3241,7 @@ index 806ef87..9bbdb60 100644
  		}
  
  		pasteToEditor(text: string): void {
-@@ -988,6 +1116,7 @@ export async function runRpcMode(
+@@ -988,6 +1153,7 @@ export async function runRpcMode(
  		}
  
  		setEditorText(text: string): void {
@@ -3205,7 +3249,7 @@ index 806ef87..9bbdb60 100644
  			// Fire and forget - host can implement editor control
  			this.output({
  				type: "extension_ui_request",
-@@ -998,6 +1127,7 @@ export async function runRpcMode(
+@@ -998,6 +1164,7 @@ export async function runRpcMode(
  		}
  
  		getEditorText(): string {
@@ -3213,7 +3257,7 @@ index 806ef87..9bbdb60 100644
  			// Synchronous method can't wait for RPC response
  			// Host should track editor state locally if needed
  			return "";
-@@ -1021,29 +1151,30 @@ export async function runRpcMode(
+@@ -1021,29 +1188,30 @@ export async function runRpcMode(
  		}
  
  		getAllThemes(): Promise<{ name: string; path: string | undefined }[]> {
@@ -3256,7 +3300,7 @@ index 806ef87..9bbdb60 100644
  		}
  	}
  
-@@ -1053,8 +1184,12 @@ export async function runRpcMode(
+@@ -1053,8 +1221,12 @@ export async function runRpcMode(
  	const rpcUiContext = new RpcExtensionUIContext(pendingExtensionRequests, output);
  	setToolUIContext?.(rpcUiContext, true);
  
@@ -3271,7 +3315,7 @@ index 806ef87..9bbdb60 100644
  		mode: "rpc",
  		reportSendError: (action, err) => {
  			output(error(undefined, action, err.message));
-@@ -1069,6 +1204,12 @@ export async function runRpcMode(
+@@ -1069,6 +1241,12 @@ export async function runRpcMode(
  			extensionUserMessageTracker.trackAgentMessageTask(task);
  		},
  		uiContext: rpcUiContext,
@@ -3284,7 +3328,7 @@ index 806ef87..9bbdb60 100644
  	});
  
  	// Output all agent events as JSON
-@@ -1076,7 +1217,24 @@ export async function runRpcMode(
+@@ -1076,7 +1254,24 @@ export async function runRpcMode(
  		output(event);
  	});
  
@@ -3310,7 +3354,7 @@ index 806ef87..9bbdb60 100644
  	const reloadPluginState = async () => {
  		const cwd = session.sessionManager.getCwd();
  		const projectPath = await resolveActiveProjectRegistryPath(cwd);
-@@ -1097,11 +1255,43 @@ export async function runRpcMode(
+@@ -1097,11 +1292,43 @@ export async function runRpcMode(
  	session.subscribeCommandMetadataChanged(() => {
  		void emitAvailableCommandsUpdate();
  	});
@@ -3355,7 +3399,7 @@ index 806ef87..9bbdb60 100644
  
  		switch (command.type) {
  			case "negotiate_protocol": {
-@@ -1110,11 +1300,249 @@ export async function runRpcMode(
+@@ -1110,11 +1337,249 @@ export async function runRpcMode(
  				return success(id, "negotiate_protocol", { protocolVersion: 2 });
  			}
  
@@ -3605,7 +3649,36 @@ index 806ef87..9bbdb60 100644
  				const skillResult = await dispatchRpcSkillPrompt({
  					id,
  					session,
-@@ -1601,6 +2029,9 @@ export async function runRpcMode(
+@@ -1357,6 +1822,28 @@ export async function runRpcMode(
+ 				return success(id, "get_available_models", { models });
+ 			}
+ 
++			// Caret: the model-role surface. Roles decide which model does which
++			// job (primary, background, planning, advisor, subagents), and the TUI
++			// carousel that assigns them has no RPC twin, so without this a host can
++			// only read config.yml itself and diverge from the layers OMP resolves.
++			case "caret_get_model_roles": {
++				return success(id, "caret_get_model_roles", caretModelRoles(session.settings));
++			}
++
++			case "caret_set_model_role": {
++				const role = typeof command.role === "string" ? command.role.trim() : "";
++				if (!role) return error(id, "caret_set_model_role", "A role name is required", "caret_model_role_invalid");
++				// `null` clears the assignment, which is how a role falls back to
++				// its default resolution instead of pinning a model forever.
++				session.settings.setModelRole(role, command.modelId === null ? undefined : command.modelId);
++				// `setModelRole` persists through a debounced background save, so
++				// without this flush the ack would reach the host before the write
++				// lands and a client that exits on the answer would lose the change
++				// entirely. Answering only after the write makes "confirmed" true.
++				await session.settings.flush();
++				return success(id, "caret_set_model_role", caretModelRoles(session.settings));
++			}
++
+ 			// =================================================================
+ 			// Thinking
+ 			// =================================================================
+@@ -1601,6 +2088,9 @@ export async function runRpcMode(
  			// the process exits. dispose() also emits `session_shutdown`, so we
  			// must NOT emit it separately here or the event fires twice. Skipping
  			// dispose left OMP-owned Chromium alive after RPC shutdown (#5643).
@@ -3615,7 +3688,7 @@ index 806ef87..9bbdb60 100644
  			await session.dispose();
  			process.exit(0);
  		},
-@@ -1639,6 +2070,12 @@ export async function runRpcMode(
+@@ -1639,6 +2129,12 @@ export async function runRpcMode(
  	pendingExtensionRequests.rejectAll("RPC client disconnected before extension UI response completed");
  	hostToolBridge.close("RPC client disconnected before host tool execution completed");
  	hostUriBridge.clear("RPC client disconnected before host URI request completed");
@@ -3628,7 +3701,7 @@ index 806ef87..9bbdb60 100644
  	await inputDispatcher.drain();
  	await shutdownCoordinator.drain();
  	subagentRegistry?.dispose();
-@@ -1646,6 +2083,7 @@ export async function runRpcMode(
+@@ -1646,6 +2142,7 @@ export async function runRpcMode(
  	// bounded teardown run on the stdin-EOF path too (#5643). Idempotent: a
  	// prior pi.shutdown() through the coordinator makes this await settle
  	// immediately.
@@ -3637,7 +3710,7 @@ index 806ef87..9bbdb60 100644
  	process.exit(0);
  }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index c7bdf93..2a057f5 100644
+index c7bdf9360f..61fa7059a3 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -28,6 +28,27 @@ import type { RpcMessagesPage } from "./rpc-messages";
@@ -3668,7 +3741,20 @@ index c7bdf93..2a057f5 100644
  
  	// Prompting
  	| { id?: string; type: "prompt"; message: string; images?: ImageContent[]; streamingBehavior?: "steer" | "followUp" }
-@@ -147,6 +168,19 @@ export interface RpcReadyFrame {
+@@ -52,6 +73,12 @@ export type RpcCommand =
+ 	| { id?: string; type: "set_model"; provider: string; modelId: string }
+ 	| { id?: string; type: "cycle_model" }
+ 	| { id?: string; type: "get_available_models" }
++	// Caret: read the configured model roles from the settings layers OMP owns.
++	// The carousel that assigns them is TUI-only, so an RPC host has no other
++	// way to show "which model does which job" without reading config.yml
++	// itself and diverging from the layers OMP actually resolves through.
++	| { id?: string; type: "caret_get_model_roles" }
++	| { id?: string; type: "caret_set_model_role"; role: string; modelId: string | null }
+ 
+ 	// Thinking
+ 	| { id?: string; type: "set_thinking_level"; level: ThinkingLevel }
+@@ -147,6 +174,44 @@ export interface RpcReadyFrame {
  	supportedProtocolVersions: [1, 2];
  	maxFrameBytes: number;
  	maxReassembledFrameBytes: number;
@@ -3678,6 +3764,8 @@ index c7bdf93..2a057f5 100644
 +	caretNativeBridgeVersion?: 1;
 +	/** Present only when CARET_RPC_EDITOR_BRIDGE=1 is enabled. */
 +	caretEditorBridgeVersion?: 1;
++	/** Always present in this patch: the model-role read/write surface. */
++	caretModelRolesVersion?: 1;
 +}
 +
 +export interface RpcCaretTerminalNegotiatedData {
@@ -3685,10 +3773,33 @@ index c7bdf93..2a057f5 100644
 +	terminalId: string;
 +	cols: number;
 +	rows: number;
++}
++
++/**
++ * Caret's model-role projection. Roles are what OMP resolves through
++ * `settings.modelRoles`, so the host reports exactly the layers OMP reads:
++ * the effective value plus which layer it came from, never a copy of the file.
++ */
++export interface RpcCaretModelRoleEntry {
++	/** Role id, e.g. `default`, `smol`, `plan`, or a custom role from settings. */
++	role: string;
++	/** `provider/model` selector, or `@otherRole` when the role aliases another. */
++	modelId: string;
++	/** Layer the effective value came from, for an honest provenance display. */
++	source: "runtime" | "overlay" | "project" | "global" | "default";
++}
++
++export interface RpcCaretModelRolesData {
++	/** Cycle order the model switcher steps through (`settings.cycleOrder`). */
++	cycleOrder: string[];
++	/** Roles with a resolved model, in `cycleOrder` first, then the remaining configured roles. */
++	roles: RpcCaretModelRoleEntry[];
++	/** Where role assignments are persisted: `global` (profile config) or `project`. */
++	storage: "global" | "project";
  }
  
  export interface RpcChunkFrame {
-@@ -202,6 +236,21 @@ export type RpcResponse =
+@@ -202,6 +267,21 @@ export type RpcResponse =
  			success: true;
  			data: { protocolVersion: 2 };
  	  }
@@ -3710,9 +3821,30 @@ index c7bdf93..2a057f5 100644
  
  	// Prompting (async - events follow)
  	| { id?: string; type: "response"; command: "prompt"; success: true; data?: { agentInvoked: boolean } }
+@@ -274,6 +354,20 @@ export type RpcResponse =
+ 			success: true;
+ 			data: { models: Model[] };
+ 	  }
++	| {
++			id?: string;
++			type: "response";
++			command: "caret_get_model_roles";
++			success: true;
++			data: RpcCaretModelRolesData;
++	  }
++	| {
++			id?: string;
++			type: "response";
++			command: "caret_set_model_role";
++			success: true;
++			data: RpcCaretModelRolesData;
++	  }
+ 
+ 	// Thinking
+ 	| { id?: string; type: "response"; command: "set_thinking_level"; success: true }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-ui-terminal.ts b/packages/coding-agent/src/modes/rpc/rpc-ui-terminal.ts
 new file mode 100644
-index 0000000..5fa35a4
+index 0000000000..5fa35a4b40
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-ui-terminal.ts
 @@ -0,0 +1,23 @@
@@ -3741,7 +3873,7 @@ index 0000000..5fa35a4
 +} from "./rpc-virtual-ui";
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-virtual-ui.ts b/packages/coding-agent/src/modes/rpc/rpc-virtual-ui.ts
 new file mode 100644
-index 0000000..3840a4c
+index 0000000000..3840a4ca91
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-virtual-ui.ts
 @@ -0,0 +1,817 @@
@@ -4563,7 +4695,7 @@ index 0000000..3840a4c
 +	return { anchor: "bottom-center", width: "100%", maxHeight: "100%", margin: 0 };
 +}
 diff --git a/packages/coding-agent/src/session/client-bridge.ts b/packages/coding-agent/src/session/client-bridge.ts
-index d3db194..f27bcfb 100644
+index d3db194865..f27bcfb007 100644
 --- a/packages/coding-agent/src/session/client-bridge.ts
 +++ b/packages/coding-agent/src/session/client-bridge.ts
 @@ -18,6 +18,8 @@ export interface ClientBridgeCapabilities {
@@ -4686,7 +4818,7 @@ index d3db194..f27bcfb 100644
  		toolCall: ClientBridgePermissionToolCall,
  		options: ClientBridgePermissionOption[],
 diff --git a/packages/coding-agent/src/tools/acp-bridge.ts b/packages/coding-agent/src/tools/acp-bridge.ts
-index b63b798..8413df1 100644
+index b63b7984fe..8413df10a6 100644
 --- a/packages/coding-agent/src/tools/acp-bridge.ts
 +++ b/packages/coding-agent/src/tools/acp-bridge.ts
 @@ -1,3 +1,4 @@
@@ -4863,7 +4995,7 @@ index b63b798..8413df1 100644
 +	return applied;
 +}
 diff --git a/packages/coding-agent/src/tools/ast-edit.ts b/packages/coding-agent/src/tools/ast-edit.ts
-index 620a18e..e98243e 100644
+index 620a18ea40..e98243eb15 100644
 --- a/packages/coding-agent/src/tools/ast-edit.ts
 +++ b/packages/coding-agent/src/tools/ast-edit.ts
 @@ -1,3 +1,5 @@
@@ -5042,7 +5174,7 @@ index 620a18e..e98243e 100644
  								} catch {
 diff --git a/packages/coding-agent/src/tools/ast-editor-plan.ts b/packages/coding-agent/src/tools/ast-editor-plan.ts
 new file mode 100644
-index 0000000..c6d7c06
+index 0000000000..c6d7c06b40
 --- /dev/null
 +++ b/packages/coding-agent/src/tools/ast-editor-plan.ts
 @@ -0,0 +1,172 @@
@@ -5219,7 +5351,7 @@ index 0000000..c6d7c06
 +	};
 +}
 diff --git a/packages/coding-agent/src/tools/auto-generated-guard.ts b/packages/coding-agent/src/tools/auto-generated-guard.ts
-index acf8685..e8d2967 100644
+index acf86851a7..e8d2967282 100644
 --- a/packages/coding-agent/src/tools/auto-generated-guard.ts
 +++ b/packages/coding-agent/src/tools/auto-generated-guard.ts
 @@ -14,8 +14,9 @@ export async function assertEditableFile(
@@ -5235,7 +5367,7 @@ index acf8685..e8d2967 100644
  }
 diff --git a/packages/coding-agent/src/tools/native-editor-observations.ts b/packages/coding-agent/src/tools/native-editor-observations.ts
 new file mode 100644
-index 0000000..a02ab25
+index 0000000000..a02ab25d0f
 --- /dev/null
 +++ b/packages/coding-agent/src/tools/native-editor-observations.ts
 @@ -0,0 +1,114 @@
@@ -5354,7 +5486,7 @@ index 0000000..a02ab25
 +	observationBytes.delete(session);
 +}
 diff --git a/packages/coding-agent/src/tools/read-summary.ts b/packages/coding-agent/src/tools/read-summary.ts
-index 753dcdf..c436210 100644
+index 753dcdfeef..c436210919 100644
 --- a/packages/coding-agent/src/tools/read-summary.ts
 +++ b/packages/coding-agent/src/tools/read-summary.ts
 @@ -12,6 +12,7 @@ import {
@@ -5390,7 +5522,7 @@ index 753dcdf..c436210 100644
   * Structural summary of `absolutePath`, or `null` when the file is too large,
   * too short, or unparseable. `diskText` lets a caller that already read the file
 diff --git a/packages/coding-agent/src/tools/read.ts b/packages/coding-agent/src/tools/read.ts
-index 3d32304..852e1aa 100644
+index 3d323041c0..852e1aa564 100644
 --- a/packages/coding-agent/src/tools/read.ts
 +++ b/packages/coding-agent/src/tools/read.ts
 @@ -29,6 +29,7 @@ import type { InternalUrl } from "../internal-urls/types";
@@ -5636,7 +5768,7 @@ index 3d32304..852e1aa 100644
  	}
  
 diff --git a/packages/coding-agent/src/tools/write.ts b/packages/coding-agent/src/tools/write.ts
-index 10c6ccd..f02f414 100644
+index 10c6ccdcf2..f02f41445d 100644
 --- a/packages/coding-agent/src/tools/write.ts
 +++ b/packages/coding-agent/src/tools/write.ts
 @@ -36,7 +36,7 @@ import writeDeviceOnlyDescription from "../prompts/tools/write-device-only.md" w
@@ -5708,7 +5840,7 @@ index 10c6ccd..f02f414 100644
  			// Try ACP bridge first for editor-visible filesystem paths. Internal
 diff --git a/packages/coding-agent/test/caret-ast-editor.test.ts b/packages/coding-agent/test/caret-ast-editor.test.ts
 new file mode 100644
-index 0000000..9414d2a
+index 0000000000..9414d2a659
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-ast-editor.test.ts
 @@ -0,0 +1,270 @@
@@ -5984,7 +6116,7 @@ index 0000000..9414d2a
 +});
 diff --git a/packages/coding-agent/test/caret-bash-pty.test.ts b/packages/coding-agent/test/caret-bash-pty.test.ts
 new file mode 100644
-index 0000000..f2b72bd
+index 0000000000..f2b72bd02e
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-bash-pty.test.ts
 @@ -0,0 +1,21 @@
@@ -6011,7 +6143,7 @@ index 0000000..f2b72bd
 +});
 diff --git a/packages/coding-agent/test/caret-client-bridge.test.ts b/packages/coding-agent/test/caret-client-bridge.test.ts
 new file mode 100644
-index 0000000..e53963e
+index 0000000000..e53963eeb2
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-client-bridge.test.ts
 @@ -0,0 +1,139 @@
@@ -6156,7 +6288,7 @@ index 0000000..e53963e
 +});
 diff --git a/packages/coding-agent/test/caret-editor-bridge.test.ts b/packages/coding-agent/test/caret-editor-bridge.test.ts
 new file mode 100644
-index 0000000..5af87e9
+index 0000000000..5af87e94eb
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-editor-bridge.test.ts
 @@ -0,0 +1,251 @@
@@ -6413,7 +6545,7 @@ index 0000000..5af87e9
 +});
 diff --git a/packages/coding-agent/test/caret-editor-routing.test.ts b/packages/coding-agent/test/caret-editor-routing.test.ts
 new file mode 100644
-index 0000000..b2a9877
+index 0000000000..b2a9877788
 --- /dev/null
 +++ b/packages/coding-agent/test/caret-editor-routing.test.ts
 @@ -0,0 +1,738 @@
@@ -7156,7 +7288,7 @@ index 0000000..b2a9877
 +	});
 +});
 diff --git a/packages/coding-agent/test/rpc-input-frame.test.ts b/packages/coding-agent/test/rpc-input-frame.test.ts
-index d8e4125..05d0789 100644
+index d8e4125af4..05d0789183 100644
 --- a/packages/coding-agent/test/rpc-input-frame.test.ts
 +++ b/packages/coding-agent/test/rpc-input-frame.test.ts
 @@ -229,6 +229,26 @@ describe("dispatchRpcInputFrame", () => {
@@ -7188,7 +7320,7 @@ index d8e4125..05d0789 100644
  			if (command.type !== "prompt") throw new Error(`unexpected command type: ${command.type}`);
 diff --git a/packages/coding-agent/test/rpc-tui-slash.test.ts b/packages/coding-agent/test/rpc-tui-slash.test.ts
 new file mode 100644
-index 0000000..2fcc440
+index 0000000000..2fcc4408e0
 --- /dev/null
 +++ b/packages/coding-agent/test/rpc-tui-slash.test.ts
 @@ -0,0 +1,146 @@
@@ -7340,7 +7472,7 @@ index 0000000..2fcc440
 +});
 diff --git a/packages/coding-agent/test/rpc-virtual-ui.test.ts b/packages/coding-agent/test/rpc-virtual-ui.test.ts
 new file mode 100644
-index 0000000..e861e28
+index 0000000000..e861e28011
 --- /dev/null
 +++ b/packages/coding-agent/test/rpc-virtual-ui.test.ts
 @@ -0,0 +1,243 @@
@@ -7588,7 +7720,7 @@ index 0000000..e861e28
 +	});
 +});
 diff --git a/packages/natives/native/index.d.ts b/packages/natives/native/index.d.ts
-index 04f0e3c..c43de90 100644
+index 04f0e3c8d9..c43de90b78 100644
 --- a/packages/natives/native/index.d.ts
 +++ b/packages/natives/native/index.d.ts
 @@ -109,6 +109,10 @@ export declare class EditSession {
@@ -7686,7 +7818,7 @@ index 04f0e3c..c43de90 100644
  
  /** Host write response. */
 diff --git a/packages/natives/native/loader-state.js b/packages/natives/native/loader-state.js
-index baa4187..e612c7c 100644
+index baa41871c8..e612c7c50e 100644
 --- a/packages/natives/native/loader-state.js
 +++ b/packages/natives/native/loader-state.js
 @@ -56,6 +56,16 @@ function startupMarker(text) {
@@ -7708,7 +7840,7 @@ index baa4187..e612c7c 100644
  		return path.join(xdgDataHome, "omp", "natives");
 diff --git a/packages/natives/test/caret-loader-cache.test.ts b/packages/natives/test/caret-loader-cache.test.ts
 new file mode 100644
-index 0000000..fea383b
+index 0000000000..fea383b979
 --- /dev/null
 +++ b/packages/natives/test/caret-loader-cache.test.ts
 @@ -0,0 +1,24 @@

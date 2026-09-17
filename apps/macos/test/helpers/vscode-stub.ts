@@ -85,6 +85,12 @@ export interface StubState {
 	readonly chatInputStates: any[];
 	/** Content providers registered by scheme. */
 	readonly chatContentProviders: { scheme: string; provider: any }[];
+	/** Chat participants registered by the extension, with the handler a send would invoke. */
+	readonly chatParticipants: { id: string; handler: (...args: any[]) => any }[];
+	/** Language model providers registered by the extension, keyed by vendor. */
+	readonly languageModelProviders: { vendor: string; provider: any }[];
+	/** What `vscode.extensions.all` reports: the installed extensions. */
+	readonly installedExtensions: any[];
 }
 
 export const stubState: StubState = {
@@ -119,6 +125,9 @@ export const stubState: StubState = {
 	chatSessionControllers: [],
 	chatInputStates: [],
 	chatContentProviders: [],
+	chatParticipants: [],
+	languageModelProviders: [],
+	installedExtensions: [],
 };
 
 /** Clears per-test recordings and the active editor so state cannot leak. */
@@ -148,6 +157,9 @@ export function resetVscodeStub(): void {
 	stubState.chatSessionControllers.length = 0;
 	stubState.chatInputStates.length = 0;
 	stubState.chatContentProviders.length = 0;
+	stubState.chatParticipants.length = 0;
+	stubState.languageModelProviders.length = 0;
+	stubState.installedExtensions.length = 0;
 }
 
 /** Switch the stubbed active theme kind and fire the registered listeners, as
@@ -211,6 +223,14 @@ export function createVscodeStub(): unknown {
 
 	return {
 		version: "1.138.0",
+		extensions: {
+			// The Agents window needs to know which installed extension paints the theme the user
+			// picked, so the theme/allow-list carry reads this. `all` is every installed extension,
+			// enabled or not, exactly as the real API reports it.
+			get all() {
+				return stubState.installedExtensions;
+			},
+		},
 		Uri: {
 			file: uriFile,
 			parse: (value: string) => {
@@ -231,7 +251,10 @@ export function createVscodeStub(): unknown {
 		// Proposed chat sessions API. Controllers and input states record into
 		// stubState so tests can drive the exact instance the module registered.
 		chat: {
-			createChatParticipant: () => ({ dispose() {} }),
+			createChatParticipant: (id: string, handler: (...args: any[]) => any) => {
+				stubState.chatParticipants.push({ id, handler });
+				return { dispose() {} };
+			},
 			createChatSessionItemController: () => {
 				const controller: any = {
 					items: { replace() {}, add() {} },
@@ -258,6 +281,17 @@ export function createVscodeStub(): unknown {
 			registerChatSessionContentProvider: (scheme: string, provider: any) => {
 				stubState.chatContentProviders.push({ scheme, provider });
 				return { dispose() {} };
+			},
+		},
+		// Proposed language model provider API. The provider the extension
+		// registers is what the workbench uses to give a Caret request a model.
+		lm: {
+			registerLanguageModelChatProvider: (vendor: string, provider: any) => {
+				stubState.languageModelProviders.push({ vendor, provider });
+				return { dispose: () => {
+					const index = stubState.languageModelProviders.findIndex(entry => entry.vendor === vendor && entry.provider === provider);
+					if (index >= 0) stubState.languageModelProviders.splice(index, 1);
+				} };
 			},
 		},
 		EventEmitter: class {

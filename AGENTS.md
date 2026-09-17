@@ -1,11 +1,12 @@
 # Caret workspace instructions
 
-This folder is the git checkout. Run repository commands here. The document map is [docs/README.md](docs/README.md).
+This folder is the git checkout. Run repository commands here. The documentation map is [docs/README.md](docs/README.md).
 
-- The authoritative plan and spec is [docs/maintenance/CARET-PLAN-2026-09-14.th.md](docs/maintenance/CARET-PLAN-2026-09-14.th.md): product definition (owned Cursor clone, OMP harness), architecture, Cursor parity contract, SSOT rules and steps S1–S5. Read it before planning screen, architecture or host work.
-- Everything older lives in [docs/archive/](docs/archive/README.md) and has no authority: use it for identifiers, measured Cursor values and past evidence only. Distinguish proposals from implemented behavior.
+- The authoritative plan and spec is [docs/maintenance/CARET-PLAN.md](docs/maintenance/CARET-PLAN.md): product definition (owned Cursor clone, OMP harness), architecture, Cursor parity contract, measured values, SSOT rules, steps S1-S5, landed work with receipts, and the open work list. Read it before planning screen, architecture or host work. Section 10 is the only authoritative list of unfinished work.
+- **All documentation is written in English.** Never add a `.th.md` file or a mixed-language section; a Thai filename is a defect. User-facing product copy may still be localized.
+- **Never create a second plan or spec.** Superseded documents are deleted, not archived: git history is the archive. A live tree with two owners of truth is the failure this rule prevents.
 - Layout is one repo: `apps/{host,macos,ios}` and `packages/{protocol,omp-adapter,relay}`. Those folders are module boundaries, not remotes. Leave `desktop/`, `upstream/`, `dist/`, and packaged apps where they are.
-- For retained parity identifiers, use [docs/archive/2026-09-09/agent.md](docs/archive/2026-09-09/agent.md) and `backlog/`. That baseline does not expand a bounded task into the entire backlog, and it does not declare old acceptance gates passed.
+- For retained parity identifiers, use [backlog/requirement-graph.json](backlog/requirement-graph.json) and the `*-evidence.md` files it cites. That baseline does not expand a bounded task into the entire backlog, and it does not declare old acceptance gates passed.
 - Use OMP as the sole agent execution and transcript owner (the only harness). Caret owns the application host/transport; Code-OSS supplies the Mac IDE, and Cursor 3.20.17 is the primary UI/UX and architecture reference.
 - Preserve one execution/session owner and provider authentication boundaries. Relay deployment, signing, devices, and paid services require the applicable existing authorization or missing user input at that step.
 - Complete the requested slice with evidence from its actual revision and runtime. Report implemented, verified, and externally blocked work separately; resolve routine local failures within scope.

@@ -12,13 +12,14 @@
 import * as vscode from "vscode";
 import { randomUUID } from "node:crypto";
 import type { CaretHostClient } from "./api.ts";
-import type { EventPage, Session } from "../../../packages/protocol/src/index.ts";
+import type { Command, EventPage, Session } from "../../../packages/protocol/src/index.ts";
 import { applyEvent, createInitialTaskState, type TaskState, type TranscriptEntry } from "./state.ts";
 import {
 	abortRequest,
 	CARET_CHAT_PARTICIPANT_ID,
 	CARET_CHAT_SESSION_SCHEME,
 	CARET_CHAT_SESSION_TYPE,
+	contextUsageFromOmpState,
 	currentModelIdFromOmpState,
 	getAvailableModelsRequest,
 	getLoginProvidersRequest,
@@ -26,6 +27,9 @@ import {
 	modelPickerGroupFromSnapshot,
 	normalizeOmpLoginProviders,
 	normalizeOmpModels,
+	getModelRolesRequest,
+	normalizeOmpModelRoles,
+	ompModelIdFromPickId,
 	projectOmpModelSnapshot,
 	promptRequest,
 	resolveOmpModelPickProvider,
@@ -36,15 +40,18 @@ import {
 	turnPlansFromTranscript,
 	type OmpAdvertisedModel,
 	type OmpLoginProvider,
+	type OmpModelRoles,
 	type OmpModelSnapshot,
 	type SessionState,
 } from "./chat-sessions-map.ts";
+import { registerCaretLanguageModels } from "./omp-language-models.ts";
 
 export { CARET_CHAT_PARTICIPANT_ID, CARET_CHAT_SESSION_SCHEME, CARET_CHAT_SESSION_TYPE } from "./chat-sessions-map.ts";
 export type { OmpAdvertisedModel, OmpLoginProvider, OmpModelSnapshot };
 
 /** Option-group id the native and webview model pickers share. */
 export const CARET_OMP_MODELS_GROUP_ID = "models";
+
 
 /**
  * List OMP's advertised models through the existing host command envelope
@@ -74,14 +81,23 @@ export async function fetchOmpCurrentModelId(client: CaretHostClient, session: S
 export async function fetchOmpModelSnapshot(
 	client: CaretHostClient,
 	session: Session,
-	options: { readonly loginProviders?: readonly OmpLoginProvider[]; readonly log?: (message: string) => void } = {},
+	options: {
+		readonly loginProviders?: readonly OmpLoginProvider[];
+		readonly log?: (message: string) => void;
+		/** A `get_available_models` answer the caller already has, so it is not asked twice. */
+		readonly catalog?: Command;
+	} = {},
 ): Promise<OmpModelSnapshot> {
 	let models: OmpAdvertisedModel[] = [];
 	let current: string | undefined;
-	try {
-		models = await fetchOmpModels(client, session);
-	} catch (error) {
-		options.log?.(`Caret could not list OMP models: ${error instanceof Error ? error.message : String(error)}`);
+	if (options.catalog) {
+		models = normalizeOmpModels(options.catalog.result ?? options.catalog.ack);
+	} else {
+		try {
+			models = await fetchOmpModels(client, session);
+		} catch (error) {
+			options.log?.(`Caret could not list OMP models: ${error instanceof Error ? error.message : String(error)}`);
+		}
 	}
 	try {
 		current = await fetchOmpCurrentModelId(client, session);
@@ -155,6 +171,44 @@ export async function readSessionState(client: CaretHostClient, sessionId: strin
 }
 
 /**
+ * The catalog, read from a session that can actually answer it.
+ *
+ * OMP's catalog is global, but only a live OMP process holds it: a session the host has not
+ * started answers `get_available_models` with `not_dispatched` ("Start or reconcile the OMP
+ * session before sending commands" - the host's own guard), which is what left the picker
+ * honestly-disabled in every window that had not sent a prompt yet. So a refused read starts
+ * that session once and asks again. Starting mints a new incarnation, so the retry reads the
+ * session `start` returned instead of the one that was refused.
+ *
+ * Bounded to one start, and it still degrades honestly: a start that fails, or a catalog OMP
+ * genuinely does not advertise, leaves the empty snapshot the picker renders as disabled.
+ */
+async function snapshotWithOmpRuntime(
+	client: CaretHostClient,
+	session: Session,
+	log: (message: string) => void,
+): Promise<OmpModelSnapshot> {
+	let catalog: Command | undefined;
+	try {
+		catalog = await client.sendCommand(session.id, getAvailableModelsRequest(session, randomUUID()));
+	} catch (error) {
+		// The host itself failed (down, unauthorized): starting a session cannot help.
+		log(`Caret could not list OMP models: ${error instanceof Error ? error.message : String(error)}`);
+		return { models: [], hasModels: false };
+	}
+	if (catalog.status !== "not_dispatched") {
+		return fetchOmpModelSnapshot(client, session, { log, catalog });
+	}
+	try {
+		const running = await client.startSession(session.id);
+		return await fetchOmpModelSnapshot(client, running, { log });
+	} catch (error) {
+		log(`Caret could not start the OMP session to list models: ${error instanceof Error ? error.message : String(error)}`);
+		return fetchOmpModelSnapshot(client, session, { log, catalog });
+	}
+}
+
+/**
  * List the global OMP catalog through any available session purely as the
  * query envelope; the models are not attributed to that session. The catalog
  * itself is global to OMP. No sessions at all means honestly empty. Never
@@ -170,12 +224,38 @@ export async function fetchGlobalOmpModelSnapshot(
 		const sessions = await client.listSessions();
 		const probe = sessions.find(candidate => !candidate.archived) ?? sessions[0];
 		if (probe && !(token?.isCancellationRequested ?? false)) {
-			return await fetchOmpModelSnapshot(client, probe, { log });
+			return await snapshotWithOmpRuntime(client, probe, log);
 		}
 	} catch (error) {
 		log(`Caret could not list OMP models: ${error instanceof Error ? error.message : String(error)}`);
 	}
 	return { models: [], hasModels: false };
+}
+
+/**
+ * Fetch the configured model roles through the same envelope the catalog uses.
+ * Roles are global to OMP, so any session can answer; no sessions means honestly
+ * empty. Never throws — the picker then shows no role labels rather than failing.
+ */
+export async function fetchOmpModelRoles(
+	getClient: () => Promise<CaretHostClient>,
+	log: (message: string) => void,
+): Promise<OmpModelRoles> {
+	try {
+		const client = await getClient();
+		const sessions = await client.listSessions();
+		const probe = sessions.find(candidate => !candidate.archived) ?? sessions[0];
+		if (!probe) return { cycleOrder: [], roles: [] };
+		const session = probe.status === "running" ? probe : await client.startSession(probe.id);
+		const result = await client.sendCommand(session.id, getModelRolesRequest(session, randomUUID()));
+		if (result.status === "not_dispatched" || result.status === "failed") {
+			return { cycleOrder: [], roles: [] };
+		}
+		return normalizeOmpModelRoles(result.result ?? result.ack);
+	} catch (error) {
+		log(`Caret could not read OMP model roles: ${error instanceof Error ? error.message : String(error)}`);
+		return { cycleOrder: [], roles: [] };
+	}
 }
 
 /**
@@ -196,7 +276,7 @@ async function snapshotForInputState(
 		return { models: [], hasModels: false };
 	}
 	try {
-		return await fetchOmpModelSnapshot(await getClient(), hostSession, { log });
+		return await snapshotWithOmpRuntime(await getClient(), hostSession, log);
 	} catch (error) {
 		log(`Caret could not read OMP models: ${error instanceof Error ? error.message : String(error)}`);
 		return { models: [], hasModels: false };
@@ -235,7 +315,35 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): CaretCh
 	}
 	const disposables: vscode.Disposable[] = [];
 
-	const participant = chat.createChatParticipant(CARET_CHAT_PARTICIPANT_ID, async () => undefined);
+	// The workbench needs a language model for every request it builds, including
+	// the ones this provider owns (see omp-language-models.ts). Registered with
+	// the sessions so the catalogue and the sessions that use it live and die
+	// together.
+	disposables.push(registerCaretLanguageModels({
+		catalog: async token => (await fetchGlobalOmpModelSnapshot(getClient, log, token)).models,
+		roles: () => fetchOmpModelRoles(getClient, log),
+		log,
+	}));
+
+	// Caret's participant is this window's default agent (package.json
+	// `isDefault`), so the base routes composer sends here: the workbench refuses
+	// any send that has no default agent for its location, and Caret ships no
+	// Copilot participant to be that default. This handler is the one live path a
+	// submitted prompt takes and it delegates to the same `runTurn` the content
+	// provider's own `requestHandler` uses, so a prompt has a single owner: the
+	// host and its OMP journal.
+	const participant = chat.createChatParticipant(CARET_CHAT_PARTICIPANT_ID, async (request, context, stream, token) => {
+		const resource = context.chatSessionContext?.chatSessionItem.resource;
+		const sessionId = resource ? sessionIdFromUri(resource) : undefined;
+		if (!sessionId) {
+			log(`Caret received a chat request outside one of its sessions${resource ? `: ${resource.toString()}` : "."}`);
+			return;
+		}
+		log(`Caret participant turn for session ${sessionId}`);
+		const client = await getClient();
+		const hostSession = await client.getSession(sessionId);
+		await runTurn(client, hostSession, request.prompt, stream, token, log);
+	});
 	disposables.push(participant);
 
 	const applyItem = (item: vscode.ChatSessionItem, session: Session, projects: readonly { id: string; name: string }[] | undefined): void => {
@@ -383,14 +491,23 @@ export function registerCaretChatSessions(options: ChatSessionsOptions): CaretCh
 		// setup-required. Same probe rules as the draft input state.
 		provideChatSessionProviderOptions: async token => {
 			const snapshot = await fetchGlobalOmpModelSnapshot(getClient, log, token);
+			// Model roles render on the language-model rows (`detail`), which is the
+			// surface the picker actually draws: an option item's `description` is
+			// tooltip-only, so annotating this group put the labels nowhere.
+			const roles = await fetchOmpModelRoles(getClient, log);
 			const group = modelPickerGroupFromSnapshot(snapshot);
+			log(`Caret session option catalog: ${group.items.length} model(s) advertised by OMP, ${roles.roles.length} role(s) configured.`);
 			return { optionGroups: [group as unknown as vscode.ChatSessionProviderOptionGroup] };
 		},
 		provideHandleOptionsChange: (resource, updates) => {
 			void (async () => {
 				try {
-					const modelId = updates.find(update => update.optionId === CARET_OMP_MODELS_GROUP_ID)?.value;
-					if (!modelId) return;
+					const picked = updates.find(update => update.optionId === CARET_OMP_MODELS_GROUP_ID)?.value;
+					if (!picked) return;
+					// Picker identifiers carry the `caret-omp/` vendor prefix (the
+					// workbench resolves the model by that string); the host wants the
+					// bare OMP id.
+					const modelId = ompModelIdFromPickId(picked);
 					const id = sessionIdFromUri({ scheme: resource.scheme, authority: resource.authority, path: resource.path });
 					if (!id) {
 						log(`Caret cannot change the model: unrecognized session resource ${resource.scheme}://${resource.authority}${resource.path}.`);
@@ -530,8 +647,38 @@ export async function runTurn(
 			} catch {
 				// The host went away; end the turn instead of spinning forever.
 			}
+			await reportContextUsage(client, session, incarnation, stream, log);
 			return;
 		}
+	}
+}
+
+/**
+ * Report OMP's own context occupancy for the turn that just finished, so the
+ * composer's context meter reads the real conversation size. OMP measures it
+ * (`get_state.contextUsage`), Caret only relays it; a host that does not report
+ * one leaves the meter hidden rather than showing an invented number.
+ */
+async function reportContextUsage(
+	client: CaretHostClient,
+	session: Session,
+	incarnation: string,
+	stream: vscode.ChatResponseStream,
+	log: (message: string) => void,
+): Promise<void> {
+	const usage = stream.usage;
+	if (typeof usage !== "function") {
+		return;
+	}
+	try {
+		const result = await client.sendCommand(session.id, getOmpStateRequest({ ...session, incarnation }, randomUUID()));
+		const contextUsage = contextUsageFromOmpState(result.result ?? result.ack);
+		if (!contextUsage) {
+			return;
+		}
+		usage.call(stream, { promptTokens: contextUsage.tokens, completionTokens: 0 });
+	} catch (error) {
+		log(`Caret could not read OMP's context usage: ${error instanceof Error ? error.message : String(error)}`);
 	}
 }
 

@@ -2,14 +2,17 @@ diff --git a/product.json b/product.json
 index aff5af5aaf7..76a1edb8ec3 100644
 --- a/product.json
 +++ b/product.json
-@@ -1,6 +1,12 @@
+@@ -1,6 +1,15 @@
  {
  	"nameShort": "Caret",
  	"nameLong": "Caret",
 +	"extensionEnabledApiProposals": {
 +		"caret.caret": [
 +			"chatSessionsProvider",
-+			"chatParticipantPrivate"
++			"chatParticipantPrivate",
++			"defaultChatParticipant",
++			"chatProvider",
++			"chatParticipantAdditions"
 +		]
 +	},
  	"applicationName": "caret",

@@ -11,13 +11,13 @@
     "keyboard": "a chosen row is always a search (never a host to open) while typed text still follows the earlier rule - a scheme or a bare host is a URL, anything else is a search."
   },
   "verified": {
-    "live": "CDP on the running window: typing 'cats' in the Apps panel's Browser tab produced the engine's eight terms (cats, catster, catsolute, catsmile cafe, catster by kingdomoftigers, catsonic livehouse, cats แปลว่า, catsaur); ArrowDown highlighted 'cats' and Enter opened https://www.google.com/search?q=cats with the list closed and the bar reading 'cats'",
+    "live": "CDP on the running window: typing 'cats' in the Apps panel's Browser tab produced the engine's eight terms (cats, catster, catsolute, catsmile cafe, catster by kingdomoftigers, catsonic livehouse, cats <localised suggestion>, catsaur); ArrowDown highlighted 'cats' and Enter opened https://www.google.com/search?q=cats with the list closed and the bar reading 'cats'",
     "unitTests": "apps/macos/test/browser-search.test.ts: the engine's reply shape, the endpoint's client parameter, unreadable replies (empty body, other JSON shapes, non-string entries), blanks/duplicates/cap, and the search URL encoding. ide-native-workbench.test.ts pins the address-bar wiring in the 0021 patch text.",
     "patchAgreement": "0021 regenerated for its own two files only, digest updated, 24/24 patches apply from the pinned base and the produced tree equals the checkout",
     "suites": "726 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host and apps/macos/test",
     "typecheck": "bun run typecheck - clean",
     "ci": "node scripts/ci-validate.mjs -> CI-OK; bun run check:cursor-parity -> OK",
-    "domList": "CDP: typing \"cats\" in the running window produced the engine rows in the DOM (cats, catster, catsolute, catsmile cafe, catster by kingdomoftigers, catsonic livehouse, cats แปลว่า, catsaur) and ArrowDown + Enter opened https://www.google.com/search?q=cats"
+    "domList": "CDP: typing \"cats\" in the running window produced the engine rows in the DOM (cats, catster, catsolute, catsmile cafe, catster by kingdomoftigers, catsonic livehouse, cats <localised suggestion>, catsaur) and ArrowDown + Enter opened https://www.google.com/search?q=cats"
   },
   "reference": {
     "cursor": "this repository's measured Cursor reference covers the right panel as a tab group (Changes, Browser, Terminal, File) and its geometry; nothing captured describes the browser tab's address-bar behaviour, so a suggestion list is not something this work can claim parity with either way",

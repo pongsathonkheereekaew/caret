@@ -1,7 +1,7 @@
 {
   "slice": "agent-home-apps-panel",
   "date": "2026-09-15",
-  "reference": "Cursor 3.20.17 right-hand Apps panel (docs/maintenance/CARET-PLAN-2026-09-14.th.md section 3)",
+  "reference": "Cursor 3.20.17 right-hand Apps panel (docs/maintenance/CARET-PLAN.md section 3)",
   "runtime": {
     "window": "Agents",
     "launch": "VSCODE_DEV=1 desktop/.build/electron/Caret.app/Contents/MacOS/Caret desktop --agents --remote-debugging-port=9341 --user-data-dir=<fresh> --password-store=Basic",

@@ -1,0 +1,25 @@
+{
+  "slice": "The Apps panel's `+` menu over a hosted page, and the false integrity warning",
+  "capturedAt": "2026-09-16T01:40:00+07:00",
+  "branch": "main",
+  "method": "desktop source change folded into patch 0021 + node build/next/index.ts bundle --minify + copy out-vscode into the app + build-caret.ts --package + real-mouse verification through Computer Use (@oai/sky) + bun test apps/macos/test",
+  "problem": {
+    "plus_menu": "the first `+` -> Browser worked and every later attempt did nothing in the packaged app",
+    "why_the_dom_probe_missed_it": "a CDP probe clicked `+` three times and saw 1 -> 2 -> 3 tabs, so an earlier round reported the menu as fine. CDP injects events into the renderer, and a hosted page is a native view drawn above the window's DOM, so injected clicks bypass the very overlay that swallows the user's click: with a browser tab open, the menu opens behind the page.",
+    "integrity_warning": "'Your Caret installation appears to be corrupt. Please reinstall.' on every launch. Not caused by the bundle copy: all ten entries in the packaged product.json's checksums were wrong, including files no round had touched (preload.js, extensionHostProcess.js, workbench.html). The packager writes the checksums of the build it packaged, and this app is assembled by copying desktop/out-vscode over the packaged out/; nothing regenerated them."
+  },
+  "change": {
+    "plus_menu": "agentHomeUtilityEditor.ts (created by 0021) hides the hosted page before opening the `+` menu (hideBrowserForPopup) and restores it on the menu's onHide (restoreAfterPopup -> applyActiveTab, which re-applies the measured bounds). Patch 0021 re-cut with only its own created file replaced, digest 1a314e754cd4c28d4ab845cc25af0fd7d9188e737abc79355e3c0473d42fb61b.",
+    "integrity_warning": "scripts/build-caret.ts --package recomputes product.json's checksums for the files actually in the bundle, before signing. The values must be sha256 in base64 with the padding stripped, because ChecksumService.checksum resolves hash.digest('base64').replace(/=+$/, '')."
+  },
+  "verified": {
+    "plusMenuRealMouse": "Computer Use, packaged app, with browser tabs already open: `+` -> Browser twice in a row; the accessibility tree went from four browser tabs to five with the new one (selected), and the open menu is reachable in the tree (menu with Changes/Browser/Terminal/File)",
+    "integrityWarningGone": "checked 10 mismatched 0 after packaging, and a fresh launch's accessibility tree has no corruption notification (it did before)",
+    "suites": "bun test apps/macos/test -> 593 pass / 0 fail, including the new 0021 needle pinning hideBrowserForPopup / onHide: () => this.restoreAfterPopup()",
+    "patchSet": "bun scripts/prepare-desktop.ts -> 27 patches, 18 removals; desktop-patch-set.test.ts applies the whole set in manifest order onto the pinned base"
+  },
+  "notVerified": [
+    "Whether other DOM popups over the pane (the pinned summary, any future menu anchored below the strip) need the same treatment - only the `+` menu was reproduced and fixed.",
+    "The integrity check is Caret's packaged app only; a normal VS Code build regenerates these checksums itself, so this is not a fork-wide concern."
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "slice": "Model roles surface: OMP's role assignments appear on the model picker rows",
+  "capturedAt": "2026-09-16T22:40:00+07:00",
+  "problem": {
+    "reported": "The user runs several models through OMP and asked whether a team-config distributor (Tencent teamai-cli) could help, then said 'go a' — build the model-role surface in Caret instead.",
+    "whatOmpAlreadyHad": "settings.modelRoles / modelTags / cycleOrder / modelRoleStorage, resolved by src/config/model-role(s).ts, with getRoleModelCycle + cycleRoleModels driving the TUI carousel. modelRoles keys: default, smol, slow, vision, plan, commit, tiny, task, advisor plus custom roles.",
+    "whatWasMissing": "No RPC command exposed any of it. The full command set (46 types in rpc-types.ts) had exactly five model/thinking commands — set_model, cycle_model, get_available_models, set_thinking_level, cycle_thinking_level — and get_state reports only `model` + `thinkingLevel`. A host therefore had no way to read or write role assignments without reading config.yml itself."
+  },
+  "decision": {
+    "route": "Add the read/write surface to Caret's pinned OMP patch (patches/omp) rather than reading OMP's config file from the host.",
+    "why": "Section 6 of the plan forbids a second owner of any responsibility. Reading and writing config.yml behind OMP's back would duplicate OMP's own layer resolution (global vs project vs overlay vs runtime provenance), which is exactly the divergence that cost time in the model-picker bug. The patch route reuses settings.setModelRole/getModelRoleProvenance, so OMP stays the owner.",
+    "rejected": [
+      "Reading ~/.omp/agent/config.yml directly from apps/host — would need OMP's merge order reimplemented, and would miss runtime overrides.",
+      "Using `omp config get/set --json` — measured working (whole-record set, dotted keys rejected), but spawning a second process per read and bulk-replacing the record would clobber a concurrent external edit to a sibling role. OMP's own setModelRole persists per-role precisely to avoid that."
+    ]
+  },
+  "implemented": {
+    "ompPatch": {
+      "file": "patches/omp/0001-caret-rpc-bridges.patch",
+      "digest": "b83089b37457e9bc254daff91d40e39e26ac7fb2fc148aa9285aca809e7b7197",
+      "commands": [
+        "caret_get_model_roles",
+        "caret_set_model_role"
+      ],
+      "readyFrame": "caretModelRolesVersion: 1 (always advertised; no env opt-in, because the command only touches settings OMP already owns)",
+      "projection": "caretModelRoles(settings) unions getKnownRoleIds with the configured modelRoles, leads with cycleOrder, lists only roles that resolve to a model, and reports getModelRoleProvenance per role."
+    },
+    "adapter": {
+      "files": [
+        "packages/omp-adapter/src/types.ts",
+        "packages/omp-adapter/src/client.ts"
+      ],
+      "change": "Both commands added to CARET_UI_COMMAND_TYPES; #caretCommandAdvertised gates per capability so a runtime with one bridge does not accept the other's command."
+    },
+    "extension": {
+      "files": [
+        "apps/macos/src/chat-sessions-map.ts",
+        "apps/macos/src/chat-sessions.ts"
+      ],
+      "change": "normalizeOmpModelRoles, rolesByModelSelector, annotateModelsWithRoles, modelRoleLabel, getModelRolesRequest, setModelRoleRequest, fetchOmpModelRoles; the provider-level option catalog annotates the model rows the picker already shows."
+    }
+  },
+  "verified": {
+    "rpcAgainstRealRuntime": "Prepared runtime (sourceTree 5b257fa1f1c1226397d838e4b9a54c0b4ca7ff14) answered caret_get_model_roles with the user's real config: cycleOrder [smol, default, slow]; roles smol=openai-codex/gpt-5.6-luna, default=commandcode/deepseek/deepseek-v4.1-flash, slow=openai-codex/gpt-6-astra, plan=opencode-go/muse-spark-1.3-contributor; all source=global; storage=global.",
+    "writePath": "caret_set_model_role round-tripped and left the user's config.yml byte-identical to the pre-run copy (same-value write, so no mutation).",
+    "pickerRowsAsTheUserSeesThem": [
+      "Grok 4.6                            cursor",
+      "DeepSeek V4.1 Flash (Command Code)  commandcode · Default",
+      "Muse Spark 1.3 Contributor          opencode-go · Architect",
+      "DeepSeek V4.1 Flash                 opencode-go",
+      "GPT-5.6-Luna                        openai-codex · Fast",
+      "GPT-6-Astra                         openai-codex · Thinking"
+    ],
+    "capabilityGating": "A runtime without the marker is refused with 'This OMP runtime does not advertise the Caret model-role bridge'; the user's stock OMP binary (/Users/pond/.local/bin/omp) advertises no marker and refuses the same command, so a patch command is never sent to stock OMP.",
+    "tests": "10 new cases in apps/macos/test/chat-sessions-map.test.ts (65 in that file): cycle-order filtering, alias resolution, ambiguous-id refusal, honest empty, request shape carrying the session incarnation. Two mutation checks confirm the suite has teeth — breaking the cycle filter and breaking alias resolution each fail exactly the intended case.",
+    "gates": "typecheck clean; bun test packages/omp-adapter apps/host packages/relay apps/macos/test = 775 pass, 1 fail (pre-existing: menus-contract.test.ts needs an `rg` binary this machine lacks); ci-validate CI-OK; cursor-parity 340 keys / 0 mismatches; OMP source typecheck clean.",
+    "onScreenInPackagedApp": "Packaged app (ad-hoc signed, launched with --agents against a fresh profile) logged 'Caret session option catalog: 6 model(s) advertised by OMP, 4 role(s) configured' and the model picker opened with the roles rendered beside each model name: 'DeepSeek V4.1 Flash (Command Code)Default', 'GPT-5.6-LunaFast', 'GPT-6-AstraThinking', 'Muse Spark 1.3 ContributorArchitect', with 'Grok 4.6' carrying no role. Screenshot: model-picker-roles.png",
+    "commandPath": "Exercised against the real prepared runtime through the same helpers the command imports: it lists Fast=openai-codex/gpt-5.6-luna, Default=commandcode/deepseek/deepseek-v4.1-flash, Thinking=openai-codex/gpt-6-astra, Architect=opencode-go/muse-spark-1.3-contributor, all from the global layer, and builds the assignment payload `{\"role\":\"smol\",\"modelId\":\"openai-codex/gpt-5.6-luna\"}`. The command is registered in both the packaged manifest and the bundled extension.",
+    "roleClearOnUserConfig": "Cleared the user's four roles (smol, default, slow, plan) through the command path on their real config: fresh processes now report no roles, config.yml has `modelRoles: {}`, mtime moved, and a diff against the pre-change backup shows ONLY those four entries removed - every other key (enabledModels, retry, disabledProviders, tools, mnemopi, task, theme) is untouched. Backup kept at /tmp/caret-config-backup-20260916-233037.yml.",
+    "testCount": "4 new cases in packages/omp-adapter/test/caret-model-roles.test.ts against the prepared runtime; suite total 780 pass."
+  },
+  "notYetConfirmed": [
+    "The command was not driven end to end from the running window: this window's inputs are EditContext-based, so synthetic CDP keys and text do not reach the command palette, and Screen Recording permission is not granted for the Computer Use path. Its data path and payload are verified directly against the runtime instead.",
+    "The role tooltip wording ('Roles: Fast') was not visually verified; only the row detail was.",
+    "cycleOrder and path-scoped enabledModels are read but not enforced by any Caret control.",
+    "task.agentModelOverrides and the advisor runtime are untouched surfaces.",
+    "An inline role chip (instead of the command) needs a desktop patch to render a second option group; it is not attempted here."
+  ],
+  "patchHazardEncountered": {
+    "what": "The first re-cut of patches/omp/0001 failed prepare-omp-runtime's reverse-check because files were edited after the patch was cut, so the tree and patch disagreed.",
+    "fix": "Re-cut from upstream/omp against the pinned revision after the last edit, verified with `git apply --reverse --check` against the working tree and `git apply --check` on a clean worktree of the pinned commit, then updated the manifest digest.",
+    "note": "This is the same constraint recorded for patches/desktop in section 6.1 of the plan: a patch must be cut from the tree state it will be applied to, and the digest moves with it."
+  },
+  "correction": {
+    "firstAttemptWasInvisible": "The first implementation annotated the chat-session option group's item `description`. The API documents that field as tooltip-only, and reading the open picker's DOM showed no role word anywhere: `document.querySelector` found no title/aria-label containing Fast, Thinking or Architect. The rows the picker draws come from the language-model provider, whose `LanguageModelChatInformation.detail` is the field rendered beside the model name.",
+    "fix": "Roles now travel on the language-model rows as `detail` (with the role list also in the tooltip), and the dead option-group annotation was deleted rather than left in place. An existing test caught the shape change immediately, which is how the field mismatch surfaced in the suite too.",
+    "costOfNotLooking": "The RPC surface and the projection were both verified and passing while the user-visible label rendered nowhere. Only opening the packaged window and reading the picker DOM showed it."
+  },
+  "assignmentSurface": {
+    "what": "The `caret.models.configureRoles` command (`Caret: Configure Model Roles...`) reads OMP's configured roles, then assigns or clears one through the host, using the same `caret_set_model_role` command the RPC work added.",
+    "whyACommandNotAChip": "Investigated and rejected the inline route. The chat-session option-group API is documented as supporting 0-2 groups, and in the Agents window the composer renders only the `models` group: the sessions bridge (`extensionSessionsProvider.contribution.ts`) projects that one group into the dedicated model picker (`CARET_MODELS_GROUP_ID`), and no other group becomes a chip. Confirmed on screen - with 5 groups produced per the extension log (`Caret input state: 5 group(s)`), the composer still showed only caret / Agent / model / Default permissions. An inline role chip therefore needs a desktop patch, which is a larger change than this round was scoped for; the command reaches the same host surface with no patch.",
+    "rejectedDeadEnds": [
+      "Option groups via `provideChatSessionProviderOptions`: stored, but that path never seeds a session option, and a group without one is filtered out of the composer entirely.",
+      "Option groups via `getChatSessionInputState`: this path does seed selections (`_applyOptionGroups` -> `setSessionOption`), and the 5 groups were confirmed produced - they still do not render, because the bridge projects only `models`."
+    ],
+    "cleanup": "The role-picker-group projection, its parse helper and its tests were deleted rather than left in place once the render path was disproved; the bundle no longer contains them."
+  },
+  "bugFoundWhileUsingIt": {
+    "symptom": "A `caret_set_model_role` clear reported success and the same session then read back an empty role list, but a FRESH process still saw all four roles and config.yml was byte-identical to before (mtime unchanged). The ack was true only for the writing process.",
+    "rootCause": "OMP persists a role through `Settings.setModelRole` -> `#queueSave()`, which is DEBOUNCED by 100ms. The handler answered the RPC immediately, so a client that exits on the ack closed the process before the timer fired and the write was lost. Nothing in the ack distinguished 'saved' from 'queued'.",
+    "fix": "The handler now awaits `session.settings.flush()` before answering, so `success` means the write landed.",
+    "whyItMattered": "This is exactly the failure mode the receipt's earlier 'write path verified' note could not catch: the same-value round-trip test was a no-op write, so a lost save was invisible. It took using the feature for its real purpose, on the user's own config, to expose it.",
+    "regressionProof": "After the fix: set a role, close the client immediately on the ack, start a fresh process - the new process sees the role. Clear it, close, start fresh - the new process sees an empty list, and config.yml differs from the backup by exactly the four removed entries.",
+    "patchHazard": "The OMP patch was re-cut from the tree after the edit and verified with `git apply --reverse --check` before the manifest digest moved; the runtime was then rebuilt and re-verified.",
+    "regressionTest": "packages/omp-adapter/test/caret-model-roles.test.ts pins the contract: assign a role, close the client on the ack, start a FRESH process in the same isolated agent dir and require the role there (then the same for a clear). Proven to have teeth - with `settings.flush()` removed the test fails with `Expected: \"caret-role-fixture/caret-role-fixture-model\" / Received: undefined`, which is exactly the real bug; with the flush restored it passes. The test uses a throwaway agent directory (mkdtemp), never the user's config."
+  }
+}

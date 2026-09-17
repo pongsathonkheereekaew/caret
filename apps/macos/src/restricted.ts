@@ -20,13 +20,16 @@ export function activateRestrictedWorkspace(
     render(panel.webview);
     registrations.push(panel.onDidDispose(() => { panel = undefined; }));
   };
-  registrations.push(api.window.registerWebviewViewProvider("caretComposer", {
+  // The dock is the only Caret view left; the retired full-page shell view used
+  // to be registered here instead, which left this one with no provider and let
+  // the dock open as a "no data provider" error.
+  registrations.push(api.window.registerWebviewViewProvider("caretComposerDock", {
     resolveWebviewView(view) { render(view.webview); },
   }));
   const commands = context.extension.packageJSON.contributes.commands as Array<{ command: string }>;
   for (const { command } of commands) {
     registrations.push(api.commands.registerCommand(command,
-      command === "caret.openComposer" || command === "caret.openTask" ? open : showTrust));
+      command === "caret.openComposer" ? open : showTrust));
   }
   const dispose = () => {
     if (disposed) return;

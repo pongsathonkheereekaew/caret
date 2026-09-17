@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { CARET_LIGHT_WORKBENCH_COLORS, CARET_WORKBENCH_COLORS } from "../src/caret-theme.ts";
+import { CARET_OMP_MODEL_VENDOR } from "../src/chat-sessions-map.ts";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -88,8 +89,10 @@ const APPEARANCE_KEYS = [
 	"breadcrumbs.enabled",
 ];
 
-async function activateAndSettle(themeKind = 2, rejectWorkspaceWrites = false, workspaceFileUri: any = undefined): Promise<void> {
+async function activateAndSettle(themeKind = 2, rejectWorkspaceWrites = false, workspaceFileUri: any = undefined, installedExtensions: any[] = []): Promise<void> {
 	resetVscodeStub();
+	// After the reset, which clears the installed list along with the recordings.
+	stubState.installedExtensions.push(...installedExtensions);
 	stubState.workspaceFileUri = workspaceFileUri;
 	// resetVscodeStub returns the theme to dark; callers that need light set it
 	// here so the activation reads the intended kind.
@@ -209,7 +212,8 @@ describe("ide-native workbench surface", () => {
 		]) {
 			expect(typeof stubState.commands.get(id)).toBe("function");
 		}
-		expect(stubState.views.map(view => view.id)).toEqual(["caretComposer", "caretComposerDock"]);
+		// One agent surface per window: the dock. The full-page shell view is retired.
+		expect(stubState.views.map(view => view.id)).toEqual(["caretComposerDock"]);
 		expect(stubState.contentProviders.has("caret-review")).toBe(true);
 		expect(stubState.contentProviders.has("caret-agent-edit")).toBe(true);
 	});
@@ -507,7 +511,6 @@ describe("ide-native workbench surface", () => {
 		// own paths and intentionally excluded here: they wait on the host.
 		const palette = [
 			"caret.openComposer",
-			"caret.openTask",
 			"caret.showAgents",
 			"caret.showIde",
 			"caret.newTask",
@@ -682,6 +685,59 @@ describe("ide-native workbench surface", () => {
 		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
 	});
 
+	it("keeps the JSX configuration for Caret's React surfaces in agreement with the manifest", async () => {
+		// The reference writes its agent UI in JSX. Caret's own surfaces can too, but only because
+		// three things line up: the type-checker accepts `.tsx`, the bundler compiles JSX to the
+		// automatic runtime, and that runtime is inlined for the renderer - a browser ESM context
+		// cannot resolve `react/jsx-runtime` any more than it can `react`.
+		const fileName = "0030-caret-jsx-for-react-surfaces.patch";
+		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
+		for (const needle of [
+			`"jsx": "react-jsx",`,
+			`"./vs/**/*.tsx",`,
+			// The diffing fixtures are deliberately malformed samples read as text; now that `.tsx`
+			// is in the program they would be type-checked and fail on their missing packages.
+			`"vs/editor/test/node/diffing/fixtures"`,
+		]) {
+			expect(patchText).toContain(needle);
+		}
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(1);
+
+		// The bundler half lives in 0028, which owns build/next/index.ts.
+		const bundler = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "0028-caret-inline-react-in-client-bundles.patch"), "utf8");
+		expect(bundler).toContain(`jsx: 'automatic'`);
+		expect(bundler).toContain(`'react/jsx-runtime': 'node_modules/react/jsx-runtime.js'`);
+
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === fileName);
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
+
+	it("keeps the Agents window free of the account widget and the patch in agreement with the manifest", async () => {
+		// The title bar's right layout carried an account control that could only ever draw a
+		// Copilot-flavoured "signed out" avatar: this window is fed by the local host, there is no
+		// sign-in provider in the fork, and the user read the leftover control as a Copilot login.
+		const fileName = "0029-caret-agents-no-account-widget.patch";
+		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
+		for (const needle of [
+			`id: Menus.TitleBarRightLayout,`,
+			`when: ContextKeyExpr.false(),`,
+			`Caret: there is no account here`,
+		]) {
+			expect(patchText).toContain(needle);
+		}
+		// Scoped to the Sessions window's own contribution, which only the Agents window loads.
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(1);
+		expect(patchText).toContain("src/vs/sessions/contrib/accountMenu/");
+		expect(patchText).not.toContain("src/vs/workbench/");
+
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === fileName);
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
+
 	it("keeps the Agents window free of the remote-connections toggle and the patch in agreement with the manifest", async () => {
 		// The same title-bar row also carried "Allow Remote Connections", whose command starts a
 		// GitHub-authenticated dev tunnel - a flow this fork cannot finish. It sat next to the
@@ -709,16 +765,38 @@ describe("ide-native workbench surface", () => {
 		expect(entry).toBeTruthy();
 		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
 	});
+
 	it("keeps the Agent Home utility patch in agreement with the manifest", async () => {
 		// The empty Agent Home must show the reference's right utility area, not a bare
 		// editor group, and it must stay scoped to the Sessions window.
 		const fileName = "0021-caret-agent-home-utility.patch";
 		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
 		for (const needle of [
+			// Every one of the four entries is a pane of this panel: none of them opens its
+			// surface somewhere else in the window, so the strip switches panes in place for
+			// all four and the rail has a pane to mark for each.
+			`hosted: 'changes'`,
+			`hosted: 'file'`,
+			// The strip entry and `+` share one path, and the entries never open a second
+			// surface in the editor group.
 			`hosted: 'browser'`,
 			`hosted: 'terminal'`,
+			// The two single-instance panes host the base's own surfaces: the changes view for
+			// Changes, and the Files content the Files tab shows for File. Both are sized by the
+			// pane itself, because the pane owns their element rather than a workbench part.
+			`caret-apps-pane-changes`,
+			`caret-apps-pane-files`,
+			`this.instantiationService.createInstance(EmptyFileEditor, this.group)`,
+			`this.instantiationService.createInstance(ChangesViewPane, {`,
+			`new PaneView(container, { orientation: Orientation.VERTICAL })`,
+			`layoutPanes: (width, height) => paneView.layout(height, width),`,
 			// The panel names its own entries the way the reference window does, and the
 			// pinned summary is a real control over the real active session, not decoration.
+			// The reference's own strip wording and order: Changes · Browser · Terminal · File,
+			// and the `+` control it calls "Open new tab menu".
+			`localize('caret.agentHome.utility.review', "Changes")`,
+			`"Open new tab menu"`,
+			`export function mountAppsLauncherRail(`,
 			`caret.agentHome.utility.toggleSummary`,
 			`this.sessionsService.activeSession.read(reader)`,
 			// Terminal is the entry the pane hosts itself - one tab per instance - by
@@ -756,11 +834,54 @@ describe("ide-native workbench surface", () => {
 			`const overlayHeight = overlay && !overlay.hidden ? Math.round(overlay.getBoundingClientRect().height) : 0;`,
 			`height: Math.max(0, Math.round(rect.height) - overlayHeight),`,
 			`const input = this.browserViewService.getOrCreateLazy({ id: generateUuid() });`,
-			`void model.layout(bounds)`,
+			// R2: the instance tab row is React's. The pane keeps each tab's body (a terminal
+			// attaches an instance, a browser lays a native view over its own element) and the
+			// strip's other controls, so both halves have to stay visible in the patch.
+			`export function mountAppsTabStrip(`,
+			`mountAppsTabStrip(this.tabsElement, {`,
+			`private tabStrip: IAppsTabStripHandle | undefined;`,
+			`this.tabStrip?.update(`,
+			// The pinned summary is the same split: React owns the two spans, the pane keeps the
+			// observable wiring, so no `textContent` write may creep back into the pane.
+			`export function mountAppsSummary(`,
+			`this.summaryView?.dispose();`,
+			// The pin is window state, not pane state: a layout that re-creates the pane (collapsing
+			// the editor area, or Agents -> IDE -> Agents) must not silently unpin the summary, so
+			// the model owns the flag and the pane only mirrors it.
+			`readonly summaryPinned: boolean;`,
+			`toggleSummaryPinned(): void;`,
+			`this.panelModel.toggleSummaryPinned();`,
+			`private applySummaryPinned(): void {`,
+			// Alignment: every control in the strip takes one size and one gap, so a browser tab
+			// and a terminal tab cannot drift onto different baselines again.
+			`--caret-apps-control-size: var(--caret-height-sm, 24px);`,
+			`gap: var(--caret-apps-gap);`,
+			// A hosted page is a native view whose model starts invisible, so opening a
+			// browser tab has to show the active tab and only THEN push its bounds: the
+			// pane's own layout may run before the view element has a real rect, and a
+			// zero rect must not hide the tab the user just asked for.
+			`private isEditorVisible = true;`,
+			`this.isEditorVisible = visible;`,
+			`const active = this.isEditorVisible && this.activeTabId === tab.id;`,
+			`void model.setVisible(active).then(() => model.layout(bounds)).then(() => {`,
 			`await model.loadURL(url).catch(() => undefined);`,
-			// The reference offers Show Apps; the base only ships the hide half, and this
-			// single-pane group replaces the panel with a browser/file tab.
+			// A DOM popup over the pane is behind the hosted page's native view, so the `+` menu
+			// opens where the user cannot reach it once a browser tab exists. The page moves out
+			// of the way while the menu is up and `applyActiveTab` puts it back on hide.
+			`this.hideBrowserForPopup();`,
+			`onHide: () => this.restoreAfterPopup(),`,
+			// The strip is the reference's pane switcher and `+` is its instance opener: the rail
+			// re-uses the pane that is open, the menu always adds one. Both go through one method so
+			// the two halves cannot drift on what "Browser" means.
+			`private runLauncher(launcher: IAppsLauncher, mode: 'reuse' | 'new'): void {`,
+			`this.runLauncher(launcher, 'reuse');`,
+			`() => this.runLauncher(launcher, 'new'),`,
+			// Show Apps stays a command: the base only ships the hide half and this single-pane
+			// group replaces the panel with a browser/file tab, but as a title-bar icon it was a
+			// no-op - it can only close the panel when the Apps editor is the active editor, and
+			// the reference's own control is `Hide Apps` in the panel header, not a title-bar icon.
 			`static readonly ID = 'caret.agentHome.showApps';`,
+			`It is a command only, deliberately:`,
 			// Reference proportions measured from docs/caret-ui-reference-baseline.json.
 			`const REFERENCE_SIDEBAR_WIDTH = 255;`,
 			`const REFERENCE_UTILITY_SHARE = 0.225;`,
@@ -771,9 +892,12 @@ describe("ide-native workbench surface", () => {
 		]) {
 			expect(patchText).toContain(needle);
 		}
-		// Six files: the utility input, pane, panel model, contribution, its CSS, and the
-		// entry import.
-		expect(patchText.match(/^diff --git /gm)?.length).toBe(6);
+		// Eight files: the utility input, pane, panel model, React card surface, contribution,
+		// its CSS, the entry import, and the fork's `package.json` (React as a real
+		// dependency rather than a transitive one). The React module and the pane changes are
+		// bundled here rather than split out because 0021 CREATES those files, and a later
+		// patch to a file another patch creates breaks that patch's own reverse-check.
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(8);
 		expect(patchText).toContain("a/src/vs/sessions/");
 		expect(patchText).not.toContain("src/vs/workbench/");
 		// The reference sidebar ends at the Repositories section: it has no Getting
@@ -781,6 +905,10 @@ describe("ide-native workbench surface", () => {
 		expect(patchText).not.toContain("caret-agent-home-getting-started");
 		expect(patchText).not.toContain("caret-agent-home-nav-profile");
 		expect(patchText).not.toContain("workbench.action.openSettings");
+		// Show Apps is not a title-bar entry any more: measured in the packaged app it did
+		// nothing at all (the panel it would "open" is already in the group), and the
+		// reference's title bar carries no such control.
+		expect(patchText).not.toContain("Menus.TitleBarRightLayout");
 
 		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
 		const entry = manifest.patches.find(item => item.file === fileName);
@@ -798,10 +926,16 @@ describe("ide-native workbench surface", () => {
 			// Title bar: the sessions title-bar widget is no longer mounted.
 			`registerWorkbenchContribution2(SessionsTitleBarContribution.ID`,
 			// Sidebar rows, in the reference order, all bound to real commands.
-			`this.renderRow('newChat', Codicon.commentDiscussion, localize('caret.nav.newChat', "New Chat"), true,`,
-			`this.renderRow('search', Codicon.search, localize('caret.nav.search', "Search"), false,`,
-			`this.renderRow('automations', Codicon.clock, localize('caret.nav.automations', "Automations"), false,`,
-			`this.renderRow('customize', Codicon.tools, localize('caret.nav.customize', "Customize"), false,`,
+			`label: localize('caret.nav.newChat', "New Chat"), iconId: Codicon.commentDiscussion.id, selected: true`,
+			`label: localize('caret.nav.search', "Search"), iconId: Codicon.search.id, selected: false`,
+			`label: localize('caret.nav.automations', "Automations"), iconId: Codicon.clock.id, selected: false`,
+			`label: localize('caret.nav.customize', "Customize"), iconId: Codicon.tools.id, selected: false`,
+			// R3: the sidebar is the same React surface the Apps panel is. The class keeps the
+			// model (which rows exist, what they run, what the filter hides) and the module owns
+			// the pixels, so a wording or order change is one object literal.
+			`export function mountAgentHomeNav(`,
+			`this.view = mountAgentHomeNav(this.domNode, this.buildModel(), {`,
+			`private readonly runs = new Map<string, () => void>();`,
 			// Real commands behind the rows and the sections.
 			`const FIND_SESSIONS_COMMAND_ID = 'sessionsViewPane.find';`,
 			// "New Project" is Caret's own add-project command, not the workbench's
@@ -814,8 +948,9 @@ describe("ide-native workbench surface", () => {
 			// The repository filter is real: it toggles an input that hides the rows
 			// that do not match, rather than an icon that does nothing.
 			`localize('caret.nav.filterRepositories', "Filter Repositories")`,
-			`input.caret-agent-home-nav-filter`,
-			`this.applyRepositoryFilter(input.value)`,
+			`className: 'caret-agent-home-nav-filter'`,
+			`onFilterInput: (_sectionId, query) => {`,
+			`hidden: needle.length > 0 && !folder.name.toLowerCase().includes(needle),`,
 			// The utility surface draws the pane's only strip: the host group's own strip is
 			// suppressed while this panel is the editor the group shows, so its entries and
 			// its instance tabs always sit on one row.
@@ -846,9 +981,9 @@ describe("ide-native workbench surface", () => {
 		]) {
 			expect(patchText).toContain(needle);
 		}
-		// Three new files (the navigation, its contribution and its stylesheet) plus the
-		// two entry/registration files the chrome changes live in.
-		expect(patchText.match(/^diff --git /gm)?.length).toBe(5);
+		// Four new files (the navigation, its React surface, its contribution and its stylesheet)
+		// plus the two entry/registration files the chrome changes live in.
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(6);
 		expect(patchText).toContain("a/src/vs/sessions/");
 		expect(patchText).not.toContain("src/vs/workbench/");
 
@@ -913,12 +1048,19 @@ describe("ide-native workbench surface", () => {
 			// re-render from feeding itself.
 			`const observer = new MutationObserver(`,
 			`if (row && !row.querySelector('.caret-agent-home-context-chip')) {`,
+			// React owns the chips, like the rest of the Caret-authored Agent Home surfaces; the
+			// contribution keeps the model, and the wrapper is `display: contents` so the chips
+			// stay flex items of the composer's picker row.
+			`export function mountAgentHomeContextRow(`,
+			`agentHomeContextRowReact.tsx`,
+			`host.style.display = 'contents';`,
+			`const wrapper = append(row, $('span.caret-agent-home-context-chips'));`,
 			// Agents window only.
 			`IsSessionsWindowContext.getValue(contextKeyService)`,
 		]) {
 			expect(patchText).toContain(needle);
 		}
-		expect(patchText.match(/^diff --git /gm)?.length).toBe(4);
+		expect(patchText.match(/^diff --git /gm)?.length).toBe(5);
 		expect(patchText).toContain("a/src/vs/sessions/");
 		expect(patchText).not.toContain("src/vs/workbench/");
 
@@ -999,6 +1141,45 @@ describe("ide-native workbench surface", () => {
 		for (const proposal of proposals) expect(allowed.has(proposal)).toBe(true);
 	});
 
+	it("declares Caret's participant as the window's default agent", async () => {
+		// The base refuses every send that has no *default* agent for its location
+		// (`sendRequest No default agent for location panel`) before the request can
+		// reach any provider, and this fork ships no Copilot participant to be that
+		// default. This declaration is therefore what makes the Agents composer able
+		// to send at all, so it is pinned here together with the proposal that
+		// unlocks it.
+		const manifestPath = join(import.meta.dir, "..", "package.json");
+		const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+			enabledApiProposals?: string[];
+			contributes: { chatParticipants: { id: string; isDefault?: boolean; modes?: string[] }[] };
+		};
+		const participant = manifest.contributes.chatParticipants.find(entry => entry.id === "caret.omp");
+		expect(participant?.isDefault).toBe(true);
+		// The composer decides the mode, so the default agent has to cover every
+		// built-in one; otherwise the same send is rejected for its mode instead.
+		expect(participant?.modes).toEqual(["ask", "edit", "agent"]);
+		expect(manifest.enabledApiProposals).toContain("defaultChatParticipant");
+	});
+
+	it("gives a Caret request a model the pickers can resolve", async () => {
+		// The extension host resolves a request's model by the identifier the
+		// extension registered it under (`<vendor>/<model id>`), so the two
+		// workbench projections of the OMP catalogue have to hand back that exact
+		// string. The vendor lives in the extension package and in two base patches
+		// that cannot import it, so all three are pinned here.
+		const manifestPath = join(import.meta.dir, "..", "package.json");
+		const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { enabledApiProposals?: string[] };
+		expect(manifest.enabledApiProposals).toContain("chatProvider");
+		expect(CARET_OMP_MODEL_VENDOR).toBe("caret-omp");
+
+		const root = join(import.meta.dir, "..", "..", "..");
+		for (const fileName of ["0010-caret-sessions-bridge.patch", "0011-caret-sessions-model-picker.patch"]) {
+			const patchText = readFileSync(join(root, "patches", "desktop", fileName), "utf8");
+			expect(patchText).toContain(`const CARET_OMP_MODEL_VENDOR = '${CARET_OMP_MODEL_VENDOR}';`);
+			expect(patchText).toContain("${CARET_OMP_MODEL_VENDOR}/${");
+		}
+	});
+
 	it("offers Delete only where the Caret host can carry it out", async () => {
 		// The sessions list's own `Delete...` item is gated on the session's
 		// supportsDelete capability, so the bridge has to advertise it and have a
@@ -1021,6 +1202,33 @@ describe("ide-native workbench surface", () => {
 		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as { contributes: { commands: { command: string }[] } };
 		expect(manifest.contributes.commands.some(entry => entry.command === "caret.session.delete")).toBe(true);
 	});
+
+	it("keeps the Copilot-flavoured composer controls out of the Agents window", async () => {
+		// Three plan chrome decisions: the tool picker, the permission picker and the
+		// "Configure Custom Agents..." entry all describe Copilot-chat behaviour, and this
+		// window runs on OMP. Each is scoped out with the sessions-window context key, so the
+		// IDE window keeps it.
+		const root = join(import.meta.dir, "..", "..", "..");
+		const patchText = readFileSync(join(root, "patches", "desktop", "0033-caret-agents-no-copilot-composer-controls.patch"), "utf8");
+		for (const needle of [
+			"chatToolActions.ts",
+			"chatExecuteActions.ts",
+			"chatModeActions.ts",
+			"Caret: this configures the base's tool set",
+			"Caret: these levels (manual / allow all / autopilot)",
+			"Caret: custom agents are a Copilot-chat concept",
+		]) {
+			expect(patchText).toContain(needle);
+		}
+		expect(patchText.match(/^\+.*IsSessionsWindowContext\.toNegated\(\)/gm)?.length).toBe(4);
+		expect(patchText).not.toContain("src/vs/sessions/");
+
+		const manifest = JSON.parse(readFileSync(join(root, "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === "0033-caret-agents-no-copilot-composer-controls.patch");
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
+
 	it("does not start the base Agent Host in the Agents window", async () => {
 		// The Agent Host utility process hosts the Copilot/Claude/Codex harnesses, and
 		// S1 removed that layer; its node-side graph still requires Copilot services
@@ -1046,11 +1254,14 @@ describe("ide-native workbench surface", () => {
 		expect(entry).toBeTruthy();
 		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
 	});
+
 	it("keeps the Caret title when the Agents window has no folder to write into", async () => {
 		// The first Agents screen can open with no folder attached, where every
-		// workspace-scope write rejects. The window then showed the raw shell
-		// document name ("window.caret-shell") in its title bar, which reads as
-		// an internal Code-OSS file instead of the product.
+		// workspace-scope write rejects. The window then kept whatever the base
+		// had put in the title bar, which reads as an internal Code-OSS window
+		// instead of the product. (The shell document whose name used to show up
+		// there is retired; the fallback is still the only thing that names a
+		// folder-less window.)
 		await activateAndSettle(2, true, { fsPath: "/tmp/caret-agents.code-workspace", path: "/tmp/caret-agents.code-workspace" });
 		// A rejected workspace write is retried at the global scope, which the
 		// stub records separately from workspace-scope values.
@@ -1059,6 +1270,35 @@ describe("ide-native workbench surface", () => {
 		// Colours are not part of that fallback any more: this screen wears the theme
 		// the user picked, the same one the IDE window wears.
 		expect(stubState.globalConfig.get("workbench.colorCustomizations")).toBeUndefined();
+	});
+
+	it("hands the Agents window the theme and the extension that paints it", async () => {
+		// The Agents window is a second workbench: it has its own extension enablement, which
+		// switches off anything shipping code (every theme with a settings section of its own), and
+		// it reads its settings from its own workspace file rather than from the agents profile's
+		// settings.json. Without this carry it fell back to the stock theme and the two windows
+		// disagreed on colour.
+		stubState.config.set("workbench.colorTheme", "Catppuccin Frappé");
+		stubState.config.set("workbench.preferredDarkColorTheme", "Catppuccin Mocha");
+		stubState.config.set("extensions.supportAgentsWindow", { "someone.else": true });
+		await activateAndSettle(2, false, undefined, [
+			{ id: "Catppuccin.catppuccin-vsc", packageJSON: { contributes: { themes: [{ label: "Catppuccin Frappé", path: "./themes/frappe.json" }], configuration: {} } } },
+			{ id: "someone.unrelated", packageJSON: { contributes: { themes: [{ label: "Unrelated Dark", path: "./dark.json" }] } } },
+		]);
+		const written = JSON.parse(stubState.files.get(join(tempRoot, "agent-sessions.code-workspace"))!) as { folders: unknown[]; settings: Record<string, unknown> };
+		expect(written.settings["workbench.colorTheme"]).toBe("Catppuccin Frappé");
+		expect(written.settings["workbench.preferredDarkColorTheme"]).toBe("Catppuccin Mocha");
+		// The user's own entry survives, and the theme's provider is added by matching the label
+		// the picker shows - Caret does not know the extension's name.
+		expect(written.settings["extensions.supportAgentsWindow"]).toEqual({
+			"someone.else": true,
+			"catppuccin.catppuccin-vsc": true,
+		});
+		// The window's own defaults travel with the theme: the reference's sidebar has no
+		// empty "Chats" group, so this window does not draw one.
+		expect(written.settings["sessions.list.showEmptyDefaultGroups"]).toBe(false);
+		expect(written.folders).toEqual([]);
+		for (const key of ["workbench.colorTheme", "workbench.preferredDarkColorTheme", "extensions.supportAgentsWindow"]) stubState.config.delete(key);
 	});
 
 	it("cites the real terminal selection into the task draft", async () => {
@@ -1315,5 +1555,51 @@ describe("ide-native workbench surface", () => {
 		await stubState.commands.get("caret.keepAgentEdit")!();
 		expect(invalidations).toBe(2);
 		expect(lensProvider.provideCodeLenses(editor.document)).toEqual([]);
+	});
+
+	it("keeps every Caret token the Agents window reads on the scale's own value", async () => {
+		// The extension cannot write CSS into a workbench window, so the Agents window's stylesheet
+		// reads a token with a literal fallback: `var(--caret-height-sm, 24px)`. That counts as
+		// parity only while the fallback IS the token's value - otherwise the window keeps rendering
+		// a number the parity gate no longer measures. Every such reference is checked here, so a
+		// future edit cannot quietly pin the strip to a value the scale has moved past.
+		const { CARET_TOKENS } = await import("../src/caret-theme.ts");
+		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "0021-caret-agent-home-utility.patch"), "utf8");
+		const cssSection = patchText.slice(patchText.indexOf("agentHomeUtility.css"));
+		const references = [...cssSection.matchAll(/var\(--(caret-[a-z0-9-]+),\s*([^)]+?)\)/g)];
+		expect(references.length).toBeGreaterThanOrEqual(4);
+		for (const [, token, fallback] of references) {
+			expect(`${token} -> ${CARET_TOKENS[token!] ?? "missing from CARET_TOKENS"}`).toBe(`${token} -> ${fallback!.trim()}`);
+		}
+	});
+
+	it("names the Agents window's add-tab control the way the reference does", () => {
+		// The reference's `+` in the Agents window reads "Open new tab menu" (its own aria-label
+		// in the glass bundle). The base hardcoded "Add Tab" for both windows, so the patch has
+		// to branch on the sessions-window context and keep the base wording for the IDE.
+		const fileName = "0027-caret-agents-open-new-tab-menu.patch";
+		const patchText = readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", fileName), "utf8");
+		expect(patchText).toContain(`localize('caret.openNewTabMenu', "Open new tab menu")`);
+		expect(patchText).toContain("IsSessionsWindowContext.getValue(this.contextKeyService)");
+		// The IDE branch survives: the base wording is still there for that window.
+		expect(patchText).toContain(`localize('addTab', "Add Tab")`);
+		// One of the few Caret patches that reaches into src/vs/workbench/**, which is only safe
+		// because every decision is guarded by the sessions-window context key.
+		expect(patchText).toContain("a/src/vs/workbench/browser/parts/editor/editorTabsControl.ts");
+
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string; sha256: string }[] };
+		const entry = manifest.patches.find(item => item.file === fileName);
+		expect(entry).toBeTruthy();
+		expect(createHash("sha256").update(patchText).digest("hex")).toBe(entry!.sha256);
+	});
+
+	it("retires no patch by leaving a stale file behind", () => {
+		// The Apps-panel browser-visibility fix could not ship as its own later patch:
+		// `prepare-desktop.ts` proves "already applied" by reverse-checking each patch,
+		// and 0021 CREATES `agentHomeUtilityEditor.ts`, so a later edit to that file
+		// makes 0021's own reverse-check fail by construction. The fix lives inside 0021
+		// instead, and this pins that the retired patch file is really gone.
+		const manifest = JSON.parse(readFileSync(join(import.meta.dir, "..", "..", "..", "patches", "desktop", "manifest.json"), "utf8")) as { patches: { file: string }[] };
+		expect(manifest.patches.map(entry => entry.file)).not.toContain("0027-caret-apps-panel-browser-visible.patch");
 	});
 });

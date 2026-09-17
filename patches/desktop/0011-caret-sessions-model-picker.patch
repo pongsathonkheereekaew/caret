@@ -27,7 +27,7 @@ index 07974a99db6..c8a3afd5517 100644
 +		// Merge it here so the picker lists OMP models instead of reporting setup-required
 +		// ("Sign in to use Copilot"). IDE window and other surfaces are untouched.
 +		if (this.options.isSessionsWindow && sessionType) {
-+			for (const projected of getCaretSessionOptionModels(this.chatSessionsService, sessionType)) {
++			for (const projected of getCaretSessionOptionModels(this.chatSessionsService, this.languageModelsService, sessionType)) {
 +				if (!allModels.some(existing => existing.identifier === projected.identifier)) {
 +					allModels.push(projected);
 +				}
@@ -37,10 +37,18 @@ index 07974a99db6..c8a3afd5517 100644
  		// Session owns a pool but no targeted models registered yet: return empty so callers don't treat general-pool models as valid.
  		if (sessionType
  			&& this.chatSessionsService.requiresCustomModelsForSessionType(sessionType)
-@@ -5295,3 +5309,44 @@ class HiddenActionViewItem extends BaseActionViewItem {
+@@ -5295,3 +5309,60 @@ class HiddenActionViewItem extends BaseActionViewItem {
  		container.style.display = 'none';
  	}
  }
++
++/**
++ * Vendor `apps/macos` registers its OMP language models under. Kept as a literal
++ * because the workbench cannot import from the extension package; the value is
++ * pinned to the extension's `CARET_OMP_MODEL_VENDOR` by
++ * `apps/macos/test/ide-native-workbench.test.ts`.
++ */
++const CARET_OMP_MODEL_VENDOR = 'caret-omp';
 +
 +/**
 + * Caret sessions window: project the session provider's OMP-advertised `models`
@@ -49,7 +57,7 @@ index 07974a99db6..c8a3afd5517 100644
 + * dropped, unknown vendors stay empty (never invented), token counts stay 0
 + * (neutral unknown). Empty catalogs stay empty — honest-disabled downstream.
 + */
-+function getCaretSessionOptionModels(chatSessionsService: IChatSessionsService, sessionType: string): ILanguageModelChatMetadataAndIdentifier[] {
++function getCaretSessionOptionModels(chatSessionsService: IChatSessionsService, languageModelsService: ILanguageModelsService, sessionType: string): ILanguageModelChatMetadataAndIdentifier[] {
 +	// The option-group store is keyed by item-controller type, which matches the
 +	// item URI scheme for Caret (`caret.omp`). A resource type with no groups
 +	// simply contributes nothing — honest-empty downstream.
@@ -62,8 +70,16 @@ index 07974a99db6..c8a3afd5517 100644
 +		if (!id || !name) {
 +			continue;
 +		}
++		// OMP advertises the window; like the sessions bridge this reads it from the
++		// registered model rather than duplicating it into the option item, so a
++		// model with no advertised size keeps 0 (the neutral unknown).
++		const registered = languageModelsService.lookupLanguageModel(`${CARET_OMP_MODEL_VENDOR}/${id}`);
 +		models.push({
-+			identifier: id,
++			// Same identifier contract as the sessions bridge: the extension host
++			// resolves the request's model by `<vendor>/<model id>` for the vendor
++			// `apps/macos` registers, so a bare OMP id here would make the send fail
++			// as "Language model unavailable".
++			identifier: `${CARET_OMP_MODEL_VENDOR}/${id}`,
 +			metadata: {
 +				extension: new ExtensionIdentifier('caret.caret'),
 +				id,
@@ -72,8 +88,8 @@ index 07974a99db6..c8a3afd5517 100644
 +				version: '1.0',
 +				family: id,
 +				tooltip: item.tooltip,
-+				maxInputTokens: 0,
-+				maxOutputTokens: 0,
++				maxInputTokens: registered?.maxInputTokens ?? 0,
++				maxOutputTokens: registered?.maxOutputTokens ?? 0,
 +				isDefaultForLocation: {},
 +				targetChatSessionType: sessionType,
 +				isUserSelectable: true,

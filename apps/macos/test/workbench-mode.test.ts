@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { AGENTS_EDITOR_SHOW_TABS, agentsWindowOpenMode, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode } from "../src/workbench-mode.ts";
+import { AGENTS_EDITOR_SHOW_TABS, AGENTS_WINDOW_SUPPORT_SETTING, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode, themeProvidingExtensionIds } from "../src/workbench-mode.ts";
 import { createInitialTaskState, reduceTaskState } from "../src/state.ts";
 import { parseWebviewMessage } from "../src/messages.ts";
 import type { Project, Session } from "../../../packages/protocol/src/index.ts";
@@ -22,10 +22,6 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(workspace.settings["workbench.editor.showTabs"]).toBe("multiple");
 		expect(workspace.settings["workbench.activityBar.location"]).toBe(CARET_AGENTS_WINDOW_SETTINGS["workbench.activityBar.location"]);
 		expect(serializeCaretAgentsWorkspace()).not.toContain("agent-sessions");
-		expect(agentsWindowOpenMode({ inAgentsWindow: true, hasWorkspaceFolder: false })).toBe("shell");
-		expect(agentsWindowOpenMode({ inAgentsWindow: false, hasWorkspaceFolder: false })).toBe("shell");
-		expect(agentsWindowOpenMode({ inAgentsWindow: false, hasWorkspaceFolder: true })).toBe("shell");
-		expect(agentsWindowOpenMode({ inAgentsWindow: false, hasWorkspaceFolder: true, explicitNewWindow: true })).toBe("new-window");
 	});
 
 	it("does not emit chrome commands when already in the requested mode", () => {
@@ -208,5 +204,47 @@ describe("Agent ↔ IDE workbench mode", () => {
 			if (command === "workbench.action.closeAuxiliaryBar") throw new Error("unknown command");
 		}, ["workbench.action.closeSidebar", "workbench.action.closeAuxiliaryBar", "workbench.action.closePanel"]);
 		expect(ran).toEqual(["workbench.action.closeSidebar", "workbench.action.closeAuxiliaryBar", "workbench.action.closePanel"]);
+	});
+
+	it("names the extensions that paint the theme the user selected", () => {
+		// Catppuccin is the real shape this exists for: `themes` next to a `configuration`
+		// section, and the setting holds the picker's label rather than the theme id.
+		const catppuccin = {
+			id: "Catppuccin.catppuccin-vsc",
+			packageJSON: { contributes: { themes: [{ id: "catppuccin-mocha", label: "Catppuccin Mocha" }] } },
+		};
+		const unrelated = { id: "fellipeutaka.subaru", packageJSON: { contributes: { themes: [{ id: "subaru", label: "Subaru" }] } } };
+		const noThemes = { id: "caret.caret", packageJSON: { contributes: { commands: [] } } };
+		expect(themeProvidingExtensionIds(["Catppuccin Mocha"], [catppuccin, unrelated, noThemes])).toEqual(["catppuccin.catppuccin-vsc"]);
+		// Either id or label resolves, and a preferred-light/dark pair is honoured too.
+		expect(themeProvidingExtensionIds(["catppuccin-mocha", undefined], [catppuccin, unrelated])).toEqual(["catppuccin.catppuccin-vsc"]);
+		expect(themeProvidingExtensionIds(["Subaru", "Catppuccin Mocha"], [catppuccin, unrelated])).toEqual(["catppuccin.catppuccin-vsc", "fellipeutaka.subaru"]);
+		// Nothing selected, or a theme no installed extension provides: no override at all.
+		expect(themeProvidingExtensionIds([], [catppuccin])).toEqual([]);
+		expect(themeProvidingExtensionIds([undefined, ""], [catppuccin])).toEqual([]);
+		expect(themeProvidingExtensionIds(["Default Dark Modern"], [catppuccin])).toEqual([]);
+	});
+
+	it("merges the theme into the Agents window's own workspace file", () => {
+		const merged = JSON.parse(mergeAgentsWindowWorkspaceSettings(
+			JSON.stringify({ folders: [{ path: "/repo" }], settings: { "chat.disableAIFeatures": false, [AGENTS_WINDOW_SUPPORT_SETTING]: { "someone.else": true } } }),
+			{ "workbench.colorTheme": "Catppuccin Frappé", "workbench.preferredDarkColorTheme": undefined },
+			{ "catppuccin.catppuccin-vsc": true },
+		)) as { folders: unknown[]; settings: Record<string, unknown> };
+		// The document is upstream's: the folder list and the sessions workbench's own key stay.
+		expect(merged.folders).toEqual([{ path: "/repo" }]);
+		expect(merged.settings["chat.disableAIFeatures"]).toBe(false);
+		expect(merged.settings[AGENTS_WINDOW_SUPPORT_SETTING]).toEqual({ "someone.else": true, "catppuccin.catppuccin-vsc": true });
+		// The theme keys land here, and a key the user never set is left out entirely rather than
+		// written as null, so the window keeps its own default for it.
+		expect(merged.settings["workbench.colorTheme"]).toBe("Catppuccin Frappé");
+		expect("workbench.preferredDarkColorTheme" in merged.settings).toBe(false);
+		// No file yet, and a file that no longer parses, both end at a valid document with folders.
+		expect(JSON.parse(mergeAgentsWindowWorkspaceSettings(undefined, {}, { "a.b": true }))).toEqual({
+			folders: [], settings: { [AGENTS_WINDOW_SUPPORT_SETTING]: { "a.b": true } },
+		});
+		expect(JSON.parse(mergeAgentsWindowWorkspaceSettings("{ not json", {}, { "a.b": true }))).toEqual({
+			folders: [], settings: { [AGENTS_WINDOW_SUPPORT_SETTING]: { "a.b": true } },
+		});
 	});
 });

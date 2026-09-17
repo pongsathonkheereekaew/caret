@@ -4,13 +4,20 @@ import { installVscodeStub, stubState } from "./helpers/vscode-stub.ts";import {
 	CARET_CHAT_PARTICIPANT_ID,
 	CARET_CHAT_SESSION_SCHEME,
 	CARET_CHAT_SESSION_TYPE,
+	CARET_OMP_MODEL_VENDOR,
 	currentModelIdFromOmpState,
 	getAvailableModelsRequest,
 	getLoginProvidersRequest,
 	getOmpStateRequest,
+	getModelRolesRequest,
 	modelPickerGroupFromSnapshot,
+	modelRoleLabel,
+	rolesByModelSelector,
 	normalizeOmpLoginProviders,
+	normalizeOmpModelRoles,
 	normalizeOmpModels,
+	ompModelIdFromPickId,
+	ompModelPickId,
 	projectNameFor,
 	projectOmpModelSnapshot,
 	promptRequest,
@@ -19,10 +26,12 @@ import { installVscodeStub, stubState } from "./helpers/vscode-stub.ts";import {
 	sessionItemShape,
 	sessionState,
 	sessionUriString,
+	setModelRoleRequest,
 	setOmpModelRequest,
 	turnPlansFromTranscript,
 } from "../src/chat-sessions-map.ts";
 import type { Project, Session } from "../../../packages/protocol/src/index.ts";
+import type { OmpAdvertisedModel } from "../src/chat-sessions-map.ts";
 import type { TranscriptEntry } from "../src/state.ts";
 
 function session(patch: Partial<Session> = {}): Session {
@@ -342,6 +351,94 @@ function tick(ms = 20): Promise<void> {
 }
 
 describe("fetchOmpModelSnapshot failure modes (fixtures only, M5)", () => {
+	it("starts the session when the catalog read is refused, then reads with the new incarnation", async () => {
+		const seen: string[] = [];
+		const incarnations: string[] = [];
+		const client: any = {
+			async sendCommand(_sessionId: string, request: any) {
+				seen.push(request.command);
+				incarnations.push(request.incarnation);
+				if (request.command === "get_available_models") {
+					// Refused while no OMP process owns this session, like the host's own guard.
+					if (request.incarnation === "inc-idle") {
+						return baseCommand({ status: "not_dispatched", error: "Start or reconcile the OMP session before sending commands" });
+					}
+					return baseCommand({ result: { data: { models: [{ id: "live-model", provider: "probe" }] } } });
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: { model: { id: "live-model" } } } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [{ id: "probe", authenticated: true }] } } });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+			async startSession(sessionId: string) {
+				seen.push("start");
+				return session({ id: sessionId, incarnation: "inc-live" });
+			},
+			async listSessions() {
+				return [session({ incarnation: "inc-idle" })];
+			},
+		};
+		const snapshot = await chatSessions.fetchGlobalOmpModelSnapshot(async () => client, () => {});
+		expect(seen).toContain("start");
+		// The retry carries the incarnation the start returned, not the refused one.
+		expect(incarnations).toContain("inc-live");
+		expect(snapshot.hasModels).toBe(true);
+		expect(snapshot.models[0]?.id).toBe("live-model");
+		expect(snapshot.selectedModelId).toBe("live-model");
+	});
+
+	it("does not start a session when the catalog read already dispatched", async () => {
+		const seen: string[] = [];
+		const client: any = {
+			async sendCommand(_sessionId: string, request: any) {
+				seen.push(request.command);
+				if (request.command === "get_available_models") {
+					return baseCommand({ result: { data: { models: [{ id: "warm-model", provider: "probe" }] } } });
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: { model: { id: "warm-model" } } } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [] } } });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+			async startSession() {
+				throw new Error("start must not be called for a warm session");
+			},
+			async listSessions() {
+				return [session()];
+			},
+		};
+		const snapshot = await chatSessions.fetchGlobalOmpModelSnapshot(async () => client, () => {});
+		expect(seen).not.toContain("start");
+		// The answer the probe already has is reused: one catalog command, not two.
+		expect(seen.filter(command => command === "get_available_models").length).toBe(1);
+		expect(snapshot.models[0]?.id).toBe("warm-model");
+	});
+
+	it("stays honestly empty when the host cannot be asked at all", async () => {
+		let started = false;
+		const client: any = {
+			async sendCommand() {
+				throw new Error("host down");
+			},
+			async startSession() {
+				started = true;
+				return session();
+			},
+			async listSessions() {
+				return [session()];
+			},
+		};
+		const snapshot = await chatSessions.fetchGlobalOmpModelSnapshot(async () => client, () => {});
+		expect(started).toBe(false);
+		expect(snapshot).toEqual({ models: [], hasModels: false });
+	});
+
 	it("never throws and yields an empty catalog when the host is down", async () => {
 		const logs: string[] = [];
 		const client: any = {
@@ -473,6 +570,206 @@ describe("runTurn abort and idle-exit (fixtures only, M5)", () => {
 	});
 });
 
+describe("Caret language models (fixtures only, the model a Caret request resolves)", () => {
+	function catalogClient(): any {
+		return {
+			async listSessions() {
+				return [session()];
+			},
+			async startSession() {
+				return session();
+			},
+			async sendCommand(_sessionId: string, request: any) {
+				if (request.command === "get_available_models") {
+					return baseCommand({
+						result: { data: { models: [{ id: "deepseek-v4.1-flash", provider: "commandcode", label: "DeepSeek V4.1 Flash" }] } },
+					});
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: { model: { id: "deepseek-v4.1-flash", provider: "commandcode" } } } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [] } } });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+		};
+	}
+
+	/** A catalogue whose models carry roles, for the role-detail path. */
+	function roleCatalogClient(): any {
+		return {
+			async listSessions() {
+				return [session({ status: "running" })];
+			},
+			async startSession() {
+				return session({ status: "running" });
+			},
+			async sendCommand(_sessionId: string, request: any) {
+				if (request.command === "get_available_models") {
+					return baseCommand({ result: { data: { models: [
+						{ id: "gpt-5.6-luna", provider: "openai-codex", label: "GPT-5.6-Luna" },
+						{ id: "gpt-6-astra", provider: "openai-codex", label: "GPT-6-Astra" },
+						{ id: "grok-4.6", provider: "cursor", label: "Grok 4.6" },
+					] } } });
+				}
+				if (request.command === "caret_get_model_roles") {
+					return baseCommand({ result: { data: {
+						cycleOrder: ["smol", "slow"],
+						roles: [
+							{ role: "smol", modelId: "openai-codex/gpt-5.6-luna", source: "global" },
+							{ role: "slow", modelId: "openai-codex/gpt-6-astra", source: "global" },
+						],
+						storage: "global",
+					} } });
+				}
+				if (request.command === "get_state") {
+					return baseCommand({ result: { data: { model: { id: "gpt-5.6-luna", provider: "openai-codex" } } } });
+				}
+				if (request.command === "get_login_providers") {
+					return baseCommand({ result: { data: { providers: [] } } });
+				}
+				throw new Error(`unexpected command ${request.command}`);
+			},
+		};
+	}
+
+	it("takes a picker identifier apart without touching a bare OMP id", () => {
+		expect(ompModelPickId("deepseek-v4.1-flash")).toBe("caret-omp/deepseek-v4.1-flash");
+		expect(ompModelIdFromPickId(`${CARET_OMP_MODEL_VENDOR}/deepseek-v4.1-flash`)).toBe("deepseek-v4.1-flash");
+		// Option-group items and older picks carry no vendor: they must pass through.
+		expect(ompModelIdFromPickId("deepseek-v4.1-flash")).toBe("deepseek-v4.1-flash");
+	});
+
+	it("registers the OMP catalogue under the vendor the pickers prefix with", async () => {
+		stubState.languageModelProviders.length = 0;
+		chatSessions.registerCaretChatSessions({ getClient: async () => catalogClient(), log: () => {} });
+		const registered = stubState.languageModelProviders.at(-1);
+		expect(registered?.vendor).toBe(CARET_OMP_MODEL_VENDOR);
+
+		const models = await registered!.provider.provideLanguageModelChatInformation({}, { isCancellationRequested: false });
+		expect(models).toEqual([{
+			id: "deepseek-v4.1-flash",
+			name: "DeepSeek V4.1 Flash",
+			family: "deepseek-v4.1-flash",
+			version: "1.0",
+			// A model the catalogue carries without a provider cannot be matched to a
+			// role selector keyed `provider/id`, so its detail stays absent.
+			detail: undefined,
+			maxInputTokens: 0,
+			maxOutputTokens: 0,
+			tooltip: undefined,
+			isUserSelectable: true,
+			capabilities: { imageInput: false, toolCalling: true },
+		}]);
+		// The extension host derives `<vendor>/<id>` from exactly these pieces, which
+		// is the string the pickers hand back.
+		expect(`${registered!.vendor}/${models[0].id}`).toBe(ompModelPickId("deepseek-v4.1-flash"));
+	});
+
+	it("carries each model's configured roles as the row detail the picker draws", async () => {
+		stubState.languageModelProviders.length = 0;
+		chatSessions.registerCaretChatSessions({
+			getClient: async () => roleCatalogClient(),
+			log: () => {},
+		});
+		const provider = stubState.languageModelProviders.at(-1)!.provider;
+		const models = await provider.provideLanguageModelChatInformation({}, { isCancellationRequested: false }) as Array<{ id: string; detail?: string }>;
+		const byId = new Map(models.map(model => [model.id, model]));
+		// `detail` is the field the workbench renders beside the model name; an
+		// option item's `description` is tooltip-only, so this is the visible path.
+		expect(byId.get("gpt-5.6-luna")?.detail).toBe("Fast");
+		expect(byId.get("gpt-6-astra")?.detail).toBe("Thinking");
+		expect(byId.get("grok-4.6")?.detail).toBeUndefined();
+	});
+
+	it("stays honestly empty, and says why, when the host cannot be read", async () => {
+		stubState.languageModelProviders.length = 0;
+		const logs: string[] = [];
+		chatSessions.registerCaretChatSessions({
+			getClient: async () => { throw new Error("host down"); },
+			log: (message: string) => logs.push(message),
+		});
+		const provider = stubState.languageModelProviders.at(-1)!.provider;
+		expect(await provider.provideLanguageModelChatInformation({}, { isCancellationRequested: false })).toEqual([]);
+		expect(logs.some(message => message.includes("could not list OMP models"))).toBe(true);
+	});
+
+	it("refuses to generate instead of becoming a second model path", async () => {
+		stubState.languageModelProviders.length = 0;
+		chatSessions.registerCaretChatSessions({ getClient: async () => catalogClient(), log: () => {} });
+		const provider = stubState.languageModelProviders.at(-1)!.provider;
+		await expect(provider.provideLanguageModelChatResponse()).rejects.toThrow(/does not proxy model generation/);
+	});
+});
+
+describe("participant handler (fixtures only, one live path per prompt)", () => {
+	/** A host client whose turn ends the way an idle host ends one: no events. */
+	function turnClient(seen: any[]): any {
+		return {
+			async getSession() {
+				return session({ status: "idle" });
+			},
+			async startSession(id: string) {
+				seen.push({ call: "startSession", id });
+				return session();
+			},
+			async sendCommand(_sessionId: string, request: any) {
+				seen.push({ call: "sendCommand", command: request.command, payload: request.payload });
+				return baseCommand({});
+			},
+			async getEvents() {
+				return { events: [], cursor: 0, hasMore: false };
+			},
+		};
+	}
+
+	function lastParticipant(): { id: string; handler: (...args: any[]) => any } {
+		const participant = stubState.chatParticipants.at(-1);
+		if (!participant) throw new Error("Caret registered no chat participant");
+		return participant;
+	}
+
+	it("runs the submitted prompt on the session the request names", async () => {
+		stubState.chatParticipants.length = 0;
+		const seen: any[] = [];
+		const markdown: string[] = [];
+		chatSessions.registerCaretChatSessions({ getClient: async () => turnClient(seen), log: () => {} });
+
+		await lastParticipant().handler(
+			{ prompt: "do the thing" },
+			{
+				chatSessionContext: {
+					chatSessionItem: { resource: { scheme: "caret", authority: "session", path: "/s1" } },
+				},
+			},
+			{ markdown: (text: string) => void markdown.push(text), progress: () => {} },
+			{ isCancellationRequested: false },
+		);
+
+		expect(lastParticipant().id).toBe(CARET_CHAT_PARTICIPANT_ID);
+		expect(seen.some(entry => entry.command === "prompt" && entry.payload?.message === "do the thing")).toBe(true);
+		expect(seen.some(entry => entry.call === "startSession" && entry.id === "s1")).toBe(true);
+	});
+
+	it("sends nothing and says so when the request is not one of Caret's sessions", async () => {
+		stubState.chatParticipants.length = 0;
+		const seen: any[] = [];
+		const logs: string[] = [];
+		chatSessions.registerCaretChatSessions({ getClient: async () => turnClient(seen), log: (message: string) => logs.push(message) });
+
+		await lastParticipant().handler(
+			{ prompt: "do the thing" },
+			{ chatSessionContext: { chatSessionItem: { resource: { scheme: "vscode-chat", authority: "", path: "/x" } } } },
+			{ markdown: () => {}, progress: () => {} },
+			{ isCancellationRequested: false },
+		);
+
+		expect(seen).toEqual([]);
+		expect(logs.some(message => message.includes("outside one of its sessions"))).toBe(true);
+	});
+});
+
 describe("model picker pick -> set_model (fixtures only, B1 + unknown-provider)", () => {
 	function pickerClient(setModelCalls: any[]): any {
 		return {
@@ -544,6 +841,20 @@ describe("model picker pick -> set_model (fixtures only, B1 + unknown-provider)"
 		await tick(50);
 		expect(setModelCalls).toEqual([]);
 		expect(logs.some(message => message.includes("ghost-model") && message.includes("unknown"))).toBe(true);
+	});
+
+	it("strips the picker's vendor prefix before writing set_model", async () => {
+		// The composer pick is a `<vendor>/<id>` identifier (that is what the
+		// extension host resolves); the host's set_model wants the bare OMP id, and
+		// a pick that slips through unresolved would leave the host on the old model.
+		const setModelCalls: any[] = [];
+		const logs: string[] = [];
+		chatSessions.registerCaretChatSessions({ getClient: async () => pickerClient(setModelCalls), log: (message: string) => logs.push(message) });
+		const provider = stubState.chatContentProviders.at(-1)?.provider;
+		const resource: any = { scheme: "caret", authority: "session", path: "/s1" };
+		provider.provideHandleOptionsChange(resource, [{ optionId: "models", value: `${CARET_OMP_MODEL_VENDOR}/second-model` }], { isCancellationRequested: false });
+		await tick(50);
+		expect(setModelCalls.map(call => call.payload)).toEqual([{ provider: "probe", modelId: "second-model" }]);
 	});
 });
 
@@ -694,5 +1005,115 @@ describe("workbench pick write-through via provideHandleOptionsChange (fixtures 
 		await tick(50);
 		expect(setModelCalls).toEqual([]);
 		expect(logs.some(message => message.includes("ghost-model") && message.includes("unknown"))).toBe(true);
+	});
+});
+
+describe("model roles", () => {
+	it("keeps every role OMP reported, in cycle order, with its provenance", () => {
+		const roles = normalizeOmpModelRoles({
+			data: {
+				cycleOrder: ["smol", "default", "slow"],
+				roles: [
+					{ role: "smol", modelId: "openai-codex/gpt-5.6-luna", source: "global" },
+					{ role: "default", modelId: "commandcode/deepseek-v4.1-flash", source: "global" },
+					{ role: "slow", modelId: "openai-codex/gpt-6-astra", source: "project" },
+					{ role: "plan", modelId: "opencode-go/muse-spark-1.3-contributor", source: "global" },
+				],
+				storage: "global",
+			},
+		});
+		expect(roles.cycleOrder).toEqual(["smol", "default", "slow"]);
+		expect(roles.roles.map(role => role.role)).toEqual(["smol", "default", "slow", "plan"]);
+		expect(roles.storage).toBe("global");
+		// Provenance survives, so the UI can say where an assignment came from.
+		expect(roles.roles.find(role => role.role === "slow")?.source).toBe("project");
+	});
+
+	it("drops a cycle entry that resolved to no role, so the switcher cannot step onto an empty slot", () => {
+		const roles = normalizeOmpModelRoles({
+			data: {
+				cycleOrder: ["smol", "ghost", "default"],
+				roles: [{ role: "default", modelId: "openai/gpt-4.1" }],
+			},
+		});
+		expect(roles.cycleOrder).toEqual(["default"]);
+		expect(roles.roles).toEqual([{ role: "default", modelId: "openai/gpt-4.1", source: "default" }]);
+	});
+
+	it("accepts a bare roles payload and reports no storage rather than inventing one", () => {
+		const roles = normalizeOmpModelRoles({ roles: [{ role: "advisor", modelId: "@slow" }] });
+		expect(roles.roles).toEqual([{ role: "advisor", modelId: "@slow", source: "default" }]);
+		expect(roles.storage).toBeUndefined();
+		expect(roles.cycleOrder).toEqual([]);
+	});
+
+	it("returns an honest empty projection when OMP never answered", () => {
+		expect(normalizeOmpModelRoles(undefined)).toEqual({ cycleOrder: [], roles: [] });
+	});
+
+	it("clears a role assignment by sending null, which is how a role falls back to its default", () => {
+		expect(setModelRoleRequest(session(), "smol", null, "c1").payload).toEqual({ role: "smol", modelId: null });
+		expect(setModelRoleRequest(session(), "smol", "openai/gpt-4.1", "c2").payload).toEqual({ role: "smol", modelId: "openai/gpt-4.1" });
+	});
+
+	it("labels roles with OMP's own carousel vocabulary and a custom role with its own id", () => {
+		expect(modelRoleLabel("smol")).toBe("Fast");
+		expect(modelRoleLabel("slow")).toBe("Thinking");
+		expect(modelRoleLabel("my-custom-role")).toBe("my-custom-role");
+	});
+
+	it("carries the session incarnation on role commands so a stale write is refused", () => {
+		const target = session({ incarnation: "inc-7" });
+		expect(getModelRolesRequest(target, "c1")).toMatchObject({ command: "caret_get_model_roles", incarnation: "inc-7" });
+		expect(setModelRoleRequest(target, "default", "openai/gpt-4.1", "c2").incarnation).toBe("inc-7");
+	});
+});
+
+describe("model role labels for the picker rows", () => {
+	const models: readonly OmpAdvertisedModel[] = [
+		{ id: "gpt-5.6-luna", provider: "openai-codex", label: "GPT-5.6 Luna", available: true },
+		{ id: "deepseek-v4.1-flash", provider: "commandcode", label: "DeepSeek V4.1 Flash", available: true },
+		{ id: "muse-spark-1.3-contributor", provider: "opencode-go", label: "Muse Spark", available: true },
+	];
+
+	it("names the roles a model holds, keyed by provider/id so a short id cannot match the wrong row", () => {
+		const roles = normalizeOmpModelRoles({ data: { roles: [
+			{ role: "smol", modelId: "openai-codex/gpt-5.6-luna" },
+			{ role: "default", modelId: "commandcode/deepseek-v4.1-flash" },
+		] } });
+		const bySelector = rolesByModelSelector(roles);
+		expect(bySelector.get("openai-codex/gpt-5.6-luna")).toEqual(["Fast"]);
+		expect(bySelector.get("commandcode/deepseek-v4.1-flash")).toEqual(["Default"]);
+		// A model nobody assigned gets no label at all, so its row keeps its own text.
+		expect(bySelector.get("opencode-go/muse-spark-1.3-contributor")).toBeUndefined();
+	});
+
+	it("resolves an @role alias so an aliased role is still shown", () => {
+		const roles = normalizeOmpModelRoles({ data: { roles: [
+			{ role: "slow", modelId: "openai-codex/gpt-5.6-luna" },
+			{ role: "advisor", modelId: "@slow" },
+		] } });
+		expect(rolesByModelSelector(roles).get("openai-codex/gpt-5.6-luna")).toEqual(["Thinking", "Advisor"]);
+	});
+
+	it("does not resolve a bare id, so an ambiguous short id never labels the wrong provider's row", () => {
+		const roles = normalizeOmpModelRoles({ data: { roles: [{ role: "smol", modelId: "gpt-5.6-luna" }] } });
+		expect(rolesByModelSelector(roles).get("openai-codex/gpt-5.6-luna")).toBeUndefined();
+		expect(rolesByModelSelector(roles).get("gpt-5.6-luna")).toEqual(["Fast"]);
+	});
+
+	it("drops a role whose alias chain cannot resolve instead of labelling it against nothing", () => {
+		const roles = normalizeOmpModelRoles({ data: { roles: [{ role: "plan", modelId: "@missing" }] } });
+		expect(rolesByModelSelector(roles).size).toBe(0);
+	});
+
+it("groups roles by selector, following aliases and dropping unresolvable ones", () => {
+		const roles = normalizeOmpModelRoles({ data: { roles: [
+			{ role: "smol", modelId: "a/one" },
+			{ role: "slow", modelId: "a/one" },
+			{ role: "plan", modelId: "@missing" },
+		] } });
+		expect(rolesByModelSelector(roles).get("a/one")).toEqual(["Fast", "Thinking"]);
+		expect(rolesByModelSelector(roles).has("@missing")).toBe(false);
 	});
 });
