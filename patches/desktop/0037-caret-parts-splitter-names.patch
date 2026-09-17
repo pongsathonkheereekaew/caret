@@ -1,0 +1,138 @@
+diff --git a/src/vs/sessions/browser/workbench.ts b/src/vs/sessions/browser/workbench.ts
+index b07fe047914..e80a08c5cbd 100644
+--- a/src/vs/sessions/browser/workbench.ts
++++ b/src/vs/sessions/browser/workbench.ts
+@@ -404,6 +404,46 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
+ 	private readonly parts = new Map<string, Part>();
+ 	protected workbenchGrid!: SerializableGrid<ISerializableView>;
+ 
++	/**
++	 * Caret: give the sidebar and panel splitters the accessible names the reference uses.
++	 *
++	 * Called after the grid exists and whenever a part's visibility changes, because a hidden part
++	 * takes its boundary with it. A sash is matched to a part by position rather than by identity:
++	 * the grid creates the sash elements and keeps no handle to them, and geometry is what a user
++	 * actually drags.
++	 */
++	private namePartSplitters(): void {
++		const grid = this.workbenchGrid;
++		if (!grid) {
++			return;
++		}
++		const name = (element: Element, label: string): void => {
++			element.setAttribute('role', 'separator');
++			element.setAttribute('aria-orientation', 'vertical');
++			element.setAttribute('aria-label', label);
++		};
++		const within = (value: number, edge: number): boolean => Math.abs(value - edge) <= 2;
++		const sideBar = this.getPart(Parts.SIDEBAR_PART).element.getBoundingClientRect();
++		const auxiliaryBar = this.getPart(Parts.AUXILIARYBAR_PART).element.getBoundingClientRect();
++		// The Apps panel in this window is the editor part's right-hand group, so its boundary is
++		// the editor part's left edge - there is no auxiliary bar to measure here.
++		const editorPart = this.getPart(Parts.EDITOR_PART).element.getBoundingClientRect();
++		for (const sash of grid.element.querySelectorAll('.monaco-sash')) {
++			if (!(sash instanceof HTMLElement) || sash.offsetParent === null) {
++				continue;
++			}
++			const box = sash.getBoundingClientRect();
++			const centre = box.left + box.width / 2;
++			if (sideBar.width > 0 && within(centre, sideBar.right) && box.top < sideBar.bottom && box.bottom > sideBar.top) {
++				name(sash, 'Resize sidebar');
++			} else if (auxiliaryBar.width > 0 && within(centre, auxiliaryBar.left) && box.top < auxiliaryBar.bottom && box.bottom > auxiliaryBar.top) {
++				name(sash, 'Resize panel');
++			} else if (editorPart.width > 0 && within(centre, editorPart.left) && box.top < editorPart.bottom && box.bottom > editorPart.top) {
++				name(sash, 'Resize panel');
++			}
++		}
++	}
++
+ 	private titleBarPartView!: ISerializableView;
+ 	protected sideBarPartView!: ISerializableView;
+ 	private panelPartView!: ISerializableView;
+@@ -1624,6 +1661,8 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
+ 
+ 				this._onDidChangePartVisibility.fire({ partId: part.getId(), visible });
+ 				this.handleContainerDidLayout(this.mainContainer, this._mainContainerDimension);
++				// After the grid has been told, so the boundary named is the one that exists now.
++				this.namePartSplitters();
+ 			}));
+ 		}
+ 
+@@ -1969,6 +2008,9 @@ export class Workbench extends Disposable implements IAgentWorkbenchLayoutServic
+ 	}
+ 
+ 	private handleContainerDidLayout(container: HTMLElement, dimension: IDimension): void {
++		// Caret: the splitters are named after a layout pass, because before one the parts have no
++		// measured box to match a sash against.
++		this.namePartSplitters();
+ 		this._onDidLayoutContainer.fire({ container, dimension });
+ 		if (container === this.mainContainer) {
+ 			this._onDidLayoutMainContainer.fire(dimension);
+diff --git a/src/vs/workbench/browser/layout.ts b/src/vs/workbench/browser/layout.ts
+index 75f9238fd75..192e0a8c4f6 100644
+--- a/src/vs/workbench/browser/layout.ts
++++ b/src/vs/workbench/browser/layout.ts
+@@ -1627,6 +1627,41 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
+ 		this._onDidChangeZenMode.fire(this.isZenModeActive());
+ 	}
+ 
++	/**
++	 * Caret: give the sidebar and panel splitters the accessible names the reference uses.
++	 *
++	 * Called after the grid exists and whenever a part's visibility changes, because a hidden part
++	 * takes its boundary with it. A sash is matched to a part by position rather than by identity:
++	 * the grid creates the sash elements and keeps no handle to them, and geometry is what a user
++	 * actually drags.
++	 */
++	private namePartSplitters(): void {
++		const grid = this.workbenchGrid;
++		if (!grid) {
++			return;
++		}
++		const name = (element: Element, label: string): void => {
++			element.setAttribute('role', 'separator');
++			element.setAttribute('aria-orientation', 'vertical');
++			element.setAttribute('aria-label', label);
++		};
++		const within = (value: number, edge: number): boolean => Math.abs(value - edge) <= 2;
++		const sideBar = this.getPart(Parts.SIDEBAR_PART).element.getBoundingClientRect();
++		const auxiliaryBar = this.getPart(Parts.AUXILIARYBAR_PART).element.getBoundingClientRect();
++		for (const sash of grid.element.querySelectorAll('.monaco-sash')) {
++			if (!(sash instanceof HTMLElement) || sash.offsetParent === null) {
++				continue;
++			}
++			const box = sash.getBoundingClientRect();
++			const centre = box.left + box.width / 2;
++			if (sideBar.width > 0 && within(centre, sideBar.right) && box.top < sideBar.bottom && box.bottom > sideBar.top) {
++				name(sash, 'Resize sidebar');
++			} else if (auxiliaryBar.width > 0 && within(centre, auxiliaryBar.left) && box.top < auxiliaryBar.bottom && box.bottom > auxiliaryBar.top) {
++				name(sash, 'Resize panel');
++			}
++		}
++	}
++
+ 	private setStatusBarHidden(hidden: boolean): void {
+ 		this.stateModel.setRuntimeValue(LayoutStateKeys.STATUSBAR_HIDDEN, hidden);
+ 
+@@ -1684,6 +1719,12 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
+ 		this.workbenchGrid = workbenchGrid;
+ 		this.workbenchGrid.edgeSnapping = this.state.runtime.mainWindowFullscreen;
+ 
++		// Caret: name the two boundaries the reference names. Cursor's Agents window shows
++		// `Resize sidebar` and `Resize panel` as the accessible names of its two splitters; the
++		// parts carry no accessible name of their own and the grid exposes no sash accessor, so the
++		// two are identified by the part they bound and named here. Unnamed sashes stay unnamed.
++		this.namePartSplitters();
++
+ 		for (const part of [titleBar, editorPart, activityBar, panelPart, sideBar, statusBar, auxiliaryBarPart, bannerPart]) {
+ 			this._register(part.onDidVisibilityChange(visible => {
+ 				if (!this.inMaximizedAuxiliaryBarTransition) {
+@@ -1707,6 +1748,8 @@ export abstract class Layout extends Disposable implements IWorkbenchLayoutServi
+ 
+ 				this._onDidChangePartVisibility.fire({ partId: part.getId(), visible });
+ 				this.handleContainerDidLayout(this.mainContainer, this._mainContainerDimension);
++				// After the grid has been told, so the boundary being named is the one that exists now.
++				this.namePartSplitters();
+ 			}));
+ 		}
+ 

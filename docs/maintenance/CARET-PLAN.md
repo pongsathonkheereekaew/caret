@@ -597,7 +597,7 @@ through it.
 | Slice | What it takes | Closes when |
 |---|---|---|
 | **D1 New Chat creates a draft** | Caret's provider has no draft: `createNewSession` returns the newest contributed session or throws (`UNSUPPORTED`), and the base's `openNewSession` cannot await a provider, so the draft has to exist before the call. The extension already materializes on first send (`newChatSessionItemHandler` → `client.createSession`), so what is missing is the workbench-side provisional/untitled session. The model to port is `agentHostUntitledProvisionalSessionService.ts` (1,091 lines, agent-host-flavoured); the honest alternative is to stop offering the control until it exists (§5). | clicking `New Chat` in the Agents window opens an empty Caret draft, and the comparison's 24 state misses can finally be compared fairly where they belong (the reference's empty draft) |
-| **D2 Accessible names for the splitters and the tab group** | **Mechanism landed** (patch `0036`): `ISashOptions.ariaLabel` makes a sash a labelled `separator` (`role`, `aria-orientation`, `aria-label`) and is opt-in, so nothing announces itself until a caller names a boundary. The naming half needs one decision, because the parts carry no accessible name to derive from: the workbench layout is where the sidebar and panel boundaries are known (`layout.ts:1676` builds the parts grid from `SerializableGrid.deserialize`, whose views are the parts themselves - `sideBarPartView` etc.), so either those two boundaries are named explicitly there, or the parts gain a name the grid can derive from. Naming the tab group is a separate editor-part surface. | the capture shows `splitter Resize sidebar`, `splitter Resize panel` and a named tab group, i.e. the last three entries of §10 item 16's difference list |
+| **D2 Accessible names for the splitters and the tab group** | **Splitters done** (patches `0036` + `0037`, verified in a rebuilt app): `Sash` can carry a name, and the two boundaries the reference names are named at their owners - the sidebar and auxiliary-bar boundaries in the IDE window's `layout.ts`, and in the Agents window's own layout (`sessions/browser/workbench.ts`, which is a separate implementation) the sidebar boundary plus the editor part's left edge, which is where this window's Apps panel starts. A sash is matched to a part by measured geometry because the grid keeps no handle to the sashes it creates. **What remains is the tab group** (`tab group Tabs` in the reference), a separate editor-part surface. | splitter entries: the capture now reads `splitter Resize sidebar` and `splitter Resize panel`, matching the reference exactly (shared 15, missing 26). Closing this row needs the named tab group only. |
 | **D3 The dock becomes native (S3)** | `webview.ts` (2,836 lines) + `TASK_WEBVIEW_CSS` + the shell-bound tests are the IDE window's agent surface today. §7 already decided React for these surfaces; the dock has to move before the shell can be deleted, and `caret.focusDock` + the `prefill` handoffs have to keep working through the move. | `rg "webview.ts|TASK_WEBVIEW_CSS"` finds no remaining users and the suite passes (§8 S3's own exit gate) |
 | **D4 Composer modes, then the chips** | The reference's `Plan New Idea` / `Multitask` are CTAs on a real mode state (measured 2026-09-17). Caret needs the mode in the composer first, mapped to something OMP actually does (a plan-first turn over `ompPlan`; parallel subagents per §10 item 8), and the `High` effort popup needs a provider config action. | the chips exist and change what a turn does, or they stay unrendered by decision (§10 item 11) |
 | **D5 `--caret-*` at the workbench level** | The extension cannot write CSS into the workbench DOM, so the token layer relies on CSS fallbacks a test pins. A workbench contribution has to own the variables, and its values have to come from `caret-theme.ts` — generated into the patch the way the brand icon is generated into the bundle. | the workbench DOM carries the `--caret-*` variables and the parity check reads them from there instead of from fallbacks |
@@ -1734,6 +1734,26 @@ models available`, because the rebuilt runtime now answers with the operator's c
 What is left of D2 is the naming decision recorded in §8: the parts carry no accessible name, so
 `Resize sidebar` / `Resize panel` have to be attached either explicitly at the two boundaries in
 `layout.ts` or through a name the parts expose and the grid derives from.
+### The two splitters have the reference's names (2026-09-17)
+
+D2's second half. Patch `0036` had given `Sash` the ability to carry an accessible name; `0037` uses
+it at the two boundaries the reference names. The owners are not the same in both windows, which is
+what made this take three attempts: the IDE window is laid out by `src/vs/workbench/browser/layout.ts`
+(the parts grid from `SerializableGrid.deserialize`), while the Agents window is a **separate layout
+implementation** in `src/vs/sessions/browser/workbench.ts` - and in that window the right-hand Apps
+panel is the editor part's own group, so its boundary is the editor part's left edge, not an auxiliary
+bar that does not exist there.
+
+A sash is matched to a part by measured geometry (the sash whose centre sits on the part's edge),
+because the grid creates the sash elements and keeps no handle to them. Naming happens after a layout
+pass, not at construction: at construction the parts have no boxes yet, which is why the first attempt
+silently named nothing.
+
+Verified in a rebuilt app through the proven loop (fork `tsc`, `gulp vscode-darwin-arm64-min`, 
+`package:mac`, launch, capture): the capture gained `splitter Resize sidebar` and `splitter Resize
+panel`, and the comparison now reads **shared 15, renamed 1, absent by decision 3, missing 26** - the
+reference's two splitter entries are exact matches instead of misses. Receipt:
+[`evidence/dead-code-followup-decisions-2026-09-17/chrome-report-after-splitter-names.txt`](evidence/dead-code-followup-decisions-2026-09-17/chrome-report-after-splitter-names.txt).
 ## 10. Open work (the only authoritative list of what is not done)
 
 Anything not listed here is either done (§9) or out of scope (§5). Each item states what closes it.

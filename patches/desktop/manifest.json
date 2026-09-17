@@ -136,6 +136,10 @@
     {
       "file": "0036-caret-sash-accessible-name.patch",
       "sha256": "f2b59593868110bed4e940ff3c4444042adef5113c22f1fb37a200b473fa708a"
+    },
+    {
+      "file": "0037-caret-parts-splitter-names.patch",
+      "sha256": "f86c5573d98b5ce1aa93a44b4da12d21e7a0a94cf995bf503ff7500bab1b5425"
     }
   ],
   "removals": [
