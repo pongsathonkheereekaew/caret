@@ -1669,6 +1669,22 @@ in the tree, so a later session does not re-derive it:
 
 Receipt: [`evidence/dead-code-followup-decisions-2026-09-17/`](evidence/dead-code-followup-decisions-2026-09-17/).
 
+### Delete reaches the dock too (2026-09-17)
+
+§10 item 24 was the last asymmetry between the two agent surfaces: the Agents window's session list
+could delete a chat (the host route and the extension path landed with patch `0010`), while the dock
+in the IDE window offered Archive and nothing else. The dock's session row menu now carries `Delete`,
+which posts the new `delete_session` message; the extension asks first — the host delete removes the
+record and the transcript it wrote, so the modal reads `Delete "<title>"? This action cannot be
+undone.` — and then calls the same `deleteChatSessions` the list uses, so there is one delete path
+with two front doors rather than two implementations.
+
+Verified: `bun test apps/macos/test` 621 pass / 0 fail with the new
+`ide-native-workbench.test.ts` case pinning the menu item, the parser, the message type and the
+confirmation; `bun run typecheck` 0 errors; `bun run build` puts `delete_session` in
+`dist/mac-extension/out/extension.js`. Receipt:
+[`evidence/dead-code-followup-decisions-2026-09-17/`](evidence/dead-code-followup-decisions-2026-09-17/).
+
 ## 10. Open work (the only authoritative list of what is not done)
 
 Anything not listed here is either done (§9) or out of scope (§5). Each item states what closes it.
@@ -1815,9 +1831,13 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
 
 **Sessions**
 
-24. Delete is Agents-window-only: the shell (the IDE window's Caret composer) session menu still
-    offers Archive and no Delete, although the host route now exists. Add it there, or record that
-    the shell stays archive-only.
+24. ~~Delete is Agents-window-only: the shell (the IDE window's Caret composer) session menu still
+    offers Archive and no Delete, although the host route now exists.~~ **Closed 2026-09-17**: the
+    dock's session row menu offers a `Delete` item that posts `delete_session`, the extension
+    confirms first (`Delete "<title>"? This action cannot be undone.`) and then runs the same
+    `deleteChatSessions` path the Agents window's list uses, so both surfaces delete through one
+    route. The webview parser, the message type and the extension case are pinned by
+    `ide-native-workbench.test.ts` ("offers the same Delete in the dock's session menu").
 
 **Repository hygiene**
 

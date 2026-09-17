@@ -33,6 +33,11 @@
       "referenceInventory": "45 controls parsed from evidence/cursor-agents-ax-2026-09-14/cursor-agents-ax-tree.txt",
       "exitCode": "non-zero while any reference control is missing from Caret"
     },
+    "dockDelete": {
+      "what": "the dock's session row menu in apps/macos/src/webview.ts now offers Delete, posting a new delete_session message; apps/macos/src/messages.ts parses it; apps/macos/src/extension.ts confirms (\"Delete \\\"<title>\\\"? This action cannot be undone.\") and then runs the same deleteChatSessions path the Agents window's list uses",
+      "why": "plan section 10 item 24: delete was Agents-window-only, so the dock offered Archive and no Delete even though the host route existed since patch 0010",
+      "pinned": "apps/macos/test/ide-native-workbench.test.ts, 'offers the same Delete in the dock's session menu'"
+    },
     "decisionsRecorded": [
       "section 5: the Agents-window panel controls stay as they are (the user chose to keep the current panel); the workbench keeps xterm.js",
       "section 10 item 11: the composer mode chips are measured and stay unrendered until a real mode exists",
@@ -55,7 +60,8 @@
     "axLiveCapture": "Caret.app packaged 2026-09-16 23:43 launched with --agents --remote-debugging-port=9333 and captured over CDP: reference 45 controls, Caret 30. After the normalisation pass the report reads shared 11, renamed 3, absent by decision 3, missing 28 (chrome-report-empty-draft.txt, chrome-report-open-session.txt, dumps in this directory). Of the 28 misses, 24 are the empty-draft state the reference was captured in and 4 are real: Hide Sidebar vs Toggle Side Bar, the two unnamed splitters, the unnamed tab group, and one duplicate in the reference tree. first-live-capture.md carries the classification, the two capture artefacts that had to be normalised, and the CDP probe that explains the state mismatch (New Chat is Caret's own Agent Home nav row; the window had adopted a read-only host session).",
     "appCleanup": "the launched app, its host (cli.js serve) and its OMP session all exited after the quit: 0 Caret processes, 0 OMP processes, debug port closed",
     "newChatIsInert": "measured: clicking the Agents window's New Chat nav row leaves the chrome inventory byte-identical (caret-agents-chrome-newchat-inert.txt; diff against the post-click dump is empty), one chat input before and after, no starter card, 43 visible read-only elements. Cause read from the fork: the nav row runs workbench.action.sessions.newChat (agentHomeNav.ts:117) -> NewChatInSessionsWindowAction.run passes folderUri: activeSession.workspace.uri -> sessionsManagementService._resolveProviderForNewSession needs provider.resolveWorkspace(folderUri) for that folder -> Caret's provider only resolves the current window's folders (extensionSessionsProvider.contribution.ts:186) and the agent host is null since 0032 -> throws -> _openNewSession catches it (sessionsService.ts:1124) and activates nothing. Recorded as plan section 10 item 1a with the three fix shapes.",
-    "repoChecks": "node scripts/ci-validate.mjs and bun scripts/cursor-parity-check.ts green"
+    "repoChecks": "node scripts/ci-validate.mjs and bun scripts/cursor-parity-check.ts green",
+    "dockDelete": "bun test apps/macos/test -> 621 pass / 0 fail (the new case included); bun run typecheck 0 errors; bun run build -> dist/mac-extension/out/extension.js contains delete_session four times, the confirmation sentence, and the menu item"
   },
   "notVerified": [
     "The AX/DOM comparison is run and normalised but still not a verdict: the two sides were in different states. The reference capture is an empty draft while Caret's window had adopted a read-only session, and the control that would open a fresh draft is inert (above), so Caret's empty-draft inventory was never captured. 24 of the 28 remaining misses are that state difference.",

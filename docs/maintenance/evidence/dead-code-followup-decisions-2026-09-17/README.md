@@ -82,6 +82,23 @@ copy with `Multitask` removed reports exactly one.
 
 ## What is still open
 
+## The dock can delete too (same day)
+
+The plan's item 24 was the last asymmetry between the two agent surfaces. The Agents window's
+session list could delete a chat — the host route and the extension path landed with patch `0010` —
+while the dock in the IDE window offered Archive and nothing else.
+
+The dock's session row menu now carries `Delete`. It posts a `delete_session` message, the extension
+asks first (`Delete "<title>"? This action cannot be undone.`, a modal, because the host delete
+removes the record and the transcript it wrote), and then calls the same `deleteChatSessions` the
+list uses. One delete path, two front doors.
+
+Verified in the suite rather than by eye: `bun test apps/macos/test` is 621 pass / 0 fail with a new
+`ide-native-workbench.test.ts` case that pins the menu item, the parser branch, the message type and
+the confirmation; `bun run typecheck` reports 0 errors; and `bun run build` puts `delete_session` and
+the confirmation sentence into `dist/mac-extension/out/extension.js`, which is what a personal build
+loads.
+
 The capture half of the comparison: no packaged app was built and launched in this pass, so Caret has
 no side to compare yet. That is the run that closes section 11 gate 2, and it is listed under
 `notVerified` in the receipt along with the two other things that need a live window (the Agent Host

@@ -33,6 +33,7 @@ export type WebviewMessage =
 	| { readonly type: "rename_session"; readonly title?: string; readonly sessionId?: string }
 	| { readonly type: "archive_session"; readonly sessionId?: string; readonly archived?: boolean }
 	| { readonly type: "pin_session"; readonly pinned: boolean; readonly sessionId?: string }
+	| { readonly type: "delete_session"; readonly sessionId?: string }
 	| { readonly type: "set_workbench_mode"; readonly mode: "agents" | "ide" }
 	| { readonly type: "persist_draft"; readonly draft: string }
 	| { readonly type: "persist_scroll"; readonly offset: number; readonly eventId?: string; readonly followLatest: boolean; readonly viewId?: string }
@@ -176,6 +177,10 @@ export function parseWebviewMessage(value: unknown): WebviewMessage | undefined 
 			if (!boolean(value.pinned)) return undefined;
 			const sessionId = nonEmpty(value.sessionId, 512) ? value.sessionId.trim() : undefined;
 			return { type: "pin_session", pinned: value.pinned, ...(sessionId ? { sessionId } : {}) };
+		}
+		case "delete_session": {
+			const sessionId = nonEmpty(value.sessionId, 512) ? value.sessionId.trim() : undefined;
+			return sessionId ? { type: "delete_session", sessionId } : undefined;
 		}
 		case "set_workbench_mode": return value.mode === "agents" || value.mode === "ide" ? { type: "set_workbench_mode", mode: value.mode } : undefined;
 		case "persist_draft": return string(value.draft, MAX_TEXT) ? { type: "persist_draft", draft: value.draft } : undefined;

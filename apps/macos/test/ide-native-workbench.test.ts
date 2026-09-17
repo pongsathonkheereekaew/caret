@@ -1203,6 +1203,24 @@ describe("ide-native workbench surface", () => {
 		expect(manifest.contributes.commands.some(entry => entry.command === "caret.session.delete")).toBe(true);
 	});
 
+	it("offers the same Delete in the dock's session menu", async () => {
+		// The plan's item 24: delete used to be Agents-window-only, so the dock offered
+		// Archive and no Delete even though the host route existed. Both surfaces now go
+		// through the same extension path, and the dock's own item confirms first because
+		// the host delete removes the record and the transcript it wrote.
+		const shell = readFileSync(join(import.meta.dir, "..", "src", "webview.ts"), "utf8");
+		expect(shell).toContain(`['Delete', 'delete']`);
+		expect(shell).toContain(`else if (kind === 'delete') post({ type: 'delete_session', sessionId: sid });`);
+
+		const messages = readFileSync(join(import.meta.dir, "..", "src", "messages.ts"), "utf8");
+		expect(messages).toContain(`{ readonly type: "delete_session"; readonly sessionId?: string }`);
+		expect(messages).toContain(`case "delete_session": {`);
+
+		const extension = readFileSync(join(import.meta.dir, "..", "src", "extension.ts"), "utf8");
+		expect(extension).toContain(`case "delete_session": {`);
+		expect(extension).toContain("This action cannot be undone.");
+		expect(extension).toContain("await this.deleteChatSessions([session.id]);");
+	});
 	it("keeps the Copilot-flavoured composer controls out of the Agents window", async () => {
 		// Three plan chrome decisions: the tool picker, the permission picker and the
 		// "Configure Custom Agents..." entry all describe Copilot-chat behaviour, and this

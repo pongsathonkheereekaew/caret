@@ -3013,6 +3013,21 @@ export class CaretTaskViewProvider {
 				});
 				break;
 			}
+			// The dock's own Delete item. The Agents window's list confirms before it
+			// sends (`caret.session.delete`), so this side has to ask: the host's delete
+			// removes the record and the transcript it wrote, and nothing brings it back.
+			case "delete_session": {
+				const session = this.sessionForMutation(message.sessionId);
+				if (!session) return;
+				const confirmed = await vscode.window.showWarningMessage(
+					`Delete "${session.title}"? This action cannot be undone.`,
+					{ modal: true },
+					"Delete",
+				);
+				if (!confirmed) return;
+				await this.deleteChatSessions([session.id]);
+				break;
+			}
 			case "set_workbench_mode": await this.setWorkbenchMode(message.mode); break;
 			case "persist_draft": {
 				this.#draftRevision += 1;
