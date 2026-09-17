@@ -41,6 +41,19 @@ const ATTRIBUTE_TAIL = /(?:\s(?:⇧|⌘|⌥|⌃|⇪)[A-Za-z0-9+]+|\sDescription:
 const ATTRIBUTE_HEAD = /^\((?:disabled|settable|selected|focused)\)\s+/;
 
 /**
+ * A DOM aria-label carries its shortcut, an AX node carries it as a separate
+ * node: `Toggle Side Bar (⌘B)` is the reference's `button Toggle Side Bar` plus
+ * `text ⌘B`. Strip it so the two vocabularies match.
+ *
+ * Only modifiers and key names count: `Models, DeepSeek V4.1 Flash (Command
+ * Code)` keeps its parentheses, because a product name is a label, not a key.
+ */
+const SHORTCUT_TAIL = /(?:\s\((?:[⌘⌥⌃⇧⇪][^)\s]*|Enter|Escape|Backspace|Delete|Tab|Space)\))+$/;
+
+/** A session row's captured state, which the reference writes as node text. */
+const ROW_STATE_TAIL = /,\s*State:.*$/;
+
+/**
  * A node whose capture carries only attributes, no label: `splitter
  * Description: Resize panel, Value: 100` and `toggle button Description:
  * Settings, Value: 0`. The description is the readable name a user sees, so it
@@ -79,7 +92,11 @@ export function cleanLabel(raw: string): string {
 	const withoutHead = flattened.replace(ATTRIBUTE_HEAD, "").trim();
 	const descriptionOnly = withoutHead.match(DESCRIPTION_ONLY);
 	if (descriptionOnly) return descriptionOnly[1]!.trim();
-	return withoutHead.replace(ATTRIBUTE_TAIL, "").trim();
+	return withoutHead
+		.replace(ATTRIBUTE_TAIL, "")
+		.replace(SHORTCUT_TAIL, "")
+		.replace(ROW_STATE_TAIL, "")
+		.trim();
 }
 
 function dedupe(controls: readonly ChromeControl[]): readonly ChromeControl[] {

@@ -1656,6 +1656,11 @@ in the tree, so a later session does not re-derive it:
   reference tree into a control inventory, captures the Caret side over CDP, and reports the
   reference controls that Caret lacks; it exits non-zero on any. §10 item 16 carries the remaining
   half — nobody has run it against a live window yet.
+- **The AX/DOM comparison has now run once** (later the same day): a packaged Caret was launched with
+  `--agents --remote-debugging-port=9333` and captured. Reference 45 controls, Caret 30, shared 12;
+  the 33 the reference has and Caret does not split into 26 empty-draft *state* (Caret's window sat
+  on a chat and `New Chat` did not move it), 3 already-decided deviations and 4 real differences
+  (two labels, two missing accessible names). §10 item 16 carries the closure.
 - **`.omp/` is not repository content.** A byte-identical copy of the global
   `~/.omp/agent/config.yml` (provider credentials included) had been left in the tree; it is removed
   and ignored, with `.omp/config.yml` — the one file OMP reads at project scope — excepted so a
@@ -1740,13 +1745,22 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
     the panel is rebuilt (§7's React pass).
 15. `--caret-*` is not injected at the workbench level (the extension cannot write CSS into the
     workbench DOM), so the token layer currently relies on CSS fallbacks that a test pins.
-16. **AX/DOM comparison against the reference has never been run against a live Caret window.** It is
-    the real decider for "identical" (§11 gate 2) and the largest single verification gap in the
-    project. The comparison tool now exists: `scripts/agents-chrome-inventory.ts` (reference, from
-    the captured Cursor tree; Cursor's chrome is 45 controls, and the two layout controls §10 item 14
-    keeps are absent from the reference — a test pins both facts). The capture half is what remains:
-    run `capture <debugPort>` against a launched Caret with `--remote-debugging-port`, or capture the
-    same AX tree with Computer Use, then read the `missing from Caret` list.
+16. **AX/DOM comparison: run for the first time 2026-09-17, still not a verdict.** It is the real
+    decider for "identical" (§11 gate 2). The tool is `scripts/agents-chrome-inventory.ts`
+    (`reference` / `compare <file>` / `capture <debugPort> [--empty-draft] [--write <file>]`), and it
+    has now been run against a live window: reference 45 controls, Caret 30, shared 12 — the dumps
+    and the classification are in
+    [`evidence/dead-code-followup-decisions-2026-09-17/first-live-capture.md`](evidence/dead-code-followup-decisions-2026-09-17/first-live-capture.md).
+    Of the 33 reference controls Caret lacks, 26 are empty-draft *state* (the reference capture is an
+    empty draft, Caret's window sat on a chat, and `New Chat` in the sidebar did not move it), 3 are
+    recorded deviations (`Enter Full Screen`, `Hide Apps` per item 14; the `Account menu` per patch
+    `0029`), and 4 are real differences worth a decision: `Hide Sidebar` is `Toggle Side Bar` in
+    Caret, `Go Back`/`Go Forward` are `Go Back One Session`/`Go Forward One Session`, and Caret's
+    splitters and tab group carry no accessible name where Cursor's are `Resize panel`/`Resize
+    sidebar`/`Tabs`. Closes with: the same state on both sides (start from why the sidebar's
+    `New Chat` does not reach an empty draft in that window), one normalisation pass over the two
+    capture vocabularies (the AX capture merges a row's text children into its parent button), and a
+    re-capture from the next packaged build.
 17. Vision-side verification is repeatedly unavailable (the image tool answers HTTP 429), so no
     pane's colour, type or spacing has ever been checked against a picture.
 

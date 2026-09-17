@@ -1,0 +1,34 @@
+button	Toggle Side Bar (⌘B)
+button	Go Back One Session (⌃-)
+button	Go Forward One Session (⌃⇧-)
+button	Toggle Side Panel (⌥⌘B)
+button	IDE (⇧⌘A)
+button	New Chat
+button	Search
+button	Automations
+button	Customize
+button	New Project
+button	Filter Repositories
+button	Add Repository
+pop up button	More Actions...
+text entry area	The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+button	Add Context... (⌘/)
+pop up button	caret
+pop up button	Agent
+pop up button	Models, DeepSeek V4.1 Flash (Command Code)
+button	Dictate (Speech to Text) (⌘I)
+button	Send [⌥] Send to New Chat (⇧⌘Enter)
+text entry area	Find
+button	Previous Match (⇧Enter)
+button	Next Match (Enter)
+button	Close (Escape)
+button	Changes
+button	Browser
+button	Terminal
+button	File
+pop up button	Open new tab menu
+button	Toggle Pinned Summary
+button	Changes
+button	Browser
+button	Terminal
+button	File

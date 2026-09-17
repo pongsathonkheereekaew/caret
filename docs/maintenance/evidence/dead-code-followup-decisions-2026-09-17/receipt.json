@@ -52,10 +52,14 @@
     "patchSet": "desktop-patch-set.test.ts rebuilds from the pinned base and finds no drift",
     "forkBuild": "cd desktop && npm run compile-client -> exit 0; out/vs/workbench/services/agentHost/electron-browser/agentHostService.js now imports NullAgentHostService and no longer references LocalAgentHostServiceClient",
     "axToolRuns": "bun scripts/agents-chrome-inventory.ts reference -> 45 controls; compare against that same inventory -> 0 missing, exit 0; compare against a copy with 'Multitask' removed -> 1 missing, exit 1",
+    "axLiveCapture": "Caret.app packaged 2026-09-16 23:43 launched with --agents --remote-debugging-port=9333 and captured over CDP: reference 45 controls, Caret 30, shared 12. Both dumps are in this directory (caret-agents-chrome-open-session.txt, caret-agents-chrome-empty-draft.txt); first-live-capture.md classifies the 33 missing ones as 26 empty-draft state (the reference capture is an empty draft while Caret's window sat on a chat, and clicking New Chat did not change that), 3 already-recorded deviations (Enter Full Screen, Hide Apps, Account menu - genuinely absent, not renamed), and 4 copy/a11y gaps (Hide Sidebar vs Toggle Side Bar; Go Back/Go Forward vs Go Back One Session/Go Forward One Session; Caret's splitters carry no accessible name; no named tab group).",
+    "appCleanup": "the launched app, its host (cli.js serve) and its OMP session all exited after the quit: 0 Caret processes, 0 OMP processes, debug port closed",
     "repoChecks": "node scripts/ci-validate.mjs and bun scripts/cursor-parity-check.ts green"
   },
   "notVerified": [
-    "The AX/DOM comparison has not been run against a live Caret window: no packaged app was built and launched, so the Caret side has no capture yet. That is the half that closes section 11 gate 2.",
+    "The AX/DOM comparison is run but not yet a verdict: the two sides were in different states. The reference capture is an empty draft while Caret's window sat on a chat, and clicking New Chat in the sidebar did not move it, so Caret's empty-draft inventory was never captured. A fair run needs that state first, plus one normalisation pass over the two vocabularies (the AX capture merges a row's text children into the parent button - 'Projects New Project' - while the DOM exposes them separately).",
+    "The capture is of the packaged app built 2026-09-16 23:43, which predates this pass. Nothing changed today is chrome-visible, so the dump describes the same chrome the current source produces, but a re-capture belongs in the next packaging run.",
+    "The four copy/a11y gaps and the two label differences are findings, not fixes: no code changed for them in this pass.",
     "The Agent Host change is verified by types, the compiled module and the patch set, not by booting a window: nobody has watched the Agents window come up after it to confirm that no surface resolves the client eagerly and reports the null reason.",
     "The null client's sentence would appear only if an agent-host surface ever became enabled; nothing enables it, so it is unobserved."
   ]
