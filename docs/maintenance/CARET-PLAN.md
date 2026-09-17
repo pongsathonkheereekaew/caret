@@ -417,6 +417,8 @@ Not counted as parity, but they live in the same window:
 | focus ring (high contrast) | transparent | `#F0F0F066` | focus must be visible |
 | missing capability | available | disabled + reason | honesty marker |
 | syntax token colours in the IDE | Cursor theme | Code-OSS default | licensing |
+| Agents-window panel controls | no Show Panel / Toggle Side Panel; the panel header carries `Enter Full Screen` + `Hide Apps` | keeps the inherited `Show Panel` (hidden by `0026`) and `Toggle Side Panel` | **decided 2026-09-17: keep the current panel.** Removing the toggle and adding the reference's `Hide Apps` / `Enter Full Screen` is a real change to shared layout actions; the user chose to keep what works today rather than chase these three controls. Revisit only if the panel is rebuilt (section 7's React pass). |
+| terminal rendering in the IDE | xterm.js | **xterm.js** | decided 2026-09-17: replacing the workbench renderer drags the xterm-specific addons (image, ligatures, search, serialize, the terminal API) out with it for no user-visible gain while Cursor parity is the goal. Recorded here rather than left as open parity; the engine work goes to the surface Caret owns (the iOS WebView terminal), gated by the corpus in `apps/macos/src/terminal-conformance.ts`. |
 
 Deviation values that must stay different from Cursor, each requiring a receipt, because they are
 Caret's accessibility floor rather than missed parity. Never remove one to make a number match:
@@ -1623,6 +1625,45 @@ previous one), `prepare-desktop.ts` = 32 patches / 19 removals, `desktop-patch-s
 from the pinned base and finds no drift, `check:repo` and `check:cursor-parity` green. Receipt:
 [`evidence/dead-code-retirement-2026-09-17/`](evidence/dead-code-retirement-2026-09-17/).
 
+### The decision pass: what Cursor actually does, and what Caret chose (2026-09-17)
+
+The user asked what they had to decide, then answered. Each one is now a fact in §5/§10 or a change
+in the tree, so a later session does not re-derive it:
+
+- **The Agent Host is gone from the window's decision surface.** `0032` gained a second half: the
+  desktop DI shim returns the base's `NullAgentHostService` for the local branch, so asking for that
+  host yields one sentence instead of a utility process that dies on boot and a
+  "failed to start" banner. 25 injection sites stay; nothing enables agent-host features, so none
+  resolves the client eagerly. §10 item 22 closed.
+- **The IDE window keeps its dock, and the Agents window keeps its panel.** Measured for the first
+  time: Cursor's IDE window has a live chat surface too (`workbench.panel.aichat`,
+  `workbench.panel.aichat.view`, a `Hide Chat` command) beside the buttons that open the Agents
+  window (`workbench.agentsWindowButton.enabled`); so the dock is parity, not surplus.
+  The reference's Agents-window chrome is `Hide Sidebar` plus `Enter Full Screen` / `Hide Apps` in
+  the panel header — no Show Panel or Toggle Side Panel — and the user chose to keep Caret's current
+  panel regardless. Both are recorded in §5.
+- **The composer's mode chips are measured, not guessed.** The reference has real modes, not
+  decoration: `Plan New Idea ⇧Tab` and `Multitask` are CTAs on a mode state (`composerMode.multitask`,
+  `cycleMode`, `changeToAsk`/`changeToDebug`/`changeToMultitask`), each mode carrying its own
+  placeholder and description. They stay unrendered in Caret until a mode exists whose Plan and
+  Multitask paths map to real OMP behaviour. §10 item 11 states the closure.
+- **The terminal decision is split.** The workbench keeps xterm.js (recorded in §5); only the iOS
+  WebView terminal is still open. §10 item 30.
+- **Two things are deliberately left alone.** The Copilot-named helper files are referenced, not
+  dead (§10 item 26 now carries the counts), and `opencode-go/union-alpha` stays a visible dead row
+  rather than Caret inventing catalog policy (§10 item 31).
+- **The AX/DOM comparison has a tool.** `scripts/agents-chrome-inventory.ts` parses the captured
+  reference tree into a control inventory, captures the Caret side over CDP, and reports the
+  reference controls that Caret lacks; it exits non-zero on any. §10 item 16 carries the remaining
+  half — nobody has run it against a live window yet.
+- **`.omp/` is not repository content.** A byte-identical copy of the global
+  `~/.omp/agent/config.yml` (provider credentials included) had been left in the tree; it is removed
+  and ignored, with `.omp/config.yml` — the one file OMP reads at project scope — excepted so a
+  shared project config stays committable. `.agents/AGENTS.md` is committed, because
+  `~/.agents/AGENTS.md` is a symlink into this repository and that file is the shared policy.
+
+Receipt: [`evidence/dead-code-followup-decisions-2026-09-17/`](evidence/dead-code-followup-decisions-2026-09-17/).
+
 ## 10. Open work (the only authoritative list of what is not done)
 
 Anything not listed here is either done (§9) or out of scope (§5). Each item states what closes it.
@@ -1666,26 +1707,46 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
     2026-09-17, out of this item:** the `caretComposer` view and its `caretAgents` container, the
     `caret.agentsShell` editor, the fallback panel, the duplicate `caret.openTask` command and the
     fork's `caret.openAgentsWindow`/`caret.openIde` island are gone — those were the *second*
-    agent surface for one window, not the dock.
+    agent surface for one window, not the dock. The same pass deleted the unreachable
+    new-window path they belonged to (`openCaretAgentsWindow`, `writeCaretAgentsWorkspace`,
+    `serializeCaretAgentsWorkspace`): nothing called it, and `caret.showAgents` already opens the
+    window through the base's own command. `CARET_AGENTS_WORKSPACE` stays as a recognised identity,
+    because a build before that date could have left `caret-agents.code-workspace` on disk.
 
 **S4 — remaining parity**
 
 11. The composer still lacks the `High` reasoning popup and the `Plan New Idea`/`Multitask` chips.
-   The effort chip needs a provider config action (the same S2 gap as the model picker); the two
-   mode chips need a **new composer mode** (state + behaviour), because the concepts do not exist
-   in the code at all — without that they would be fake buttons, which §5 forbids.
+   The effort chip needs a provider config action (the same S2 gap as the model picker). **The two
+   mode chips are now measured, not guessed** (2026-09-17, from the reference's own AX tree and its
+   bundled composer): the reference has a real mode system, not decorative chips —
+   `Plan New Idea ⇧Tab` and `Multitask` are calls to action attached to a mode state
+   (`composerMode.multitask`, `cycleMode`, `changeToAsk`/`changeToDebug`/`changeToMultitask`), and
+   each mode carries its own placeholder and description (`Coordinate tasks` /
+   `Orchestrate multiple subagents in parallel` for Multitask, `Ask questions` /
+   `Answer questions without making edits` for Ask; the window's own placeholder reads
+   `Plan, Build, / for skills, @ for context`, which Caret already copies). Closes with a composer
+   mode in Caret whose Plan path maps to a real OMP behaviour (a plan-first turn over `ompPlan`) and
+   whose Multitask path maps to parallel subagents (§10 item 8); until both exist the chips stay
+   unrendered, because a chip that changes nothing is the fake button §5 forbids.
 12. The reference's chip draws a chevron; Caret uses an icon and no chevron.
 13. What the reference puts under the `Changes` entry is unknown (AX only gives the entry name), and
    our Changes pane is a changes view rather than a multi-diff, and the File pane is an empty state
    + Search Files rather than a tree. A real session with changes has never been used to verify
    either.
 14. The reference has no Show Panel / Toggle Side Panel buttons in this window; ours do because they
-    share layout actions with the IDE. Removing them requires deciding how much the Agents window
-    may hide.
+    share layout actions with the IDE. **Decided 2026-09-17: keep the current panel** — the user
+    chose not to remove the toggle or add the reference's `Hide Apps` / `Enter Full Screen` to the
+    panel header. Recorded as a deviation in §5 rather than left open; it becomes live again only if
+    the panel is rebuilt (§7's React pass).
 15. `--caret-*` is not injected at the workbench level (the extension cannot write CSS into the
     workbench DOM), so the token layer currently relies on CSS fallbacks that a test pins.
-16. **AX/DOM comparison against the reference has never been done.** It is the real decider for
-    "identical" (§11 gate 2) and the largest single verification gap in the project.
+16. **AX/DOM comparison against the reference has never been run against a live Caret window.** It is
+    the real decider for "identical" (§11 gate 2) and the largest single verification gap in the
+    project. The comparison tool now exists: `scripts/agents-chrome-inventory.ts` (reference, from
+    the captured Cursor tree; Cursor's chrome is 45 controls, and the two layout controls §10 item 14
+    keeps are absent from the reference — a test pins both facts). The capture half is what remains:
+    run `capture <debugPort>` against a launched Caret with `--remote-debugging-port`, or capture the
+    same AX tree with Computer Use, then read the `missing from Caret` list.
 17. Vision-side verification is repeatedly unavailable (the image tool answers HTTP 429), so no
     pane's colour, type or spacing has ever been checked against a picture.
 
@@ -1701,11 +1762,15 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
 
 **Agent Host (Caret does not run it)**
 
-22. `0032` stops the window from starting the base Agent Host, but the client and the
-    `IAgentHostService` singleton registration are untouched: anything that ever asks that host for
-    work would spawn the same crashing process. Make the state honest (the base's null client, or
-    finish removing the Copilot services the node graph still requires) before any surface is
-    allowed to depend on it.
+22. ~~`0032` stops the window from starting the base Agent Host, but the client and the
+    `IAgentHostService` singleton registration are untouched.~~ **Closed 2026-09-17** by the first of
+    its two options: the desktop DI shim now returns the base's `NullAgentHostService` for the local
+    branch, so a surface that asks gets one sentence
+    (`Caret ships no agent host: OMP is the only harness this build runs.`) instead of a utility
+    process that dies on boot. The remote branch is untouched. The 25 injection sites that made
+    "remove the Copilot services the node graph still requires" the expensive option stay as they
+    are; nothing enables agent-host features in this build, so none of them resolves the client
+    eagerly. `0032` carries both halves.
 
 **S5 — mobile**
 
@@ -1723,7 +1788,13 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
 25. The brand/icon work in the working tree (`assets/brand/**`, iOS icons, `scripts/lib/app-icon.ts`,
     `scripts/build-caret.ts`) is uncommitted and must be committed as one set, otherwise HEAD and
     the tree disagree.
-26. 15 Copilot-named helper files that are not the harness remain as naming debt.
+26. Copilot-named helper files that are not the harness remain as naming debt. **Checked 2026-09-17:
+    they are not dead code.** `copilotManagedSettings` is referenced by 35 files, `copilotCliEventsUri`
+    by 18, `copilotCliConfig` by 12, and only two files have no importer at all
+    (`src/typings/copilot-api.d.ts`, a type-only declaration, and
+    `src/vs/sessions/copilot-customizations-spec.md`, a spec). Decided: keep them, because renaming
+    referenced upstream files is rebase churn that buys nothing, and the files that die with the
+    Agent Host (item 22) leave with it. Re-count before any rename pass.
 
 **Terminal (Ghostty VT)**
 
@@ -1747,24 +1818,26 @@ opened; each states what closes it.
     runtime update — building and contract-testing a newer patched OMP and refreshing
     `docs/UPSTREAM-LOCK.md` — is what a Caret release must do when it adopts a newer OMP, and a
     stock newer runtime keeps the Caret bridge surfaces off until then.
-30. **Renderer decision for the terminal Caret owns.** Replacing xterm.js in the workbench is a
-    §5 deviation (Cursor renders xterm.js) and drags the xterm-specific addons (image, ligatures,
-    search, serialize, the terminal API) with it; the corpus in `apps/macos/src/terminal-conformance.ts`
-    exists to gate any candidate. The cheaper first surface is the one Caret already renders itself:
-    the iOS WebView terminal (`apps/ios/src/components/VirtualTerminal.tsx`, xterm.js 6.0.0 bundled
-    into the document). Closes with: a candidate engine passing all required corpus cases (report
-    attached), the mobile terminal switched with a real-device receipt, and either the same for the
-    workbench — recorded as a deviation with a reason — or an explicit decision to keep xterm.js there.
+30. **Renderer decision for the terminal Caret owns.** **Split decided 2026-09-17.**
+    The workbench half is closed: the IDE window keeps xterm.js, recorded as a deviation in §5,
+    because replacing it drags the xterm-specific addons (image, ligatures, search, serialize, the
+    terminal API) out with it for no user-visible gain while Cursor parity is the goal. What is still
+    open is the half Caret renders itself, the iOS WebView terminal
+    (`apps/ios/src/components/VirtualTerminal.tsx`, xterm.js 6.0.0 bundled into the document):
+    it closes with a candidate engine passing every required case in the corpus
+    (`apps/macos/src/terminal-conformance.ts`, report attached) and the mobile terminal switched with
+    a real-device receipt.
 
 **Model catalogue (opened 2026-09-16)**
 
-31. `opencode-go/union-alpha` is a dead row in the picker: OMP routes the gateway-first id to chat
-    completions, which Zen answers 500, and its `/messages` lane did not answer within 100 s — while
-    the same model on `opencode-zen` was put on the working route by operator config (§9, "Zen's free
-    stealth model in OMP"). Any gateway model published after the pin lands the same way. Closes with
-    an OMP catalog pin for such ids (upstream policy; main pins `muse-spark-`, `minimax-m3`,
-    `gpt-6-astra` for zen but not this one) or a deliberate pin bump that carries one — Caret should
-    not fork catalog policy into `patches/omp`.
+31. ~~`opencode-go/union-alpha` is a dead row in the picker.~~ **Decided 2026-09-17: leave the row,
+    take no action in Caret.** The facts are unchanged (OMP routes the gateway-first id to chat
+    completions, which Zen answers 500, and its `/messages` lane did not answer within 100 s, while
+    the same model on `opencode-zen` was put on the working route by operator config — §9, "Zen's
+    free stealth model in OMP"), and any gateway model published after the pin lands the same way.
+    Hiding the row would be Caret inventing catalog policy, which the plan forbids in `patches/omp`;
+    the working twin is already reachable. Act only on a deliberate OMP pin bump whose upstream
+    catalog carries the pin.
 
 ## 11. Acceptance criteria: "identical to Cursor"
 

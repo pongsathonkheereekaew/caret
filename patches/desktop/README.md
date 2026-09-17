@@ -308,20 +308,33 @@ declaration and its view item stay reachable for the type checker and the base's
 wiring while the control never appears. It edits a base file that no earlier patch
 touches, so it stands alone rather than folding into `0029`.
 
-`0032-caret-no-base-agent-host.patch` stops the Agents window from starting the
-base Agent Host. That utility process exists to host the Copilot/Claude/Codex
-harnesses, and S1 removed that layer - but the process's node-side graph still
-requires Copilot services that no longer exist (`agentHostCustomizationEnablementService
-depends on copilotApiService which is NOT registered`), so a process started at
-restore dies on boot, `AgentHostProcessManager` restarts it five times and the window
-shows "The Agent Host failed to start". Caret does not ask that host for anything -
-OMP is the only execution owner - so `AgentHostPrewarmContribution` no longer starts
-it, and the base's own suite for that contribution now pins the Caret contract
-("does not start the agent host while enabled"). Two base files, neither touched by an
-earlier patch: the workbench service that carries the prewarm contribution and its
-test. Booting the process instead would mean restoring Copilot services across
-`agentHostServices.ts`, `agentBranchNameGenerator.ts` and the changeset handlers,
-which is the layer the plan removes rather than re-adds.
+`0032-caret-no-base-agent-host.patch` is Caret's whole answer to the base Agent Host, in
+two halves. Both are needed: stopping the prewarm alone left the client in place, so any
+surface that asked that host for work still started the process.
+
+1. **The prewarm stops.** The utility process exists to host the Copilot/Claude/Codex
+   harnesses, and S1 removed that layer - but the process's node-side graph still requires
+   Copilot services that no longer exist (`agentHostCustomizationEnablementService depends
+   on copilotApiService which is NOT registered`), so a process started at restore dies on
+   boot, `AgentHostProcessManager` restarts it five times and the window shows "The Agent
+   Host failed to start". `AgentHostPrewarmContribution` no longer starts it, and the
+   base's own suite for that contribution pins the Caret contract ("does not start the
+   agent host while enabled").
+2. **The client is the base's null implementation.** `NullAgentHostService` already
+   exists for browser contexts where no local host is available; the desktop DI shim now
+   returns it for the local branch, with a Caret reason
+   (`Caret ships no agent host: OMP is the only harness this build runs.`) instead of the
+   browser-worded default. The remote branch is untouched for a window attached to a
+   remote authority. Every call into it now throws that one sentence, which is the honest
+   reading of this build: the harness layer it would host is removed, and OMP is the only
+   execution owner.
+
+Three base files, none touched by an earlier patch: the workbench service that carries the
+shim and the prewarm contribution, its test, and `NullAgentHostService` itself (the reason
+becomes a constructor argument, and the module-private `notSupported` const becomes a
+protected method so a caller's build can name itself). Booting the process instead would
+mean restoring Copilot services across `agentHostServices.ts`, `agentBranchNameGenerator.ts`
+and the changeset handlers, which is the layer the plan removes rather than re-adds.
 
 `0033-caret-agents-no-copilot-composer-controls.patch` closes three of the plan's chrome
 decisions in the Agents window, all by scoping a base chat control out of that window with

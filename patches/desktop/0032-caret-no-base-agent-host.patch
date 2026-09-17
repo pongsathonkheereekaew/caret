@@ -1,28 +1,177 @@
+diff --git a/src/vs/platform/agentHost/browser/nullAgentHostService.ts b/src/vs/platform/agentHost/browser/nullAgentHostService.ts
+index cd602b445a4..6d499b640a5 100644
+--- a/src/vs/platform/agentHost/browser/nullAgentHostService.ts
++++ b/src/vs/platform/agentHost/browser/nullAgentHostService.ts
+@@ -20,7 +20,7 @@ import type { CreateResourceWatchParams, CreateResourceWatchResult, ResourceCopy
+ import type { ComponentToState, RootState, StateComponents } from '../common/state/sessionState.js';
+ import { identityAgentHostResourceUriMapper } from '../common/agentHostUri.js';
+ 
+-const notSupported = () => { throw new Error('Local agent host is not supported in the browser.'); };
++const DEFAULT_NOT_SUPPORTED_REASON = 'Local agent host is not supported in the browser.';
+ 
+ /**
+  * Null implementation of {@link IAgentHostService} for browser contexts
+@@ -29,6 +29,16 @@ const notSupported = () => { throw new Error('Local agent host is not supported
+ export class NullAgentHostService implements IAgentHostService {
+ 	declare readonly _serviceBrand: undefined;
+ 
++	/**
++	 * `reason` names the build that has no agent host, so a caller sees why the
++	 * service is inert instead of a browser-specific sentence on the desktop.
++	 */
++	constructor(private readonly reason: string = DEFAULT_NOT_SUPPORTED_REASON) {}
++
++	protected notSupported(): never {
++		throw new Error(this.reason);
++	}
++
+ 	readonly clientId = '';
+ 	readonly resourceUris = identityAgentHostResourceUriMapper;
+ 	readonly onAgentHostExit = Event.None;
+@@ -43,53 +53,53 @@ export class NullAgentHostService implements IAgentHostService {
+ 
+ 	readonly initializeResult: IObservable<InitializeResult | undefined> = constObservable(undefined);
+ 
+-	get rootState(): IAgentSubscription<RootState> { return notSupported(); }
++	get rootState(): IAgentSubscription<RootState> { return this.notSupported(); }
+ 
+-	getSubscription<T extends StateComponents>(_kind: T, _resource: URI, _owner: string): IReference<IAgentSubscription<ComponentToState[T]>> { return notSupported(); }
++	getSubscription<T extends StateComponents>(_kind: T, _resource: URI, _owner: string): IReference<IAgentSubscription<ComponentToState[T]>> { return this.notSupported(); }
+ 	getSubscriptionUnmanaged<T extends StateComponents>(_kind: T, _resource: URI): IAgentSubscription<ComponentToState[T]> | undefined { return undefined; }
+ 	getInflightSessionCreate(_resource: URI): Promise<unknown> | undefined { return undefined; }
+ 	getActiveSubscriptions(): readonly IActiveSubscriptionInfo[] { return []; }
+-	dispatch(_channel: string, _action: SessionAction | ChatAction | TerminalAction | ClientChangesetAction | ClientAnnotationsAction | ClientAutomationAction | ClientAutomationRunAction | IRootConfigChangedAction): void { notSupported(); }
++	dispatch(_channel: string, _action: SessionAction | ChatAction | TerminalAction | ClientChangesetAction | ClientAnnotationsAction | ClientAutomationAction | ClientAutomationRunAction | IRootConfigChangedAction): void { this.notSupported(); }
+ 
+-	async restartAgentHost(): Promise<void> { notSupported(); }
+-	async authenticate(_params: AuthenticateParams): Promise<AuthenticateResult> { return notSupported(); }
+-	async getNetworkDiagnosticsInfo(): Promise<IAgentHostNetworkDiagnosticsInfo> { return notSupported(); }
++	async restartAgentHost(): Promise<void> { this.notSupported(); }
++	async authenticate(_params: AuthenticateParams): Promise<AuthenticateResult> { return this.notSupported(); }
++	async getNetworkDiagnosticsInfo(): Promise<IAgentHostNetworkDiagnosticsInfo> { return this.notSupported(); }
+ 	async getManagedSettingsDiagnostics(): Promise<readonly IAgentHostManagedSettingsDiagnostics[]> { return []; }
+-	async diagnosticsFetch(_url: string): Promise<IAgentHostNetworkFetchResult> { return notSupported(); }
+-	async getSessionStateFile(_session: URI): Promise<URI | undefined> { return notSupported(); }
+-	async collectDebugLogs(_session: URI | undefined, _kind: AgentHostDebugLogsArtifactKind, _chat?: URI): Promise<IAgentHostDebugLogsArtifact> { return notSupported(); }
+-	async readDebugLogsChunk(_resource: URI, _position: number): Promise<IAgentHostDebugLogsChunk> { return notSupported(); }
++	async diagnosticsFetch(_url: string): Promise<IAgentHostNetworkFetchResult> { return this.notSupported(); }
++	async getSessionStateFile(_session: URI): Promise<URI | undefined> { return this.notSupported(); }
++	async collectDebugLogs(_session: URI | undefined, _kind: AgentHostDebugLogsArtifactKind, _chat?: URI): Promise<IAgentHostDebugLogsArtifact> { return this.notSupported(); }
++	async readDebugLogsChunk(_resource: URI, _position: number): Promise<IAgentHostDebugLogsChunk> { return this.notSupported(); }
+ 	async listSessions(): Promise<IAgentSessionMetadata[]> { return []; }
+-	async createSession(_config?: IAgentCreateSessionConfig): Promise<URI> { return notSupported(); }
+-	async createDetachedWorktree(_session: URI, _prompt: string): Promise<{ handle: string; worktree: URI }> { return notSupported(); }
+-	async claimDetachedWorktree(_handle: string): Promise<void> { return notSupported(); }
+-	async setDetachedWorktreeArchived(_handle: string, _archived: boolean): Promise<void> { return notSupported(); }
+-	async deleteDetachedWorktree(_handle: string): Promise<void> { return notSupported(); }
+-	async reconcileDetachedWorktrees(_scope: string, _activeHandles: readonly string[]): Promise<void> { return notSupported(); }
+-	async resolveSessionConfig(_params: IAgentResolveSessionConfigParams): Promise<ResolveSessionConfigResult> { return notSupported(); }
+-	async sessionConfigCompletions(_params: IAgentSessionConfigCompletionsParams): Promise<SessionConfigCompletionsResult> { return notSupported(); }
++	async createSession(_config?: IAgentCreateSessionConfig): Promise<URI> { return this.notSupported(); }
++	async createDetachedWorktree(_session: URI, _prompt: string): Promise<{ handle: string; worktree: URI }> { return this.notSupported(); }
++	async claimDetachedWorktree(_handle: string): Promise<void> { return this.notSupported(); }
++	async setDetachedWorktreeArchived(_handle: string, _archived: boolean): Promise<void> { return this.notSupported(); }
++	async deleteDetachedWorktree(_handle: string): Promise<void> { return this.notSupported(); }
++	async reconcileDetachedWorktrees(_scope: string, _activeHandles: readonly string[]): Promise<void> { return this.notSupported(); }
++	async resolveSessionConfig(_params: IAgentResolveSessionConfigParams): Promise<ResolveSessionConfigResult> { return this.notSupported(); }
++	async sessionConfigCompletions(_params: IAgentSessionConfigCompletionsParams): Promise<SessionConfigCompletionsResult> { return this.notSupported(); }
+ 	async completions(_params: CompletionsParams): Promise<CompletionsResult> { return { items: [] }; }
+-	async listAutomationTriggerDefinitions(_params: ListAutomationTriggerDefinitionsParams): Promise<ListAutomationTriggerDefinitionsResult> { return notSupported(); }
+-	async runAutomation(_params: RunAutomationParams): Promise<RunAutomationResult> { return notSupported(); }
+-	async fetchAutomationRuns(_params: FetchAutomationRunsParams): Promise<FetchAutomationRunsResult> { return notSupported(); }
++	async listAutomationTriggerDefinitions(_params: ListAutomationTriggerDefinitionsParams): Promise<ListAutomationTriggerDefinitionsResult> { return this.notSupported(); }
++	async runAutomation(_params: RunAutomationParams): Promise<RunAutomationResult> { return this.notSupported(); }
++	async fetchAutomationRuns(_params: FetchAutomationRunsParams): Promise<FetchAutomationRunsResult> { return this.notSupported(); }
+ 	async getCompletionTriggerCharacters(): Promise<readonly string[]> { return []; }
+-	async startWebSocketServer(): Promise<IAgentHostSocketInfo> { return notSupported(); }
++	async startWebSocketServer(): Promise<IAgentHostSocketInfo> { return this.notSupported(); }
+ 	async getInspectInfo(_tryEnable: boolean): Promise<IAgentHostInspectInfo | undefined> { return undefined; }
+ 	async disposeSession(_session: URI): Promise<void> { }
+-	async createChat(_session: URI, _chat: URI): Promise<void> { notSupported(); }
++	async createChat(_session: URI, _chat: URI): Promise<void> { this.notSupported(); }
+ 	async disposeChat(_chat: URI): Promise<void> { }
+-	async createTerminal(_params: CreateTerminalParams): Promise<void> { notSupported(); }
++	async createTerminal(_params: CreateTerminalParams): Promise<void> { this.notSupported(); }
+ 	async disposeTerminal(_terminal: URI): Promise<void> { }
+-	async invokeChangesetOperation(_params: InvokeChangesetOperationParams): Promise<InvokeChangesetOperationResult> { return notSupported(); }
+-	async handleMcpRequest(_channel: string, _method: string, _params: Record<string, unknown> | undefined): Promise<unknown> { return notSupported(); }
+-	async resourceList(_uri: URI): Promise<ResourceListResult> { return notSupported(); }
+-	async resourceRead(_uri: URI): Promise<ResourceReadResult> { return notSupported(); }
+-	async resourceWrite(_params: ResourceWriteParams): Promise<ResourceWriteResult> { return notSupported(); }
+-	async resourceCopy(_params: ResourceCopyParams): Promise<ResourceCopyResult> { return notSupported(); }
+-	async resourceDelete(_params: ResourceDeleteParams): Promise<ResourceDeleteResult> { return notSupported(); }
+-	async resourceMove(_params: ResourceMoveParams): Promise<ResourceMoveResult> { return notSupported(); }
+-	async resourceResolve(_params: ResourceResolveParams): Promise<ResourceResolveResult> { return notSupported(); }
+-	async resourceMkdir(_params: ResourceMkdirParams): Promise<ResourceMkdirResult> { return notSupported(); }
+-	async createResourceWatch(_params: CreateResourceWatchParams): Promise<CreateResourceWatchResult> { return notSupported(); }
+-	async watchResource(_params: CreateResourceWatchParams): Promise<IRemoteWatchHandle> { return notSupported(); }
++	async invokeChangesetOperation(_params: InvokeChangesetOperationParams): Promise<InvokeChangesetOperationResult> { return this.notSupported(); }
++	async handleMcpRequest(_channel: string, _method: string, _params: Record<string, unknown> | undefined): Promise<unknown> { return this.notSupported(); }
++	async resourceList(_uri: URI): Promise<ResourceListResult> { return this.notSupported(); }
++	async resourceRead(_uri: URI): Promise<ResourceReadResult> { return this.notSupported(); }
++	async resourceWrite(_params: ResourceWriteParams): Promise<ResourceWriteResult> { return this.notSupported(); }
++	async resourceCopy(_params: ResourceCopyParams): Promise<ResourceCopyResult> { return this.notSupported(); }
++	async resourceDelete(_params: ResourceDeleteParams): Promise<ResourceDeleteResult> { return this.notSupported(); }
++	async resourceMove(_params: ResourceMoveParams): Promise<ResourceMoveResult> { return this.notSupported(); }
++	async resourceResolve(_params: ResourceResolveParams): Promise<ResourceResolveResult> { return this.notSupported(); }
++	async resourceMkdir(_params: ResourceMkdirParams): Promise<ResourceMkdirResult> { return this.notSupported(); }
++	async createResourceWatch(_params: CreateResourceWatchParams): Promise<CreateResourceWatchResult> { return this.notSupported(); }
++	async watchResource(_params: CreateResourceWatchParams): Promise<IRemoteWatchHandle> { return this.notSupported(); }
+ }
 diff --git a/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts b/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts
-index 2a89b7d120a..455b8df6ea0 100644
+index 2a89b7d120a..75dce7f72a3 100644
 --- a/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts
 +++ b/src/vs/workbench/services/agentHost/electron-browser/agentHostService.ts
-@@ -10,19 +10,12 @@
- // (`LocalAgentHostServiceClient`).
+@@ -5,27 +5,22 @@
+ 
+ // Registers `IAgentHostService` for the desktop workbench. When the window
+ // is attached to a remote authority, the renderer talks to the agent host
+-// running on the remote (via `EditorRemoteAgentHostServiceClient`);
+-// otherwise it uses the local utility-process agent host
+-// (`LocalAgentHostServiceClient`).
++// running on the remote (via `EditorRemoteAgentHostServiceClient`). There is
++// no local agent host in this build: Caret removed the harness layer that
++// process hosts, so the local branch reports that instead of starting it.
  
  import { Disposable } from '../../../../base/common/lifecycle.js';
 -import { autorun } from '../../../../base/common/observable.js';
  import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
  import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
  import { IAgentHostService } from '../../../../platform/agentHost/common/agentService.js';
- import { LocalAgentHostServiceClient } from '../../../../platform/agentHost/electron-browser/localAgentHostService.js';
+-import { LocalAgentHostServiceClient } from '../../../../platform/agentHost/electron-browser/localAgentHostService.js';
 -import { IAgentHostEnablementService } from '../../../../platform/agentHost/common/agentHostEnablementService.js';
- import { agentsWindowAgentHostClientInfo, editorWindowAgentHostClientInfo } from '../../../../platform/agentHost/common/agentHostClientInfo.js';
+-import { agentsWindowAgentHostClientInfo, editorWindowAgentHostClientInfo } from '../../../../platform/agentHost/common/agentHostClientInfo.js';
 -import { CopilotCliVSCodeAssignmentContextKey } from '../../../../platform/agentHost/common/copilotCliConfig.js';
 -import { ActionType } from '../../../../platform/agentHost/common/state/sessionActions.js';
 -import { ROOT_STATE_URI } from '../../../../platform/agentHost/common/state/sessionState.js';
 -import { ILogService } from '../../../../platform/log/common/log.js';
++import { NullAgentHostService } from '../../../../platform/agentHost/browser/nullAgentHostService.js';
  import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 -import { IWorkbenchAssignmentService } from '../../assignment/common/assignmentService.js';
  import { IWorkbenchEnvironmentService } from '../../environment/common/environmentService.js';
  import { EditorRemoteAgentHostServiceClient } from '../browser/editorRemoteAgentHostServiceClient.js';
  
-@@ -50,63 +43,27 @@ class WorkbenchAgentHostService {
++/** What a caller sees when it asks this build for an agent host. */
++const CARET_NO_AGENT_HOST_REASON = 'Caret ships no agent host: OMP is the only harness this build runs.';
++
+ /**
+  * DI shim: picks between the local utility-process agent host and the
+  * remote bridge based on `remoteAuthority`, and returns the chosen inner
+@@ -42,71 +37,37 @@ class WorkbenchAgentHostService {
+ 	) {
+ 		const inner = environmentService.remoteAuthority
+ 			? instantiationService.createInstance(EditorRemoteAgentHostServiceClient)
+-			: instantiationService.createInstance(
+-				LocalAgentHostServiceClient,
+-				environmentService.isSessionsWindow ? agentsWindowAgentHostClientInfo : editorWindowAgentHostClientInfo,
+-			);
++			// Caret: no local agent host exists in this build. The harness layer this
++			// process hosts is removed, so its node graph cannot boot; the base's null
++			// client answers every call with that sentence instead of starting a
++			// process that `AgentHostProcessManager` would restart five times and then
++			// report as "The Agent Host failed to start".
++			: new NullAgentHostService(CARET_NO_AGENT_HOST_REASON);
+ 		return inner as unknown as WorkbenchAgentHostService;
  	}
  }
  

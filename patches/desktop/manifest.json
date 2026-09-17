@@ -119,7 +119,7 @@
     },
     {
       "file": "0032-caret-no-base-agent-host.patch",
-      "sha256": "82bc17be328658b8c7cdc5607718764b5bd1b572763c0e88007041a5ce65fd84"
+      "sha256": "02aef29c7e1242c0ecb40cd43f995afc12ffb201ff16afe0a48ad77971b24062"
     },
     {
       "file": "0033-caret-agents-no-copilot-composer-controls.patch",

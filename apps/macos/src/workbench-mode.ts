@@ -1,26 +1,14 @@
 /** Agent ↔ IDE is presentation, not an OMP session lifecycle.
  *
  * Default is the same Caret.app window: hide/restore Code-OSS chrome and keep
- * the open folder, host, and OMP owner. `caret-agents.code-workspace` is only
- * a fallback identity so Caret is not Copilot's `agent-sessions.code-workspace`.
- * Open-in-new-window is an explicit secondary command. */
+ * the open folder, host, and OMP owner. The Agents window itself is the base's,
+ * and it opens `agent-sessions.code-workspace`; `caret-agents.code-workspace` is
+ * only a recognised identity, kept because a build before 2026-09-17 could have
+ * left that file on disk, and recognising it costs one string comparison. */
 
 export const CARET_AGENTS_WORKSPACE = "caret-agents.code-workspace";
 export const COPILOT_AGENTS_WORKSPACE = "agent-sessions.code-workspace";
 export const CARET_EXTENSION_ID = "caret.caret";
-
-export const CARET_AGENTS_WINDOW_SETTINGS = {
-	"workbench.activityBar.location": "hidden",
-	"workbench.statusBar.visible": false,
-	"workbench.editor.showTabs": "multiple",
-	"workbench.editor.editorActionsLocation": "hidden",
-	"workbench.startupEditor": "none",
-	"window.commandCenter": false,
-	"workbench.layoutControl.enabled": false,
-	"breadcrumbs.enabled": false,
-	"workbench.tips.enabled": false,
-	"window.title": "Caret",
-} as const;
 
 export function workspaceFilePath(workspaceFile?: { fsPath?: string; path?: string } | string | null): string {
 	if (!workspaceFile) return "";
@@ -42,22 +30,6 @@ export function isCopilotAgentsWindow(workspaceFile?: { fsPath?: string; path?: 
 
 export function isAgentsWindow(workspaceFile?: { fsPath?: string; path?: string } | string | null): boolean {
 	return isCaretAgentsWindow(workspaceFile) || isCopilotAgentsWindow(workspaceFile);
-}
-
-/**
- * The Agents window's workspace file.
- *
- * `themeSettings` exists because that window runs on its own profile: the theme the user picked in
- * the IDE (`workbench.colorTheme`, or the `preferred*ColorTheme` pair when
- * `window.autoDetectColorScheme` is on) does not reach it, so the two windows disagreed on colour.
- * Caret copies those keys in here instead of painting a palette of its own, which means changing
- * the theme once changes both windows.
- */
-export function serializeCaretAgentsWorkspace(folderPath?: string, themeSettings?: Readonly<Record<string, unknown>>): string {
-	return `${JSON.stringify({
-		folders: folderPath ? [{ path: folderPath }] : [],
-		settings: { ...CARET_AGENTS_WINDOW_SETTINGS, ...(themeSettings ?? {}) },
-	}, null, "\t")}\n`;
 }
 
 /**

@@ -1,0 +1,62 @@
+{
+  "slice": "The decision pass: measured reference facts, the Agent Host null client, the .omp/.agents split, and the AX comparison tool",
+  "capturedAt": "2026-09-17T14:40:00+07:00",
+  "branch": "main",
+  "method": "grep of the installed Cursor 3.20.21 bundle and its bundled composer; the captured reference AX tree; the OMP checkout's own docs; desktop patch recut + prepare-desktop.ts; desktop-patch-set.test.ts; npm run compile-client; bun test; bun run typecheck; fork tsc; check:repo; check:cursor-parity",
+  "reference": {
+    "installed": "Cursor 3.20.21 at /Applications/Cursor.app. The plan's measured reference is 3.20.17; the strings below come from the newer install and were cross-checked against the 3.20.17 AX capture.",
+    "ideWindowHasAChatSurface": "workbench.panel.aichat (view container), workbench.panel.aichat.view, aichat-container, and a command id 'aichat.close-sidebar' titled 'Hide Chat' - so the IDE window keeps a live chat surface beside the buttons that open the Agents window",
+    "agentsWindowEntryPoints": "workbench.agentsWindowButton.enabled (default true) plus agentsWindowOpenSource values: ide_title_bar_button, ide_agents_sidebar, ide_empty_editor_parallel_agents_button, ide_settings_agents_window_banner, ide_usage_credit_banner_agents_window_button, ide_in_app_ad. The Agents window is internally the Glass window (cursor.openOrFocusGlassWindow).",
+    "agentsWindowChrome": "the 3.20.17 AX tree has exactly one sidebar control (Hide Sidebar) and, in the Apps panel header, Enter Full Screen and Hide Apps. 'Show Panel' and 'Toggle Side Panel' appear in neither bundle.",
+    "composerModes": "real mode state: composerMode.multitask, cycleMode, changeToAsk / changeToDebug / changeToMultitask; per-mode placeholder and description ('Coordinate tasks' / 'Orchestrate multiple subagents in parallel', 'Ask questions' / 'Answer questions without making edits'); CTAs pushed conditionally (Plan New Idea only while the mode is not 'plan'; Multitask while multitask is selected). The window placeholder is 'Plan, Build, / for skills, @ for context'.",
+    "notMeasured": "Cursor's IDE window was read from its bundle, not captured with AX: whether the aichat surface renders in the panel, the secondary sidebar or the right side on 3.20.21 is not established here."
+  },
+  "change": {
+    "agentHost": {
+      "patch": "0032-caret-no-base-agent-host.patch, re-cut and re-digested (02aef29c7e1242c0ecb40cd43f995afc12ffb201ff16afe0a48ad77971b24062)",
+      "what": "the desktop DI shim's local branch now returns the base's NullAgentHostService with a Caret reason instead of constructing LocalAgentHostServiceClient; NullAgentHostService gains an optional constructor reason and its module-private notSupported const becomes a protected method",
+      "why": "any surface that asked the base agent host for work still started a utility process whose node graph requires Copilot services this fork removed - it dies on boot and AgentHostProcessManager restarts it five times",
+      "kept": "the 25 IAgentHostService injection sites and the remote (remoteAuthority) branch; nothing enables agent-host features in this build"
+    },
+    "unreachableAgentsWindowPath": {
+      "removed": "openCaretAgentsWindow, writeCaretAgentsWorkspace, serializeCaretAgentsWorkspace and CARET_AGENTS_WINDOW_SETTINGS",
+      "kept": "CARET_AGENTS_WORKSPACE + isCaretAgentsWindow as a recognised identity",
+      "why": "no caller: setWorkbenchMode(\"agents\", {newWindow:true}) is never invoked, and caret.showAgents already opens the window through the base command"
+    },
+    "dotOmp": {
+      "removed": ".omp/agent/config.yml and .omp/agent/models.yml from the repository",
+      "why": "config.yml was byte-identical to ~/.omp/agent/config.yml (shasum beda0fee4c6e) and holds provider credentials; neither Caret nor OMP reads a project .omp/agent/ - OMP's project config is .omp/config.yml",
+      "gitignore": ".omp/ ignored with !.omp/config.yml excepted; .agents/skills-enabled.json and .agents/skills.lock ignored as installer state. .agents/AGENTS.md is committed because ~/.agents/AGENTS.md symlinks to it."
+    },
+    "axTool": {
+      "added": "scripts/lib/agents-chrome-inventory.ts (pure parse + diff), scripts/agents-chrome-inventory.ts (reference | compare <file> | capture <debugPort> --write <file>), apps/macos/test/agents-chrome-inventory.test.ts",
+      "referenceInventory": "45 controls parsed from evidence/cursor-agents-ax-2026-09-14/cursor-agents-ax-tree.txt",
+      "exitCode": "non-zero while any reference control is missing from Caret"
+    },
+    "decisionsRecorded": [
+      "section 5: the Agents-window panel controls stay as they are (the user chose to keep the current panel); the workbench keeps xterm.js",
+      "section 10 item 11: the composer mode chips are measured and stay unrendered until a real mode exists",
+      "section 10 item 14: closed as the kept-panel deviation",
+      "section 10 item 22: closed by the null client",
+      "section 10 item 26: the Copilot-named files are referenced (35/18/12 importers), only two are unreferenced; kept",
+      "section 10 item 30: split - the workbench keeps xterm.js, the iOS WebView terminal is still open",
+      "section 10 item 31: the union-alpha row stays visible; Caret invents no catalog policy"
+    ]
+  },
+  "verified": {
+    "macTests": "cd apps/macos && bun test test -> 617 pass / 0 fail",
+    "rootTests": "bun run test -> 770 pass / 0 fail",
+    "typecheck": "bun run typecheck -> 0 errors",
+    "forkTypecheck": "cd desktop && npx tsc --project src/tsconfig.json --noEmit --skipLibCheck -> 0 errors",
+    "prepareDesktop": "bun scripts/prepare-desktop.ts -> 32 patches, 19 removals",
+    "patchSet": "desktop-patch-set.test.ts rebuilds from the pinned base and finds no drift",
+    "forkBuild": "cd desktop && npm run compile-client -> exit 0; out/vs/workbench/services/agentHost/electron-browser/agentHostService.js now imports NullAgentHostService and no longer references LocalAgentHostServiceClient",
+    "axToolRuns": "bun scripts/agents-chrome-inventory.ts reference -> 45 controls; compare against that same inventory -> 0 missing, exit 0; compare against a copy with 'Multitask' removed -> 1 missing, exit 1",
+    "repoChecks": "node scripts/ci-validate.mjs and bun scripts/cursor-parity-check.ts green"
+  },
+  "notVerified": [
+    "The AX/DOM comparison has not been run against a live Caret window: no packaged app was built and launched, so the Caret side has no capture yet. That is the half that closes section 11 gate 2.",
+    "The Agent Host change is verified by types, the compiled module and the patch set, not by booting a window: nobody has watched the Agents window come up after it to confirm that no surface resolves the client eagerly and reports the null reason.",
+    "The null client's sentence would appear only if an agent-host surface ever became enabled; nothing enables it, so it is unobserved."
+  ]
+}

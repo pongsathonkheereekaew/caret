@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { AGENTS_EDITOR_SHOW_TABS, AGENTS_WINDOW_SUPPORT_SETTING, CARET_AGENTS_WINDOW_SETTINGS, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode, themeProvidingExtensionIds } from "../src/workbench-mode.ts";
+import { AGENTS_EDITOR_SHOW_TABS, AGENTS_WINDOW_SUPPORT_SETTING, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCaretAgentsWindow, isCopilotAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, switchWorkbenchMode, themeProvidingExtensionIds } from "../src/workbench-mode.ts";
 import { createInitialTaskState, reduceTaskState } from "../src/state.ts";
 import { parseWebviewMessage } from "../src/messages.ts";
 import type { Project, Session } from "../../../packages/protocol/src/index.ts";
@@ -10,18 +10,10 @@ const session = (id: string, projectId: string): Session => ({
 });
 
 describe("Agent ↔ IDE workbench mode", () => {
-	it("owns Caret Agents via caret-agents workspace, not Copilot agent-sessions", () => {
+	it("recognises both agent-window identities", () => {
 		expect(isCaretAgentsWindow("/tmp/globalStorage/caret-agents.code-workspace")).toBe(true);
 		expect(isCopilotAgentsWindow("/User/agent-sessions.code-workspace")).toBe(true);
 		expect(isAgentsWindow("/Users/pond/caret")).toBe(false);
-		const workspace = JSON.parse(serializeCaretAgentsWorkspace("/tmp/caret-agents")) as { folders: Array<{ path: string }>; settings: Record<string, unknown> };
-		expect(workspace.folders[0]?.path).toBe("/tmp/caret-agents");
-		// The reference right-hand Apps panel is a tab group, so the Agents window keeps
-		// editor tabs rather than collapsing them into one large label. Caret's own Apps
-		// panel hides that strip only while it is the group's only tab.
-		expect(workspace.settings["workbench.editor.showTabs"]).toBe("multiple");
-		expect(workspace.settings["workbench.activityBar.location"]).toBe(CARET_AGENTS_WINDOW_SETTINGS["workbench.activityBar.location"]);
-		expect(serializeCaretAgentsWorkspace()).not.toContain("agent-sessions");
 	});
 
 	it("does not emit chrome commands when already in the requested mode", () => {

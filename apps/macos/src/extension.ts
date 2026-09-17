@@ -49,7 +49,7 @@ import { layoutBoxes, layoutSashes, setSplitRatio } from "./layout-geometry.ts";
 import { buildPaneViews, rememberPaneTranscript, type PaneTranscriptCache, type PaneView } from "./pane-views.ts";
 import { announceSummary, motionTokens } from "./ui-a11y.ts";
 import { redactedDiagnostics } from "./diagnostics.ts";
-import { AGENTS_WINDOW_WORKSPACE, CARET_AGENTS_WORKSPACE, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, serializeCaretAgentsWorkspace, switchWorkbenchMode, themeProvidingExtensionIds, type IdeLayoutSnapshot, type NativeDestination, type RetentionSnapshot } from "./workbench-mode.ts";
+import { AGENTS_WINDOW_WORKSPACE, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, switchWorkbenchMode, themeProvidingExtensionIds, type IdeLayoutSnapshot, type NativeDestination, type RetentionSnapshot } from "./workbench-mode.ts";
 import { availabilityFromLists, routeErrorPage, validateRoute, type RouteErrorPage } from "./route-error.ts";
 import { applySettingsSection, beginSettingsDraft, previewResetOverride, settingsSourcePath, type ResetOverridePreview, type SettingsSectionDraft } from "./settings-revision.ts";
 import { OLDER_PAGES_NOTE } from "./history-page.ts";
@@ -942,41 +942,6 @@ export class CaretTaskViewProvider {
 		return isAgentsWindow(vscode.workspace.workspaceFile);
 	}
 
-	async writeCaretAgentsWorkspace(): Promise<vscode.Uri> {
-		const dir = this.#context.globalStorageUri;
-		const uri = vscode.Uri.joinPath(dir, CARET_AGENTS_WORKSPACE);
-		await vscode.workspace.fs.createDirectory(dir);
-		// This runs in the window the user is opening the Agents window FROM, so the configuration
-		// read here is the theme they actually chose. The Agents window is a different profile, so
-		// without carrying these keys across it falls back to the stock sessions theme and the two
-		// windows stop matching (see serializeCaretAgentsWorkspace).
-		const workbench = vscode.workspace.getConfiguration("workbench");
-		const windowConfig = vscode.workspace.getConfiguration("window");
-		const themeSettings: Record<string, unknown> = {};
-		const colorTheme = workbench.get<string>("colorTheme");
-		const preferredDark = workbench.get<string>("preferredDarkColorTheme");
-		const preferredLight = workbench.get<string>("preferredLightColorTheme");
-		const carried: readonly (readonly [string, unknown])[] = [
-			["workbench.colorTheme", colorTheme],
-			["workbench.preferredDarkColorTheme", preferredDark],
-			["workbench.preferredLightColorTheme", preferredLight],
-			["window.autoDetectColorScheme", windowConfig.get<boolean>("autoDetectColorScheme")],
-		];
-		for (const [key, value] of carried) {
-			if (value !== undefined) themeSettings[key] = value;
-		}
-		await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(serializeCaretAgentsWorkspace(dir.fsPath, themeSettings)));
-		await syncAgentsWindowTheme(dir);
-		return uri;
-	}
-
-	private async openCaretAgentsWindow(): Promise<void> {
-		const uri = await this.writeCaretAgentsWorkspace();
-		// Only reached for an explicit "new window" request; the in-window path is
-		// `revealAgentSurface`, so there is no mode to pick here any more.
-		await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: true });
-	}
-
 	private async rememberIdeFolder(): Promise<void> {
 		const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 		if (folder && !this.inAgentsWindow()) await this.#context.globalState.update("caret.lastIdeFolder", folder);
@@ -998,7 +963,10 @@ export class CaretTaskViewProvider {
 				await this.openIdeWindow();
 				return;
 			}
-			await this.openCaretAgentsWindow();
+			// Placement belongs to the base's own window command; the extension used
+			// to write a Caret-branded workspace file and open it in a new window,
+			// which nothing called and which duplicated this route.
+			this.openAgentsWindow();
 			return;
 		}
 		// Until Agents chrome was applied once, the visible workbench is stock IDE
