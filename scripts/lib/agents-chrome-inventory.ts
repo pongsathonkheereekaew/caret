@@ -133,6 +133,7 @@ export const RECORDED_DEVIATIONS: readonly { readonly label: string; readonly re
 	{ label: "Enter Full Screen", reason: "section 5: the Agents window keeps its current panel controls" },
 	{ label: "Hide Apps", reason: "section 5: the Agents window keeps its current panel controls" },
 	{ label: "Account menu", reason: "patch 0029 removes the account widget on purpose" },
+	{ label: "Tabs", reason: "patch 0017 draws the panel's own launcher strip and hides the native tab group, which is the reference's named Tabs group" },
 ];
 
 const deviationFor = (label: string): boolean => RECORDED_DEVIATIONS.some(entry => entry.label === label);

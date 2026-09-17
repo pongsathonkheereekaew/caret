@@ -150,6 +150,20 @@ Two toolchain facts cost real time here and belong in the record:
   (`~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node` here); without it the package step stops
   after the runtime build.
 
+## The last non-state entry was a design decision (same day)
+
+The reference's fourth difference was `tab group Tabs`. Probed in the running window: the native
+editor tab group **is** there - `.tabs-container` with `role="tablist"` and real `role="tab"`
+children named `Changes` and `Apps` - but it is `display:none`, because patch `0017` draws the panel's
+own launcher strip (`caret-apps-strip` with the four `caret-apps-launcher` entries and the `+`)
+instead. So this entry is not a missing accessible name: Caret replaces the native group with its own
+strip by design, and the same four entries are reachable. Recorded as a deviation in the plan's
+section 5 and in the tool's `RECORDED_DEVIATIONS`, which moves it out of the failure list; the report
+now reads `shared 15, renamed 1, absent by decision 4, missing 25`.
+
+What is left in that list is the empty-draft state (D1's work) and the AX capture's own merge
+artifact (`Projects New Project` against Caret's `New Project`).
+
 ## Why the state did not match
 
 Probing the live window over CDP (`/tmp` helper, not committed) showed why clicking `New Chat` did

@@ -419,6 +419,7 @@ Not counted as parity, but they live in the same window:
 | syntax token colours in the IDE | Cursor theme | Code-OSS default | licensing |
 | Agents-window panel controls | no Show Panel / Toggle Side Panel; the panel header carries `Enter Full Screen` + `Hide Apps` | keeps the inherited `Show Panel` (hidden by `0026`) and `Toggle Side Panel` | **decided 2026-09-17: keep the current panel.** Removing the toggle and adding the reference's `Hide Apps` / `Enter Full Screen` is a real change to shared layout actions; the user chose to keep what works today rather than chase these three controls. Revisit only if the panel is rebuilt (section 7's React pass). |
 | terminal rendering in the IDE | xterm.js | **xterm.js** | decided 2026-09-17: replacing the workbench renderer drags the xterm-specific addons (image, ligatures, search, serialize, the terminal API) out with it for no user-visible gain while Cursor parity is the goal. Recorded here rather than left as open parity; the engine work goes to the surface Caret owns (the iOS WebView terminal), gated by the corpus in `apps/macos/src/terminal-conformance.ts`. |
+| the panel's tab group | a native editor tab group named `Tabs` | Caret's own launcher strip (patch `0017`), with the native group hidden | the native `.tabs-container` (`role=tablist`) still exists in the Agents window and is `display:none`; `caret-apps-strip` draws the same four entries (Changes / Browser / Terminal / File) plus the `+`. Decided 2026-09-17: keep Caret's strip, so the reference's `tab group Tabs` has no counterpart by design rather than by omission. |
 
 Deviation values that must stay different from Cursor, each requiring a receipt, because they are
 Caret's accessibility floor rather than missed parity. Never remove one to make a number match:
@@ -1868,14 +1869,15 @@ Anything not listed here is either done (§9) or out of scope (§5). Each item s
     state is unreachable in that window was probed too: `New Chat` is Caret's own Agent Home nav row
     and the window had adopted a read-only session from the host, so nothing in that state offers a
     fresh draft.
-    **Two of the four are fixed and verified in a rebuilt app** (same day): patch `0035` gives the
-    sessions navigation the reference's own words (`Go Back`, `Go Forward`), the workbench was
-    rebuilt (`npx gulp vscode-darwin-arm64-min`) and repackaged, and a fresh capture reads shared 13,
-    renamed 1, absent by decision 3 — the remaining "renamed" pair is the AX capture's own merge, not
-    a UI difference. Still open from this item: the two accessible names Caret does not set (the
-    splitters, the tab group), the empty-draft state, and a re-capture from the next packaged build.
-17. Vision-side verification is repeatedly unavailable (the image tool answers HTTP 429), so no
-    pane's colour, type or spacing has ever been checked against a picture.
+    **Closed except for the state, verified in rebuilt apps** (same day): patch `0035` gives the
+    sessions navigation the reference's own words, and patches `0036`+`0037` name the two splitters
+    (`shared 15, renamed 1, absent by decision 4, missing 25`). Of what is left, 24 entries are the
+    empty-draft *state* (D1 - the reference capture is an empty draft and Caret's window adopts a
+    session instead) and one is the capture artifact the AX tree creates by merging a row's text
+    (`Projects New Project` against Caret's `New Project`). The last reference-only entry, the
+    `Tabs` tab group, is now a recorded deviation in §5, not a miss: Caret draws its own launcher
+    strip and hides the native group. Closes when both windows can be captured in the same state,
+    which is D1's work.
 
 **Chrome decisions (closed 2026-09-16, see §9)**
 

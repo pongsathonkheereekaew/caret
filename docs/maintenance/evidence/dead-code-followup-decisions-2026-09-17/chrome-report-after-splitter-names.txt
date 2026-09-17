@@ -1,7 +1,7 @@
 reference controls: 45, caret controls: 27
-shared: 15, renamed: 1, absent by decision: 3
+shared: 15, renamed: 1, absent by decision: 4
 
-missing from Caret (parity failures) (26)
+missing from Caret (parity failures) (25)
   button	Build from a design Turn a frame into working UI in this repo
   button	Connect Slack
   button	Debug an issue Find root causes and fix tricky bugs
@@ -25,15 +25,15 @@ missing from Caret (parity failures) (26)
   pop up button	This Mac
   sortable	caret
   sortable	cedia
-  tab group	Tabs
   text entry area	Plan, Build, / for skills, @ for context
   toggle button	Settings
 
 same control, different words (1)
   Projects New Project  <=>  New Project
 
-absent by decision (3)
+absent by decision (4)
   Account menu - patch 0029 removes the account widget on purpose
+  Tabs - patch 0017 draws the panel's own launcher strip and hides the native tab group, which is the reference's named Tabs group
   Enter Full Screen - section 5: the Agents window keeps its current panel controls
   Hide Apps - section 5: the Agents window keeps its current panel controls
 
