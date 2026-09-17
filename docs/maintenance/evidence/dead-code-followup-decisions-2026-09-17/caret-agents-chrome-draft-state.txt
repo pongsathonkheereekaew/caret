@@ -1,0 +1,27 @@
+button	Add Context...
+button	Add Repository
+button	Automations
+button	Changes
+button	Close
+button	Customize
+button	Dismiss tip
+button	Enter Full Screen
+button	Filter Repositories
+button	Go Back
+button	Go Forward
+button	IDE
+button	New Chat
+button	New Project
+button	Review Active File in Diff
+button	Search
+button	Send
+button	Start voice input
+button	Toggle Details
+button	Toggle Side Bar
+button	Toggle Side Panel
+pop up button	Models, DeepSeek V4.1 Flash
+pop up button	More Actions...
+pop up button	Open new tab menu
+splitter	Resize panel
+splitter	Resize sidebar
+text entry area	The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1

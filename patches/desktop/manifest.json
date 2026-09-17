@@ -31,7 +31,7 @@
     },
     {
       "file": "0010-caret-sessions-bridge.patch",
-      "sha256": "6d78a595e0ae95288c365d692560b5d940a027d14f04c57f89a904b8020d5732"
+      "sha256": "2ae3587c6fb5e3290ed086f38fc51383a31f77624ae83638124319f700ba7cce"
     },
     {
       "file": "0011-caret-sessions-model-picker.patch",

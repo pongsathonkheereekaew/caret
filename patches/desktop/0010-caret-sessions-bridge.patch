@@ -530,3 +530,560 @@ index 15b89578396..daba4087e03 100644
  import './contrib/providers/agentHost/electron-browser/localAgentHostLifecycle.contribution.js';
  import './contrib/providers/agentHost/browser/agentSessionSettings.contribution.js';
  import './contrib/providers/agentHost/browser/agentHostSettings.contribution.js';
+diff --git a/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
+new file mode 100644
+index 00000000000..12207150134
+--- /dev/null
++++ b/src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts
+@@ -0,0 +1,551 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Caret contributors. All rights reserved.
++ *  Licensed under the MIT License. See License.txt in the project root for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++/*
++ * Caret: bridge contributed chat sessions into the Agents window's sessions model.
++ *
++ * The Agents window sidebar lists `ISessionsProvider.getSessions()`. Today only
++ * the agent-host family registers a provider, so an extension that contributes
++ * chat sessions through the public `chatSessionsProvider` API (Caret's own
++ * extension does) has its items published but never listed. This provider is
++ * the generic bridge: it reads `IChatSessionsService.getChatSessionItems()` and
++ * exposes those items as sessions, so Caret sessions appear in the window that
++ * produced them. The OMP model catalog flows the same way: Caret's extension
++ * advertises it as the `models` option group (via `getChatSessionInputState`,
++ * backed by host `get_available_models`/`get_state`), and this bridge projects
++ * that group into `getModelsSnapshot` read-only. Selection writes through via
++ * `chatSessionsService.setSessionOption`, which notifies the extension to call
++ * host `set_model`. Empty catalogs stay empty (honest-disabled, no Auto).
++ *
++ * Ownership stays where it was: the extension owns the items and the transcript,
++ * the host owns OMP execution. This file only adapts shapes, and it fails safe —
++ * if the chat sessions API is unavailable or a read throws, it reports no
++ * sessions instead of breaking the window.
++ */
++
++import { CancellationToken } from '../../../../../base/common/cancellation.js';
++import { Emitter } from '../../../../../base/common/event.js';
++import { Disposable, toDisposable } from '../../../../../base/common/lifecycle.js';
++import { IObservable, ISettableObservable, observableValue } from '../../../../../base/common/observable.js';
++import { ThemeIcon } from '../../../../../base/common/themables.js';
++import { URI } from '../../../../../base/common/uri.js';
++import { localize } from '../../../../../nls.js';
++import { ICommandService } from '../../../../../platform/commands/common/commands.js';
++import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
++import { ExtensionIdentifier } from '../../../../../platform/extensions/common/extensions.js';
++import { ILogService } from '../../../../../platform/log/common/log.js';
++import { IWorkspaceContextService } from '../../../../../platform/workspace/common/workspace.js';
++import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../../../workbench/common/contributions.js';
++import { IChatSessionItem, IChatSessionsService } from '../../../../../workbench/contrib/chat/common/chatSessionsService.js';
++import { IChatService } from '../../../../../workbench/contrib/chat/common/chatService/chatService.js';
++import { ILanguageModelsService } from '../../../../../workbench/contrib/chat/common/languageModels.js';
++import { resolveModelIdentifier } from '../../../../../workbench/contrib/chat/common/modelSelection.js';
++import { getNewChatSessionResource } from '../../../../../workbench/contrib/chat/common/model/chatUri.js';
++import { ISessionsProvidersService } from '../../../../services/sessions/browser/sessionsProvidersService.js';
++import { ChatInteractivity, ChatModelSource, IChat, IChatCheckpoints, ISession, ISessionCapabilities, ISessionType, ISessionWorkspace, ISessionWorkspaceBrowseAction, SessionStatus, SessionTypeAuthRequirement } from '../../../../services/sessions/common/session.js';
++import { ISessionChangeEvent, ISessionModelPickerOptions, ISessionModelsSnapshot, ISessionsProvider, ISessionsProviderCreateSessionOptions, ISendRequestOptions } from '../../../../services/sessions/common/sessionsProvider.js';
++
++const EXTENSION_SESSIONS_PROVIDER_ID = 'caret-extension-sessions';
++const UNSUPPORTED = 'Caret sessions are owned by the Caret host; that action is not advertised yet.';
++/** The Caret extension command that deletes sessions in the host. */
++const CARET_SESSION_DELETE_COMMAND = 'caret.session.delete';
++const CARET_MODELS_GROUP_ID = 'models';
++const CARET_EXTENSION_ID = 'caret.caret';
++/**
++ * Vendor `apps/macos` registers its OMP language models under. Kept as a literal
++ * because the workbench cannot import from the extension package; the value is
++ * pinned to the extension's `CARET_OMP_MODEL_VENDOR` by
++ * `apps/macos/test/ide-native-workbench.test.ts`.
++ */
++const CARET_OMP_MODEL_VENDOR = 'caret-omp';
++
++/** Non-empty string or undefined (option-group items carry OMP labels loosely). */
++function cleanText(value: unknown): string | undefined {
++	return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
++}
++
++/** Chat-session status -> sessions-core status. */
++function sessionStatus(status: IChatSessionItem['status']): SessionStatus {
++	switch (status) {
++		case 2: return SessionStatus.InProgress;
++		case 3: return SessionStatus.NeedsInput;
++		case 0: return SessionStatus.Error;
++		default: return SessionStatus.Completed;
++	}
++}
++
++class ExtensionSessionChat implements IChat {
++	readonly resource: URI;
++	readonly createdAt: Date;
++	readonly title: IObservable<string>;
++	readonly updatedAt: IObservable<Date>;
++	readonly status: IObservable<SessionStatus>;
++	readonly changes: IObservable<readonly never[]> = observableValue(this, []);
++	readonly modelId: IObservable<string | undefined>;
++	readonly modelSource: IObservable<ChatModelSource | undefined>;
++	private readonly _modelId: ISettableObservable<string | undefined>;
++	private readonly _modelSource: ISettableObservable<ChatModelSource | undefined>;
++	readonly mode: IObservable<{ readonly id: string; readonly kind: string } | undefined> = observableValue(this, undefined);
++	readonly isArchived: IObservable<boolean>;
++	readonly isRead: IObservable<boolean> = observableValue(this, true);
++	readonly interactivity: IObservable<ChatInteractivity> = observableValue(this, ChatInteractivity.Full);
++	readonly description: IObservable<undefined> = observableValue(this, undefined);
++	readonly lastTurnEnd: IObservable<Date | undefined> = observableValue(this, undefined);
++	readonly checkpoints: IObservable<IChatCheckpoints | undefined> = observableValue(this, undefined);
++
++	constructor(item: IChatSessionItem) {
++		this.resource = item.resource;
++		this.createdAt = new Date(item.timing?.created ?? Date.now());
++		this.title = observableValue(this, item.label);
++		this.updatedAt = observableValue(this, new Date(item.timing?.lastRequestEnded ?? item.timing?.created ?? Date.now()));
++		this.status = observableValue(this, sessionStatus(item.status));
++		this.isArchived = observableValue(this, item.archived === true);
++		this._modelId = observableValue(this, undefined);
++		this._modelSource = observableValue(this, undefined);
++		this.modelId = this._modelId;
++		this.modelSource = this._modelSource;
++	}
++
++	/** Confirmed model selection only; uses the same public `.set` API as `_sessionTypes`. */
++	setModelSelection(modelId: string | undefined, source: ChatModelSource | undefined): void {
++		this._modelId.set(modelId, undefined);
++		this._modelSource.set(source, undefined);
++	}
++}
++
++class ExtensionSession implements ISession {
++	readonly sessionId: string;
++	readonly resource: URI;
++	readonly providerId = EXTENSION_SESSIONS_PROVIDER_ID;
++	readonly sessionType: string;
++	readonly icon: ThemeIcon;
++	readonly createdAt: Date;
++	readonly workspace: IObservable<ISessionWorkspace | undefined>;
++	readonly title: IObservable<string>;
++	readonly updatedAt: IObservable<Date>;
++	readonly status: IObservable<SessionStatus>;
++	readonly changes: IObservable<readonly never[]> = observableValue(this, []);
++	readonly changesets: IObservable<undefined> = observableValue(this, undefined);
++	readonly modelId: IObservable<string | undefined>;
++	private readonly _modelId: ISettableObservable<string | undefined>;
++	private readonly _chat: ExtensionSessionChat;
++	readonly mode: IObservable<{ readonly id: string; readonly kind: string } | undefined> = observableValue(this, undefined);
++	readonly loading: IObservable<boolean> = observableValue(this, false);
++	readonly isArchived: IObservable<boolean>;
++	readonly isRead: IObservable<boolean> = observableValue(this, true);
++	readonly description: IObservable<undefined> = observableValue(this, undefined);
++	readonly lastTurnEnd: IObservable<Date | undefined> = observableValue(this, undefined);
++	readonly chats: IObservable<readonly IChat[]>;
++	readonly mainChat: IObservable<IChat>;
++	readonly capabilities: IObservable<ISessionCapabilities>;
++
++	constructor(readonly item: IChatSessionItem, chatSessionType: string, workspace: ISessionWorkspace | undefined, icon: ThemeIcon) {
++		this.sessionId = item.resource.toString();
++		this.resource = item.resource;
++		this.sessionType = chatSessionType;
++		this.icon = icon;
++		this.createdAt = new Date(item.timing?.created ?? Date.now());
++		this.title = observableValue(this, item.label);
++		this.updatedAt = observableValue(this, new Date(item.timing?.lastRequestEnded ?? item.timing?.created ?? Date.now()));
++		this.status = observableValue(this, sessionStatus(item.status));
++		this.isArchived = observableValue(this, item.archived === true);
++		this.workspace = observableValue(this, workspace);
++		const chat = new ExtensionSessionChat(item);
++		this._chat = chat;
++		this._modelId = observableValue(this, undefined);
++		this.modelId = this._modelId;
++		this.chats = observableValue(this, [chat]);
++		this.mainChat = observableValue(this, chat);
++		// Capabilities state what Caret can actually do today: everything else is
++		// offered nowhere instead of offering an action that cannot work.
++		this.capabilities = observableValue(this, {
++			supportsMultipleChats: false,
++			supportsFork: false,
++			supportsSideChat: false,
++			supportsRename: false,
++			// Delete goes through the Caret extension to the host, which owns the
++			// record and the transcript. The sessions list's own `Delete...` item
++			// confirms first ("This action cannot be undone.").
++			supportsDelete: true,
++		});
++	}
++
++	/** True when this session wraps the given chat session resource. */
++	matches(resource: URI): boolean {
++		return this.item.resource.toString() === resource.toString();
++	}
++
++	/**
++	 * Confirmed model selection only; writes through the same public `.set`
++	 * API as `_sessionTypes` and keeps the session and its main chat in sync.
++	 */
++	setModelSelection(modelId: string | undefined, source: ChatModelSource | undefined): void {
++		this._modelId.set(modelId, undefined);
++		this._chat.setModelSelection(modelId, source);
++	}
++}
++
++export class ExtensionSessionsProvider extends Disposable implements ISessionsProvider {
++	readonly id = EXTENSION_SESSIONS_PROVIDER_ID;
++	readonly label = localize('extensionSessions.provider', "Caret");
++	readonly icon = ThemeIcon.fromId('comment-discussion');
++	/** After the agent-host family, so Caret's own sessions follow them. */
++	readonly order = 10;
++	readonly browseActions: readonly ISessionWorkspaceBrowseAction[] = [];
++	readonly supportsLocalWorkspaces = false;
++	readonly supportsQuickChats = false;
++
++	private readonly _onDidChangeSessions = this._register(new Emitter<ISessionChangeEvent>());
++	readonly onDidChangeSessions = this._onDidChangeSessions.event;
++	private readonly _onDidChangeSessionTypes = this._register(new Emitter<void>());
++	readonly onDidChangeSessionTypes = this._onDidChangeSessionTypes.event;
++	private readonly _onDidChangeModels = this._register(new Emitter<void>());
++	readonly onDidChangeModels = this._onDidChangeModels.event;
++
++	private readonly _sessionTypes = observableValue<readonly ISessionType[]>(this, []);
++	private sessions: ExtensionSession[] = [];
++	/**
++	 * The new-session draft while it exists. Never part of `sessions`: a draft is not a
++	 * session yet, so it must not appear as a row in the sidebar.
++	 */
++	private draft: ExtensionSession | undefined;
++	private refreshing = false;
++
++	constructor(
++		@ICommandService private readonly commandService: ICommandService,
++		@IChatSessionsService private readonly chatSessionsService: IChatSessionsService,
++		@IChatService private readonly chatService: IChatService,
++		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
++		@ILanguageModelsService private readonly _languageModelsService: ILanguageModelsService,
++		@ILogService private readonly logService: ILogService,
++	) {
++		super();
++		this._register(this.chatSessionsService.onDidChangeSessionItems(() => void this.refresh()));
++		this._register(this.chatSessionsService.onDidChangeItemsProviders(() => {
++			this.updateSessionTypes();
++			void this.refresh();
++		}));
++		// The OMP catalog arrives as the extension's `models` option group; re-read
++		// the picker snapshot whenever it (or a session's selection) changes.
++		this._register(this.chatSessionsService.onDidChangeOptionGroups(() => this._onDidChangeModels.fire()));
++		this._register(this.chatSessionsService.onDidChangeSessionOptions(() => this._onDidChangeModels.fire()));
++		this.updateSessionTypes();
++		void this.refresh();
++	}
++
++	get sessionTypes(): readonly ISessionType[] {
++		return this._sessionTypes.get();
++	}
++
++	private updateSessionTypes(): void {
++		const types: ISessionType[] = this.chatSessionsService.getAllChatSessionContributions().map(contribution => ({
++			id: contribution.type,
++			label: contribution.displayName ?? contribution.type,
++			icon: ThemeIcon.fromId('comment-discussion'),
++			chatSessionType: contribution.type,
++			// Caret runs on OMP with the user's own credentials: no GitHub sign-in
++			// is required for a Caret session to be usable.
++			authRequirement: SessionTypeAuthRequirement.None,
++		}));
++		this._sessionTypes.set(types, undefined);
++		this._onDidChangeSessionTypes.fire();
++	}
++
++	private iconFor(chatSessionType: string): ThemeIcon {
++		return this.sessionTypes.find(type => type.id === chatSessionType)?.icon ?? ThemeIcon.fromId('comment-discussion');
++	}
++
++	private workspaceFor(item: IChatSessionItem): ISessionWorkspace | undefined {
++		const workingDirectory = item.metadata?.workingDirectoryPath;
++		if (!workingDirectory) return undefined;
++		const root = URI.file(workingDirectory);
++		const segments = workingDirectory.split('/');
++		const label = item.metadata?.repositoryPath?.split('/').pop() ?? segments[segments.length - 1] ?? workingDirectory;
++		return {
++			uri: root,
++			label,
++			icon: ThemeIcon.fromId('folder'),
++			folders: [{ root, workingDirectory: root, name: label, description: undefined }],
++			requiresWorkspaceTrust: false,
++			isVirtualWorkspace: false,
++		};
++	}
++
++	/** Read every contributed item and publish the difference. Never throws. */
++	async refresh(): Promise<void> {
++		if (this.refreshing) return;
++		this.refreshing = true;
++		try {
++			const next: ExtensionSession[] = [];
++			const replaced: string[] = [];
++			for await (const batch of this.chatSessionsService.getChatSessionItems(undefined, CancellationToken.None)) {
++				for (const item of batch.items) {
++					const existing = this.sessions.find(session => session.matches(item.resource));
++					// `isArchived` is fixed when a session is constructed, so a row whose
++					// archived state changed on the extension side has to be replaced
++					// rather than reused: reusing it would keep an archived chat in its
++					// workspace group and leave the group in the sidebar forever.
++					if (existing && existing.isArchived.get() !== (item.archived === true)) {
++						replaced.push(existing.sessionId);
++						next.push(new ExtensionSession(item, batch.chatSessionType, this.workspaceFor(item), this.iconFor(batch.chatSessionType)));
++						continue;
++					}
++					next.push(existing ?? new ExtensionSession(item, batch.chatSessionType, this.workspaceFor(item), this.iconFor(batch.chatSessionType)));
++				}
++			}
++			const added = next.filter(session => !this.sessions.some(current => current.sessionId === session.sessionId));
++			const removed = this.sessions.filter(session => !next.some(candidate => candidate.sessionId === session.sessionId));
++			const changed = next.filter(session => replaced.includes(session.sessionId));
++			this.sessions = next;
++			if (added.length || removed.length || changed.length) {
++				this._onDidChangeSessions.fire({ added, removed, changed });
++			}
++		} catch (error) {
++			this.logService.warn(`[extensionSessions] could not read contributed chat sessions: ${error instanceof Error ? error.message : String(error)}`);
++		} finally {
++			this.refreshing = false;
++		}
++	}
++
++	getSessions(): ISession[] {
++		return this.sessions;
++	}
++
++	getSessionTypes(_workspaceUri: URI): ISessionType[] {
++		return [...this.sessionTypes];
++	}
++
++	resolveWorkspace(workspaceUri: URI): ISessionWorkspace | undefined {
++		const folder = this.workspaceContextService.getWorkspace().folders.find(candidate => candidate.uri.toString() === workspaceUri.toString());
++		if (folder) {
++			return {
++				uri: folder.uri,
++				label: folder.name,
++				icon: ThemeIcon.fromId('folder'),
++				folders: [{ root: folder.uri, workingDirectory: folder.uri, name: folder.name, description: undefined }],
++				requiresWorkspaceTrust: false,
++				isVirtualWorkspace: false,
++			};
++		}
++		// Caret: a folder this provider is asked about is one it owns, even when the window's own
++		// workspace file does not list it. The base's new-session action asks about the *active
++		// session's* folder, which for the Agents window is normally a host project rather than the
++		// window's workspace file folder; answering `undefined` there is what made it fall through to
++		// "no sessions provider can resolve folder" and left the button inert. With the agent host
++		// gone this is the only provider, so it owns every folder it is handed.
++		if (workspaceUri.scheme !== 'file' || workspaceUri.path.length <= 1) return undefined;
++		const segments = workspaceUri.path.split('/').filter(Boolean);
++		const label = segments[segments.length - 1] ?? workspaceUri.path;
++		return {
++			uri: workspaceUri,
++			label,
++			icon: ThemeIcon.fromId('folder'),
++			folders: [{ root: workspaceUri, workingDirectory: workspaceUri, name: label, description: undefined }],
++			requiresWorkspaceTrust: false,
++			isVirtualWorkspace: false,
++		};
++	}
++
++	/**
++	 * Caret: the draft the base's new-session flow hands back.
++	 *
++	 * The extension creates the real session on the first Send, so the draft is an *untitled chat* of
++	 * Caret's session type: `getNewChatSessionResource` builds `<type>:/untitled-<uuid>`, the base
++	 * renders its composer over it (and Caret's welcome, which the session type contributes), and the
++	 * first Send runs `chatServiceImpl._materializeUntitledSession` -> `createNewChatSessionItem` ->
++	 * Caret's `newChatSessionItemHandler`, which creates the session in the host and aliases the real
++	 * resource onto the untitled one. Returning the newest contributed session instead - what this did
++	 * before - re-opened an old chat rather than starting one.
++	 */
++	createNewSession(workspaceUri: URI, sessionTypeId: string, _options?: ISessionsProviderCreateSessionOptions): ISession {
++		const item: IChatSessionItem = {
++			resource: getNewChatSessionResource(sessionTypeId),
++			label: localize('caret.draft.newTask', "New task"),
++			// No request has run in a draft, so the request timestamps are undefined.
++			timing: { created: Date.now(), lastRequestStarted: undefined, lastRequestEnded: undefined },
++		};
++		const draft = new ExtensionSession(item, sessionTypeId, this.resolveWorkspace(workspaceUri), this.iconFor(sessionTypeId));
++		this.draft = draft;
++		return draft;
++	}
++
++	createQuickChat(sessionTypeId: string, options?: ISessionsProviderCreateSessionOptions): ISession {
++		return this.createNewSession(URI.parse('untitled:caret'), sessionTypeId, options);
++	}
++
++	deleteNewSession(sessionId: string): void {
++		// Draft sessions live in the extension; there is nothing local to discard beyond the handle
++		// this bridge keeps for the model snapshot.
++		if (this.draft?.sessionId === sessionId) {
++			this.draft = undefined;
++		}
++	}
++
++	async sendRequest(sessionId: string, chatResource: URI, options: ISendRequestOptions): Promise<ISession> {
++		const session = this.sessions.find(candidate => candidate.sessionId === sessionId) ?? this.sessions.find(candidate => candidate.matches(chatResource));
++		if (!session) throw new Error(UNSUPPORTED);
++		await this.chatService.sendRequest(chatResource, options.query);
++		return session;
++	}
++
++	getModelsSnapshot(sessionId: string, desiredModelId?: string): ISessionModelsSnapshot {
++		// Read-only projection of the extension's `models` option group, which the
++		// extension builds from host `get_available_models` + `get_state`. No host
++		// access here: the renderer never holds the host token. Empty catalogs stay
++		// empty (honest-disabled downstream); absence is conclusive, never pending.
++		const session = (this.sessions.find(candidate => candidate.sessionId === sessionId) ?? (this.draft?.sessionId === sessionId ? this.draft : undefined)) as ExtensionSession | undefined;
++		const sessionType = (session as { readonly sessionType?: string } | undefined)?.sessionType;
++		const groups = sessionType ? this.chatSessionsService.getOptionGroupsForSessionType(sessionType) : undefined;
++		const items = groups?.find(group => group.id === CARET_MODELS_GROUP_ID)?.items ?? [];
++		const models = items.map(item => {
++			const record = item as { readonly description?: unknown; readonly tooltip?: unknown };
++			// Never invent a vendor: unknown stays empty (type requires a
++			// string, so empty is the honest unknown, not 'caret').
++			const vendor = cleanText(record.description) ?? '';
++			// Sizes come from the registered model itself (OMP advertises them), not
++			// from this projection: 0 stays the neutral unknown for a model that
++			// reports no window.
++			const registered = this._languageModelsService.lookupLanguageModel(`${CARET_OMP_MODEL_VENDOR}/${item.id}`);
++			return {
++				// The extension host resolves a request's model by the identifier the
++				// extension registered it under, which is `<vendor>/<model id>`. The
++				// vendor below is the one `apps/macos` registers with
++				// `lm.registerLanguageModelChatProvider`; a pick that is not that string
++				// cannot be resolved and the send fails as "Language model unavailable".
++				identifier: `${CARET_OMP_MODEL_VENDOR}/${item.id}`,
++				metadata: {
++					extension: new ExtensionIdentifier(CARET_EXTENSION_ID),
++					id: item.id,
++					name: item.name,
++					vendor,
++					version: '1.0',
++					family: item.id,
++					tooltip: cleanText(record.tooltip),
++					detail: cleanText(record.description),
++					// 0 is the neutral unknown: core guards token display with
++					// `if (maxInputTokens || maxOutputTokens)`, so 0 renders as
++					// unknown rather than asserting a false limit.
++					maxInputTokens: registered?.maxInputTokens ?? 0,
++					maxOutputTokens: registered?.maxOutputTokens ?? 0,
++					isDefaultForLocation: {},
++					targetChatSessionType: sessionType,
++					isUserSelectable: true,
++				},
++			};
++		});
++		return {
++			models,
++			// Conclusive: OMP lists are authoritative, so a missing id is genuinely
++			// gone (unavailable), not still loading (pending). No desired id means
++			// notRequested, which keeps the picker honest-disabled until chosen.
++			desiredModelResolution: resolveModelIdentifier(models, desiredModelId, true),
++			modelTarget: sessionType,
++		};
++	}
++
++	getModelPickerOptions(_sessionId: string): ISessionModelPickerOptions {
++		// Minimal grouped picker for the OMP catalog. No featured models, no manage
++		// action, and no synthetic Auto fallback: with no advertised models the core
++		// picker shows its "No models available" state instead of inventing one.
++		return { useGroupedModelPicker: true, showFeatured: false, showUnavailableFeatured: false, showManageModelsAction: false, showAutoModel: false };
++	}
++
++	setModel(sessionId: string, chatResource: URI, modelId: string, source: ChatModelSource): void {
++		const session = this.sessions.find(candidate => candidate.sessionId === sessionId) ?? this.sessions.find(candidate => candidate.matches(chatResource));
++		if (!session) throw new Error(UNSUPPORTED);
++		const chat = session.mainChat.get();
++		const previousSessionModel = session.modelId.get();
++		const previousChatModel = chat.modelId.get();
++		const previousSource = chat.modelSource.get();
++		// Optimistic local feedback so the picker reflects the choice; the
++		// durable write is the extension option update below, which owns host
++		// `set_model`. Uses only the public `.set` API (same as `_sessionTypes`).
++		session.setModelSelection(modelId, source);
++		let confirmed = false;
++		try {
++			confirmed = this.chatSessionsService.setSessionOption(chatResource, CARET_MODELS_GROUP_ID, modelId);
++		} catch (error) {
++			this.logService.warn(`[extensionSessions] could not forward model selection: ${error instanceof Error ? error.message : String(error)}`);
++			confirmed = false;
++		}
++		if (!confirmed) {
++			session.setModelSelection(previousSessionModel, previousSource);
++			// Restore the exact previous chat model when it differed from the
++			// session view (normally identical; kept separate for honesty).
++			if (previousChatModel !== previousSessionModel) {
++				(session.mainChat.get() as ExtensionSessionChat).setModelSelection(previousChatModel, previousSource);
++			}
++			this.logService.warn(`[extensionSessions] model selection was not accepted; restored previous model.`);
++			return;
++		}
++		this._onDidChangeSessions.fire({ added: [], removed: [], changed: [session] });
++	}
++
++	async renameChat(_sessionId: string, _chatUri: URI, _title: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async renameSession(_sessionId: string, _title: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async archiveSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async unarchiveSession(_sessionId: string): Promise<void> { throw new Error(UNSUPPORTED); }
++	async setSessionReadState(_sessionId: string, _isRead: boolean): Promise<void> { /* read state is host-owned */ }
++	/**
++	 * Delete sessions through the Caret extension, which owns the host connection.
++	 *
++	 * The sessions list confirms before it calls this, so the ids arrive already
++	 * agreed on; they travel as the session resources this provider published, and
++	 * the extension maps them back to host ids. The list is republished right after,
++	 * because a row leaves the sidebar only when the item says it is gone.
++	 */
++	async deleteSession(sessionId: string): Promise<void> {
++		await this.deleteSessions([sessionId]);
++	}
++	async deleteSessions(sessionIds: readonly string[]): Promise<void> {
++		if (sessionIds.length === 0) {
++			return;
++		}
++		await this.commandService.executeCommand(CARET_SESSION_DELETE_COMMAND, [...sessionIds]);
++		await this.refresh();
++	}
++	async deleteChat(_sessionId: string, _chatUri: URI): Promise<boolean> { return false; }
++	async createNewChat(_sessionId: string, _prompt?: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
++	async forkChat(_sessionId: string, _sourceChat: URI, _turnId: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
++	async createSideChat(_sessionId: string, _sourceChat: URI, _turnId: string): Promise<IChat> { throw new Error(UNSUPPORTED); }
++}
++
++class ExtensionSessionsContribution extends Disposable implements IWorkbenchContribution {
++
++	static readonly ID = 'sessions.contrib.extensionSessions';
++
++	constructor(
++		@IInstantiationService instantiationService: IInstantiationService,
++		@ISessionsProvidersService sessionsProvidersService: ISessionsProvidersService,
++		@ILanguageModelsService languageModelsService: ILanguageModelsService,
++		@ILogService logService: ILogService,
++	) {
++		super();
++		// The vendor has to exist before Caret's extension registers its provider
++		// (`registerLanguageModelProvider` refuses an unknown vendor), and the
++		// models under it are what the workbench attaches to a Caret request — see
++		// the identifier comment in `getModelsSnapshot`. Registered here, at
++		// restore, which precedes the extension's `onStartupFinished` activation.
++		const vendorDescriptor = {
++			vendor: CARET_OMP_MODEL_VENDOR,
++			displayName: 'Caret',
++			configuration: undefined,
++			managementCommand: undefined,
++			when: undefined,
++		};
++		languageModelsService.deltaLanguageModelChatProviderDescriptors([vendorDescriptor], []);
++		this._register(toDisposable(() => languageModelsService.deltaLanguageModelChatProviderDescriptors([], [vendorDescriptor])));
++		try {
++			const provider = this._register(instantiationService.createInstance(ExtensionSessionsProvider));
++			this._register(sessionsProvidersService.registerProvider(provider));
++		} catch (error) {
++			// Fail safe: without the bridge the window shows what it showed before
++			// rather than failing to open.
++			logService.warn(`[extensionSessions] provider not registered: ${error instanceof Error ? error.message : String(error)}`);
++		}
++	}
++}
++
++registerWorkbenchContribution2(ExtensionSessionsContribution.ID, ExtensionSessionsContribution, WorkbenchPhase.AfterRestored);

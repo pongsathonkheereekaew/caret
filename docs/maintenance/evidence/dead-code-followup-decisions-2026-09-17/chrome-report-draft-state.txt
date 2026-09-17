@@ -1,0 +1,55 @@
+reference controls: 45, caret controls: 27
+shared: 13, renamed: 1, absent by decision: 3
+
+missing from Caret (parity failures) (28)
+  button	Browser
+  button	Build from a design Turn a frame into working UI in this repo
+  button	Connect Slack
+  button	Debug an issue Find root causes and fix tricky bugs
+  button	Deploy my prototype Put it on a live link anyone can open
+  button	Dismiss recommendation
+  button	File
+  button	Hide Sidebar
+  button	Multitask
+  button	New Project
+  button	Plan New Idea
+  button	Repositories Customize Sidebar Open Workspace
+  button	Run in Cloud
+  button	Skip step 2 of 3
+  button	Start with a plan Align on implementation before writing code
+  button	Terminal
+  combo box	main
+  pop up button	Add agents, context, tools
+  pop up button	caret
+  pop up button	Chat actions
+  pop up button	Customize Sidebar
+  pop up button	High
+  pop up button	Open Workspace
+  pop up button	This Mac
+  sortable	caret
+  sortable	cedia
+  text entry area	Plan, Build, / for skills, @ for context
+  toggle button	Settings
+
+same control, different words (1)
+  Projects New Project  <=>  New Project
+
+absent by decision (3)
+  Account menu - patch 0029 removes the account widget on purpose
+  Tabs - patch 0017 draws the panel's own launcher strip and hides the native tab group, which is the reference's named Tabs group
+  Hide Apps - section 5: the Agents window keeps its current panel controls
+
+Caret-only (informational, section 4) (13)
+  button	Add Context...
+  button	Add Repository
+  button	Close
+  button	Dismiss tip
+  button	Filter Repositories
+  button	Review Active File in Diff
+  button	Send
+  button	Toggle Details
+  button	Toggle Side Bar
+  button	Toggle Side Panel
+  pop up button	Models, DeepSeek V4.1 Flash
+  pop up button	More Actions...
+  text entry area	The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
