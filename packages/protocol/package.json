@@ -1,0 +1,11 @@
+{
+  "name": "@cedia/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./editor": "./src/editor.ts",
+    "./terminal-queries": "./src/terminal-queries.js"
+  }
+}

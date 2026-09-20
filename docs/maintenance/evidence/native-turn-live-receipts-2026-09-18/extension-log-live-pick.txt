@@ -1,0 +1,7 @@
+2026-09-18 17:18:25.393 [info] startup view=agents mode=agents revealDock=false
+2026-09-18 17:18:25.453 [info] Caret chat sessions: 25 session(s) in 3 project(s) from the host.
+2026-09-18 17:18:26.423 [info] Caret chat sessions: 25 session(s) in 3 project(s) from the host.
+2026-09-18 17:18:33.855 [info] Caret language models: 871 advertised by OMP.
+2026-09-18 17:18:33.955 [info] Caret session option catalog: 871 model(s) advertised by OMP, 0 role(s) configured.
+2026-09-18 17:18:34.237 [info] Caret session option catalog: 871 model(s) advertised by OMP, 0 role(s) configured.
+2026-09-18 17:23:27.227 [info] Caret participant turn for session ddfcd677-4ecc-412c-8751-a46bd653a1f5

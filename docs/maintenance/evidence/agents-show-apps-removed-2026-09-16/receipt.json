@@ -1,0 +1,48 @@
+{
+  "slice": "agents-window-chrome",
+  "date": "2026-09-16",
+  "queueItem": "user report: the top-right Show Apps icon does not work - remove it",
+  "reference": "Cursor 3.20.17 panel header (evidence/cursor-agents-ax-2026-09-14/cursor-agents-ax-tree.txt line 91: Open new tab menu / Enter Full Screen / Hide Apps; no title-bar Show Apps)",
+  "problem": {
+    "report": "second icon in the top-right row (Show Apps) is not working",
+    "measured": "CDP on the packaged app: three consecutive clicks left the panel and its tabs unchanged ([Changes, Apps] before and after each click)",
+    "cause": "ShowAppsAction.run() closes the panel only when the group's active editor is AgentHomeUtilityInput and otherwise re-opens that same input, which is already in the group - so the only acting branch needs the Apps editor to be the active editor, and in every other state the icon is a no-op",
+    "reference": "the reference's panel header carries Open new tab menu / Enter Full Screen / Hide Apps and no title-bar Show Apps control"
+  },
+  "change": {
+    "patch": "patches/desktop/0021-caret-agent-home-utility.patch (folded in: 0021 CREATES agentHomeUtility.contribution.ts, so a follow-up patch could not pass its own reverse-check - plan section 6)",
+    "content": "the MenuRegistry.appendMenuItem(Menus.TitleBarRightLayout, ...) block is removed; the file's now-unused imports (Codicon, Menus, ContextKeyExpr, IsAuxiliaryWindowContext) go with it; ShowAppsAction stays registered as a command (f1: true) with a comment recording why it is not a title-bar control",
+    "bookkeeping": [
+      "patches/desktop/manifest.json: 0021 digest re-pinned to bf2e341ab0f40245bc01c50c0488fb2fe793d9b9b0debcfc1907de939a82ef34",
+      "patches/desktop/README.md: the 0021 paragraph documents the command-only decision",
+      "apps/macos/test/ide-native-workbench.test.ts: the 0021 needle test keeps asserting caret.agentHome.showApps and adds not.toContain('Menus.TitleBarRightLayout')"
+    ],
+    "recovery": "the command stays in the palette (Agents: Show Apps, verified open) and the strip's Apps tab returns to the panel when something else holds the group"
+  },
+  "verified": {
+    "gates": [
+      "bun scripts/prepare-desktop.ts: 29 patches / 18 removals, every digest and reverse-check passes",
+      "bun test apps/macos/test/desktop-patch-set.test.ts: applies in manifest order and reproduces the checkout",
+      "cd desktop && npm run typecheck-client: 0 errors",
+      "bun run typecheck: clean",
+      "node scripts/ci-validate.mjs: CI-OK",
+      "bun scripts/cursor-parity-check.ts: 340 keys, 0 mismatches",
+      "bun run test: 749 pass, 1 fail (menus-contract.test.ts needs rg on PATH; environmental, pre-existing)"
+    ],
+    "onScreen": "[aria-label=\"Show Apps\"] = 0 anywhere in the window; the right layout container renders no items; the panel is present with Changes / Browser / Terminal / File; screenshot shows the top-right row as IDE / Toggle Side Panel",
+    "buildLoop": "node build/next/index.ts bundle --minify, copy desktop/out-vscode/. into the packaged app/out/, CARET_HOST_NODE=... bun scripts/build-caret.ts --package"
+  },
+  "notVerified": [
+    "Hide Apps and Enter Full Screen sit in the editor group's title strip, which the panel's own strip suppresses (display: none); the reference shows both inside the panel header, so the panel strip still lacks two of the reference's header controls - a separate gap, not something the removed icon covered"
+  ],
+  "atOmpReport": {
+    "question": "why does the chat box show @omp when OMP is the only agent",
+    "root": "the session/participant handle in apps/macos/package.json is literally `omp` (chatSessions[0].name and the participant), and the base renders handles with an @ leader",
+    "paths": [
+      "a chat locked to our session type falls back to the base's delegation copy: title 'Delegate to @omp', message 'This chat session will be forwarded to the @omp coding agent where work is completed in the background.' (chatWidget.ts getWelcomeViewContent, used when the contribution has no welcomeTitle/welcomeMessage)",
+      "mention completions render participants as @name; today the composer's @ list is the base's Copilot tools (@agent, @browser, @askQuestions, @runSubagent, ...)"
+    ],
+    "relatedFinding": "listed sessions are bound as caret://session/<id> and getChatSessionType() returns the URI scheme, so their type is `caret` while the contribution's type is `caret.omp`; getChatSessionContribution('caret') misses, the widget stays unlocked (every listed session shows 'Build with Agent'), and the contribution's own copy, placeholder and capabilities never apply. Chats created for the type (scheme = type) are the ones that lock.",
+    "reproduced": "no @omp string was found on screen in any state this pass could drive (every listed session, the Agent Home, a fresh window) - a screenshot of the state where the user saw it would pin the surface"
+  }
+}

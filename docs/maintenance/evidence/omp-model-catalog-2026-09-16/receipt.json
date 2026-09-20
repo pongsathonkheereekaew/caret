@@ -1,0 +1,50 @@
+{
+  "slice": "s2-model-catalog",
+  "date": "2026-09-16",
+  "question": "The composer's model picker rendered disabled as 'Models, Auto': either OMP advertises no models (provider/credentials) or our bridge drops them.",
+  "answer": "OMP advertises the models and the bridge's normalizers were correct; the read had no OMP process to answer it, because the probe session's runtime was never started.",
+  "measured": {
+    "method": "host HTTP API with the descriptor at ~/Library/Application Support/Caret/host/host.json (token never printed)",
+    "health": { "status": "ready", "ompVersion": "18.1.18" },
+    "sessions": { "count": 9, "statuses": ["idle", "stopped"] },
+    "noteOnStatus": "host record status `idle` does not mean the OMP process is up: a session that answers the catalog and one that refuses it both read `idle`",
+    "catalogBeforeStart": { "status": "not_dispatched", "error": "Start or reconcile the OMP session before sending commands" },
+    "catalogAfterStart": { "status": "completed", "path": "ack.data.models", "models": 6, "byApi": { "cursor-agent": 1, "openai-completions": 2, "openai-responses": 1, "openai-codex-responses": 2 }, "sample": "cursor-grok-4.6 (baseUrl https://api2.cursor.sh)" },
+    "loginProviders": { "path": "data.providers", "count": 72, "shape": "{authenticated, available, id, name}" },
+    "secondBug": "after POST /start the incarnation changes; a command sent with the pre-start incarnation is refused with HTTP 409 stale_incarnation, so the retry must read the session that start returned"
+  },
+  "change": {
+    "files": ["apps/macos/src/chat-sessions.ts", "apps/macos/test/chat-sessions-map.test.ts"],
+    "helper": "snapshotWithOmpRuntime(client, session, log): read the catalog once; on not_dispatched start that session once and read again with the returned incarnation; a host failure returns the empty snapshot without starting; a failed start falls back to the refused answer",
+    "callSites": ["fetchGlobalOmpModelSnapshot (registration/draft probe)", "snapshotForInputState (session opened)"],
+    "reuse": "fetchOmpModelSnapshot gained an optional `catalog` command so an already-read answer is not asked twice",
+    "noSecondPath": "the catalog is still read through the same OMP RPC path the harness owns; no separate CLI or cache reader was added",
+    "cost": "one OMP process on the first picker read of a window that has never sent a prompt - the same process the first prompt would start, and the host keeps it"
+  },
+  "verified": {
+    "unit": [
+      "refused read -> start -> retry carries the new incarnation (inc-live) and yields the model",
+      "warm read -> startSession must not be called, and exactly one get_available_models is sent",
+      "host down -> no start, empty snapshot"
+    ],
+    "suites": [
+      "bun test apps/macos/test packages/omp-adapter packages/relay apps/host -> 740 pass (737 before)",
+      "bun run typecheck -> clean"
+    ],
+    "liveHost": "after the fix 3 sessions answer the catalog (1 before, started by hand)",
+    "onScreen": [
+      "session opened in the packaged app: .model-picker-split rect 139x22, disabled false, label 'DeepSeek V4.1 Flash'",
+      "real click on the picker: list box with 'Search models', 'Current model' mark, and rows DeepSeek V4.1 Flash (Command Code) / Grok 4.6 / GPT-5.6-Luna / GPT-6-Astra / DeepSeek V4.1 Flash / Muse Spark 1.3 Contributor",
+      "Escape dismissed the menu"
+    ]
+  },
+  "notVerified": [
+    "the draft composer (no session open) still renders model-picker-split at 0x0 and disabled - that is the new-chat widget's own state, not the catalog; whether the empty home should show the catalog is undecided",
+    "a fresh install with zero host sessions has nothing to probe, so it stays honest-empty; showing models before any work would need a session-less catalog read (a host-owned route, or OMP's models.db cache)",
+    "set_model write-through was not exercised end to end in this pass (the write-through itself and its tests predate this change)",
+    "OMP's own `omp models` CLI output was not compared - this pass deliberately used the harness RPC path only"
+  ],
+  "artifacts": {
+    "excerpts": "menu row labels and the model counts above are the only data recorded; no token, no provider credential and no session content was captured"
+  }
+}

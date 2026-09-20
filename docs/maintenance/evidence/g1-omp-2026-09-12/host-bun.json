@@ -1,0 +1,67 @@
+{
+  "date": "2026-09-12T15:18:07.962Z",
+  "hostRuntime": {
+    "name": "bun",
+    "version": "1.4.2"
+  },
+  "version": "omp/18.1.18",
+  "binarySha256": "035a35dcb249edb939fa02b74fc7c0df9b2eb659079349fbffb188e1b558957a",
+  "sourceReference": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "implementationSourceHashes": {
+    "packages/omp-adapter/src/client.ts": "ca7f07273648b079b03bec70b1e15603a20fbe97d849d9ee03f06b403fe17739",
+    "packages/omp-adapter/src/framing.ts": "3b590cc941147483a2586746338053882ebcb0795ee5b32135e8214bdd2f2daa",
+    "packages/omp-adapter/src/types.ts": "a1524958ea4af01ef701ae5f1738f17acac6bd01ec21415f510c0f4038613532",
+    "packages/omp-adapter/src/host.ts": "2714e7b4c0cf425615d75744a43de1c7b56a2bb83eda9d2345ddac1a10be1559",
+    "scripts/omp-g1-smoke.ts": "7320b9e01cae4c2ec951015531e5fa1a909c3ecb81d9b6bf162122dd9f5132cb"
+  },
+  "checks": [
+    "registered-local-model-and-host-capabilities",
+    "host-tool-deny-before-effect",
+    "host-tool-update-and-result",
+    "host-uri-read-through-omp-tool",
+    "host-uri-write-deny-before-effect",
+    "host-uri-write-result",
+    "native-tool-call-hook-blocks-fixture-write",
+    "omp-abort-cancels-host-handler-before-effect",
+    "seven-scripted-runs-zero-external-inference",
+    "bounded-close"
+  ],
+  "eventCounts": {
+    "ready": 1,
+    "extension_ui_request": 10,
+    "available_commands_update": 1,
+    "response": 15,
+    "thinking_level_changed": 1,
+    "agent_start": 7,
+    "turn_start": 14,
+    "message_start": 28,
+    "message_end": 28,
+    "message_update": 39,
+    "host_tool_call": 3,
+    "tool_execution_start": 7,
+    "tool_execution_end": 7,
+    "turn_end": 14,
+    "agent_end": 7,
+    "tool_execution_update": 3,
+    "host_uri_request": 3,
+    "host_tool_cancel": 1
+  },
+  "sentFrames": {
+    "host_tool_result": 2,
+    "host_tool_update": 1,
+    "host_uri_result": 3
+  },
+  "authorizations": [
+    "host_tool_call",
+    "host_tool_call",
+    "host_uri_request",
+    "host_uri_request",
+    "host_uri_request",
+    "host_tool_call"
+  ],
+  "hostEffects": 1,
+  "uriWrites": 1,
+  "modelRequests": 13,
+  "cancellableToolAborted": true,
+  "limitations": "Deterministic loopback completions, not external model inference. Hook block uses a fixture path, not editor dirty-buffer integration or universal policy. No UI visual, PTY, durable host, iPhone or full OMP conformance."
+}

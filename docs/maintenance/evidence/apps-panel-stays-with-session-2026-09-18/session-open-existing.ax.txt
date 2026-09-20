@@ -1,0 +1,140 @@
+Window: "Agents", App: Caret.
+0 standard window Agents, Secondary Actions: Raise
+	1 container Agents
+		2 container
+			3 HTML content Agents, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/sessions/electron-browser/sessions.html
+				4 container
+					5 container
+						6 container
+							7 toolbar
+								8 toggle button Description: Toggle Side Bar (⌘B), Value: 1
+									9 text 
+							10 toolbar
+								11 button Go Back (⌃-)
+									12 text 
+								13 button (disabled) Go Forward (⌃⇧-)
+									14 text 
+							15 toolbar
+								16 toggle button Description: Toggle Side Panel (⌥⌘B), Value: 1
+									17 text 
+							18 toolbar
+								19 button IDE (⇧⌘A)
+						20 container
+							21 splitter Resize sidebar
+							22 container
+								23 container
+									24 container
+										25 outline Sessions
+											26 container
+												27 row Automations
+													28 container
+														29 text Automations
+												30 row cedia, 13
+													31 container
+														32 text cedia
+												33 row (selected) Reply with exactly: caret-live-ok, updated 10 mins ago, State: Completed
+													34 container
+														35 text 
+														36 text Reply with exactly: caret-live-ok
+														37 toolbar
+															38 button Archive (⌘Backspace)
+																39 text 
+															40 button Pin
+																41 text 
+														42 text  · 10 mins ago
+												43 row final check: in place, updated 48 secs ago, State: Completed
+													44 container
+														45 text 
+														46 text final check: in place
+														47 text  · now
+												48 row diag three, updated 4 hrs ago, State: Completed
+													49 container
+														50 text 
+														51 text diag three
+														52 text  · 4 hrs ago
+												53 row diag two, updated 4 hrs ago, State: Completed
+													54 container
+														55 text 
+														56 text diag two
+														57 text  · 4 hrs ago
+												58 row diag run, updated 4 hrs ago, State: Completed
+													59 container
+														60 text 
+														61 text diag run
+														62 text  · 4 hrs ago
+												63 row Show 8 more sessions
+													64 container
+														65 text +8 more
+								66 button New Chat
+								67 button Search
+								68 button Automations
+								69 button Customize
+								70 text Projects
+								71 button New Project
+								72 text Repositories
+								73 button Filter Repositories
+								74 button Add Repository
+								75 text No repository open
+							76 container
+								77 container
+									78 splitter Resize panel
+									79 container
+										80 container
+											81 text 
+											82 text Reply with exactly: caret-live-ok
+											83 toolbar
+												84 pop up button More Actions...
+													85 text 
+											86 container
+												87 container
+													88 container
+														89 container
+															90 content list Chat
+															91 container
+																92 container
+																	93 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+																94 toolbar
+																	95 button Add Context... (⌘/)
+																		96 text 
+																	97 pop up button Local
+																		98 text 
+																		99 text Local
+																	100 pop up button Agent
+																		101 text 
+																		102 text Agent
+																	103 container Models, DeepSeek V4.1 Flash
+																		104 pop up button Models, DeepSeek V4.1 Flash
+																			105 text 
+																			106 text DeepSeek V4.1 Flash
+																107 toolbar
+																	108 toggle button Description: Dictate (Speech to Text) (⌘I), Value: 0
+																		109 text 
+																	110 button (disabled) Send [⌥] Send to New Chat (⇧⌘Enter)
+																		111 text 
+														112 progress indicator Progress
+									113 container
+										114 container
+											115 toggle button Description: Changes, Value: 0
+											116 toggle button Description: Browser, Value: 0
+											117 toggle button Description: Terminal, Value: 0
+											118 toggle button Description: File, Value: 0
+											119 pop up button Open new tab menu
+											120 toggle button Description: Toggle Pinned Summary, Value: 0
+											121 container
+												122 button Changes
+												123 button Browser
+												124 button Terminal
+												125 button File
+					126 text DeepSeek V4.1 Flash
+	127 close button
+	128 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	129 minimize button
+130 menu bar
+	131 Caret
+	132 File
+	133 Edit
+	134 View
+	135 Window
+	136 Help
+
+The focused UI element is 3 HTML content Agents, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/sessions/electron-browser/sessions.html

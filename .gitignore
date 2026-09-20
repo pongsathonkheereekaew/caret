@@ -1,0 +1,46 @@
+# Nested upstream checkouts (pinned revisions, see docs/UPSTREAM-LOCK.md).
+# Never committed to this repo; patches live in fork history at release time.
+# Anchored to the repository root on purpose: an unanchored `desktop/` also
+# matches patches/desktop/, which is the reviewed SSOT for every desktop edit.
+/desktop/
+upstream/
+node_modules/
+dist/
+.expo/
+
+# Code-OSS packaged app outputs
+VSCode-*/
+
+# macOS and local tooling noise.
+.DS_Store
+.vscode/
+.commandcode/
+
+# OMP's own directories. The global one (`~/.omp/agent/`) holds provider credentials, so it is
+# never repository content; a stray copy of it appeared in this tree on 2026-09-17 and was removed.
+# The exception is the one file OMP reads at *project* scope (`.omp/config.yml`, see
+# upstream/omp/docs/config-usage.md), which is the half of "one config both tools read" that is
+# allowed to be committed. `.omp/*` rather than `.omp/` on purpose: excluding the directory itself
+# stops git descending into it, which makes the negation below unreachable.
+.omp/*
+!.omp/config.yml
+
+# Local secrets for scripts and ad-hoc work in this checkout (provider API keys).
+# Bun loads `.env` from the repository root automatically; never commit the values.
+.env
+.env.*
+!.env.example
+
+# Local-only working data: shadow-eval corpora and run artifacts carry real prompts.
+.local/
+
+# Cedia's skill installer state (which skills are enabled, and at what revision). The policy that
+# belongs in git is `.agents/AGENTS.md`, which `~/.agents/AGENTS.md` points at; these two are
+# machine state that the installer rewrites.
+.agents/skills-enabled.json
+.agents/skills.lock
+skills-lock.json
+.agents/skills/
+
+# Agent-window test-run attachments (screenshots, traces).
+apps/macos/agent-window/.vitest-attachments/

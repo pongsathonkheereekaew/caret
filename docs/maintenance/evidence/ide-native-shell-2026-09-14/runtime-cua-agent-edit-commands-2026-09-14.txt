@@ -1,0 +1,13 @@
+Caret agent-edit marks - real packaged app (Computer Use), 2026-09-14
+
+Bundle: repackaged at 04:07 from the revision that adds the marks; the packaged manifest carries caret.keepAgentEdit / caret.revertAgentEdit and the `when: caret.agentEditPending` gates, and the packaged extension.js carries both command ids. The app started clean: caret.caret activated, Caret channel logged 'startup view=ide mode=ide revealDock=true'.
+
+Command palette, run for real:
+  Caret: Keep the Caret Edit -> palette item 'Caret: Keep the Caret Edit'
+     notification: Info: This file has no Caret edit waiting. Caret only marks edits it applied through the editor bridge.
+  Caret: Take Back the Caret Edit -> palette item 'Caret: Take Back the Caret Edit'
+     notification: Info: This file has no Caret edit waiting. Caret only marks edits it applied through the editor bridge.
+
+Both are the handler's own refusal path, so the two commands are registered, discoverable with their manifest titles, invocable, and wired to a real handler rather than a dead id.
+
+Limit: the painted mark itself is not shown here. Painting needs an applied edit, and the only thing that creates an editor request is OMP's caret_editor tool inside a live session with a chosen model - the host exposes no other driver (its CLI is serve/ensure/status, and the router only has the client-side register/poll/respond routes). That remains the one unverified step, recorded in the receipt under agentEditMarks2026_09_14.verified.notVerified.

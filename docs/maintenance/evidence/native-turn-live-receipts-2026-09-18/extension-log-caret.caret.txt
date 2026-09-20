@@ -1,0 +1,9 @@
+2026-09-18 11:37:27.530 [info] startup view=agents mode=agents revealDock=false
+2026-09-18 11:37:27.986 [info] Caret chat sessions: 21 session(s) in 3 project(s) from the host.
+2026-09-18 11:37:27.993 [info] Caret chat sessions: 21 session(s) in 3 project(s) from the host.
+2026-09-18 11:37:28.622 [info] Caret chat sessions: 21 session(s) in 3 project(s) from the host.
+2026-09-18 11:37:39.507 [info] Caret language models: 871 advertised by OMP.
+2026-09-18 11:37:39.859 [info] Caret session option catalog: 871 model(s) advertised by OMP, 0 role(s) configured.
+2026-09-18 11:37:39.995 [info] Caret session option catalog: 871 model(s) advertised by OMP, 0 role(s) configured.
+2026-09-18 12:13:39.244 [info] Caret kept the host's current model: the picked model 'claude-4.6-opus-high' is not in OMP's catalogue.
+2026-09-18 12:13:39.479 [info] Caret participant turn for session 8d8402c7-d803-43bf-aef2-97aada7c062c

@@ -1,0 +1,246 @@
+{
+  "scope": "Lock Cursor as Caret's pixel-parity visual reference, amend the plan documents accordingly, and measure how closely the Caret Mac shell matches a live Cursor 3.20.17 window.",
+  "capturedAt": "2026-09-14T09:00:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "headCommit": "aa2942fe44e847e09b5fddf2119660939abe781e",
+  "question": "The user asked to make Caret match Cursor at pixel level and to fix the plan so the documents and the code agree. The spec previously named Codex the primary visual reference and forbade drifting to Cursor-only values, while the working tree had already moved to Cursor-measured literals  -  a silent drift the spec itself calls out.",
+  "decision": {
+    "what": "Cursor 3.20.17 (macOS) is now the pixel/geometry/colour/motion reference for the Caret Mac shell. Codex and OMP remain the behaviour/workflow references and own the surfaces Cursor does not have.",
+    "authority": "D20 in CARET-UI-DETAILED-DESIGN-2026-09-13.th.md supersedes the conflicting parts of D00/D01/D02/D15/D17, interaction spec sections 1/2/6/8, coverage sections 8/9 and validation sections 1.3/3.3.",
+    "why-not-silent": "The old rule allowed this: 'to use Cursor values, amend D01/D02 explicitly with a new receipt instead of letting the code drift'. This receipt is that amendment."
+  },
+  "method": {
+    "cursorGroundTruth": [
+      "The theme file Cursor actually ships: /Applications/Cursor.app/Contents/Resources/app/extensions/theme-cursor/themes/{cursor-dark,cursor-light,cursor-dark-hc,cursor-dark-midnight,cursor-light-colorblind}-color-theme.json. Colours were read from these files, not eyeballed from a screenshot.",
+      "A live AX + screenshot capture of the running Cursor window via Computer Use (cua.getApp('Cursor')), 1224x768."
+    ],
+    "caretGroundTruth": [
+      "The real shell: scripts/shell-render-fixture.ts (createTaskWebviewHtml with synthetic state) rendered in headless Chrome at 1224x768, device-scale-factor 1.",
+      "The Cursor workbench variables the packaged app supplies were injected from caret-theme.ts values, and the same page was rendered in dark and light.",
+      "Colours/geometry were read from the PNGs with scripts/png-pixel-probe.py; the --caret-* token values are pinned by apps/macos/test/webview.test.ts."
+    ],
+    "toolingFix": "scripts/png-pixel-probe.py only accepted RGBA PNGs, but macOS sips writes RGB PNGs when converting the JPEG that Computer Use returns, and the PNG filter reconstruction also hardcoded a 4-byte pixel stride. RGB is now accepted (parameters: bpp) and expanded to RGBA internally.",
+    "visionUnavailable": "The vision model answered HTTP 429 on every image this session, so no human or model looked at the captures. Every claim below is a measured pixel or a pinned token value, not an aesthetic judgement."
+  },
+  "measured": {
+    "palette": {
+      "caretShellLight": { "sidebar": "rgb(243,243,243)", "editor": "rgb(252,252,252)" },
+      "cursorLightThemeFile": { "sideBar.background": "#F3F3F3", "editor.background": "#FCFCFC" },
+      "caretShellDark": { "sidebar": "rgb(20,20,20)", "editor": "rgb(24,24,24)" },
+      "cursorDarkThemeFile": { "sideBar.background": "#141414", "editor.background": "#181818" },
+      "cursorLiveWindowLight": { "sidebar": "rgb(236,237,239)", "editor": "rgb(245,245,247)" },
+      "finding": "Caret renders the reference's own theme values exactly (243=0xF3, 252=0xFC, 20=0x14, 24=0x18).",
+      "correction": "This receipt first explained the live Cursor window reading ~7 units darker as a macOS colour-management shift in the capture pipeline. That explanation is WRONG and is retracted. A colour-accurate capture of the reference window (screencapture -l <windowid>, the same method used for Caret) still reads the chrome 7 darker while its transcript surface reads exactly rgb(252,252,252) = #FCFCFC, i.e. unshifted. A uniform shift cannot produce both, so the delta is real and sits on the reference's chrome surfaces only. Method note for future work: CUA/Computer-Use screenshots are colour-shifted (about -7 per channel) and must not be used for palette comparison; capture by window id instead."
+    },
+    "openDelta": {
+      "what": "The reference's live light agent window renders its chrome ~7 units darker than the theme's own chrome colour, while its main transcript surface is exactly the theme's editor colour.",
+      "measured": {
+        "cursorChrome": "rgb(236,237,238)",
+        "cursorTranscript": "rgb(252,252,252)",
+        "caretChrome": "rgb(243,243,243)",
+        "caretTranscript": "rgb(252,252,252)",
+        "themeValue": { "sideBar.background": "#F3F3F3", "editor.background": "#FCFCFC" }
+      },
+      "notImplementedBecause": "The cause is not established. Arithmetic over the two darker surfaces does not fit a single overlay colour or percentage (a 3% overlay of the foreground fits the chrome numerically but yields a different overlay colour when fitted to the composer surface), and the reference's light --cursor-* values are set at runtime so they are not readable from the bundle. Implementing a colour change on this inference would be guessing.",
+      "wouldSettleIt": "The runtime values the reference sets for --cursor-chrome/--cursor-editor/--cursor-sidebar in light mode, or a visual comparison of the two windows at matched scale."
+    },
+    "openTypeScale": {
+      "what": "The shell's headings use font-size 18px / line-height 26px (.task-title, .empty strong, .settings-page h2, .welcome-title), while the reference's published type scale is only xs/sm/base/lg = 11/12/13/14 and --conversation-font-size resolves to 14, so 18px is not in the reference's scale.",
+      "notChangedBecause": "Reducing a page heading from 18px to 14px is large and visible, and the reference may still set a heading size outside its token scale. The scale's absence of 18 is suggestive, not proof.",
+      "wouldSettleIt": "A visual comparison, or the reference's own heading CSS."
+    },
+    "openRowPitch": {
+      "what": "After moving the sidebar row to the reference's documented 28px, Caret's measured row pitch is ~28px while the reference's measures ~31px (OCR of row-label tops: reference 0.028-0.030 of a 1073px window; Caret 0.0365 of a 768px render).",
+      "notChangedBecause": "The reference documents a 28px min-height with zero row padding, so the extra ~3px per row is unexplained - it could be a container gap or a padding the bundle does not name as a token. Guessing 30px or 31px would replace a documented value with an invented one.",
+      "wouldSettleIt": "The reference's sidebar container rule (gap/padding), or a visual comparison."
+    },
+    "composerMeasured": {
+      "size": "The reference's empty-draft composer measures 604x104 logical px, centred in the main pane with ~424px of margin each side, against Caret's 437px-wide column.",
+      "corner": "Its corner measures r~18, matching the default --prompt-input-border-radius-expanded (radius-4xl) rather than the embedded variant (radius-base = 6).",
+      "cornerMethod": "For a rounded rect of radius r the topmost row's inset from the left edge is ~r - sqrt(r - 0.25): r=18 -> 13.8, r=16 -> 12.0, r=12 -> 8.6, r=6 -> 3.6. The reference's composer showed a 14px inset at the top row and reached its final edge over ~18 rows, so r is 18.",
+      "stillOpen": "The composer column width. Caret's 437px was measured in a 1224px window; the reference measures 604px in a 1710px window, and both are ~41.5% of the main pane, which suggests the reference's column is proportional rather than fixed. Two data points were judged too weak to act on."
+    },
+    "geometry": {
+      "editorStartsAtX": { "cursorLightLive": 184, "caretShellLight": 182, "caretShellDark": 182 },
+      "interpretation": "Caret's sidebar is 180px plus a 2px sash = 182. Cursor's is ~184 in this capture. A 2px delta on a 1224px window; the sidebar width is parity within measurement noise of the capture pipeline.",
+      "pinnedTokens": "apps/macos/test/webview.test.ts asserts --caret-sidebar 180px, --caret-row 28px, --caret-sidebar-icon 13px, --caret-transcript-column/--caret-composer-column 437px, --caret-control-radius 6px, --caret-composer-radius 18px, the composer editor min/max, type 11/12/13/14, the radius scale and the reference-derived motion tokens."
+    },
+    "cursorAgentsWindowIA": {
+      "source": "live AX tree of the running Cursor window",
+      "sidebar": "New Chat / Search / Automations / Customize icon rows; Projects + New Project; Repositories + Customize Sidebar/Open Workspace; per-repo task rows with status, title and relative time; Notifications and Hide Sidebar at the bottom",
+      "header": "IDE button, Chat actions, Show Apps, account menu, Settings toggle",
+      "composer": "inline selector row (branch, This Mac) + text entry 'Plan, Build, / for skills, @ for context'; toolbar Add agents/context/tools, effort 'High', Start voice input; mode pills Plan New Idea / Multitask / Run in Cloud; four idea rows, each with a Dismiss recommendation control",
+      "matchesCaret": "The Caret shell already carries the same composer placeholder, the same mode pills (Plan New Idea / Multitask / Run in Cloud-disabled) and the same four idea rows verbatim (Build from a design, Deploy my prototype, Start with a plan, Debug an issue).",
+      "differsFromCaret": "Caret's sidebar shows a 'Chats' section label plus a persistent search field where Cursor has a Search row/command, and Caret's repo row layout and header cluster (Ready/IDE) differ from Cursor's (branch/This Mac inline, IDE/Chat actions/Show Apps). Cursor has Notifications + Hide Sidebar footer rows; Caret has Settings."
+    }
+  },
+  "changes": {
+    "docs": [
+      "CARET-UI-DETAILED-DESIGN-2026-09-13.th.md: new D20 'Cursor pixel parity' (reference precedence, measured colour/geometry/type/motion baseline, intentional deviations, open gaps); header amendment note; D01 sidebar 240->180 and column 900->437; D01 task rows 40->22px with 12px icons; D02 type roles aligned to the token values; D02 control radius 5->6; D17 no longer forbids the Cursor goal; new light-theme subsection.",
+      "CARET-UI-INTERACTION-SPEC-2026-09-13.th.md: amendment note; layout contract now sidebar 180 / column 437 / radius 6; CX-01 no longer blocks pixel freeze.",
+      "CARET-UI-COVERAGE-2026-09-13.th.md: the 'Codex visual reference' gap row becomes 'Visual parity reference (Cursor, D20)'; section 9 parity non-goal amended.",
+      "CARET-UI-VALIDATION-2026-09-13.th.md: reference layer 3 and new section 3.3 pixel-parity comparison protocol (matched viewport/scale/theme, DOM+palette measurement, delta classification, no pass from a single screenshot)."
+    ],
+    "code": [
+      "apps/macos/src/webview.ts: motion token fallbacks now equal DEFAULT_MOTION_TOKENS (instant 0, drawer-in 180, drawer-out 120, curve cubic-bezier(.2,0,0,1)); removed the unused --caret-motion-curve-strong; .message-body uses the transcript token (14/22, detailed 15/24) instead of a raw 15/24 that made comfortable equal detailed; terminal, diff and tool-output code roles normalised to 13/20 + --vscode-editor-font-family (.term-log, .hunk-head, .hunk pre, .review-row .mark).",
+      "apps/macos/src/caret-theme.ts: added CARET_LIGHT_ANCHORS and CARET_LIGHT_WORKBENCH_COLORS from the reference's light theme file, plus caretWorkbenchColors()/caretThemeKindFromVscode().",
+      "apps/macos/src/extension.ts: the chrome palette now follows window.activeColorTheme.kind and repaints on onDidChangeActiveColorTheme instead of forcing dark.",
+      "apps/macos/src/extension.ts: sets window.autoDetectColorScheme so Caret's chrome follows the OS light/dark setting the way the reference does, and only when the user has not set that key themselves. The user-choice check is 'globalValue === undefined' rather than a truthiness test, so an explicit false is respected (the earlier truthiness check would have overridden it).",
+      "apps/macos/src/extension.ts + caret-theme.ts: colour customisations now fall back to global scope when there is no folder attached, and isCaretWorkbenchPalette() recognises Caret's own global palette so that footprint is refreshed instead of being mistaken for the user's choice. Before this, the *default* Agents window (no folder) wrote no palette at all and kept the engine's colours - the one screen a first-run user sees.",
+      "apps/macos/src/caret-theme.ts + extension.ts: added CARET_HC_DARK_ANCHORS / CARET_HC_DARK_WORKBENCH_COLORS from cursor-dark-hc-color-theme.json and a 'high-contrast' kind, so a built-in vs/hc-black theme no longer gets Caret's plain dark chrome. Two deliberate deviations from that file, both for accessibility and both marked in code: the reference sets focusBorder fully transparent and statusBar.border to nothing, while Caret requires a visible focus perimeter and borders that do not rely on shadow.",
+      "apps/macos/src/caret-theme.ts + extension.ts: added the reference's two variant palettes - CARET_MIDNIGHT_WORKBENCH_COLORS from cursor-dark-midnight-color-theme.json, and CARET_LIGHT_COLORBLIND_WORKBENCH_COLORS derived from the light palette (that theme differs from cursor-light in exactly four accent/link keys, now asserted by a test). Because midnight is a dark theme and light colorblind a light one, they share their base theme's ColorThemeKind, so caretThemeKindFor() also reads the active theme name; the name heuristic is documented as such and falls back to the kind.",
+      "scripts/cursor-parity-check.ts (bun run check:cursor-parity): reads the installed reference theme files and compares every key Caret declares against them, so a mistyped hex is a failing check instead of an invisible 'close but not quite'. It reports OK / FAIL / SKIP (SKIP when the reference is not installed - a skip is not a pass), lists Caret-authored keys as 'derived', and requires any deliberate deviation from a value the reference does define to be declared in ALLOWED_OVERRIDES with a reason. It checks only values Caret already declares; it copies nothing into the repository.",
+      "apps/macos/src/caret-theme.ts: fixed a real transcription bug that the new gate found on its first run - the dark palette set titleBar.inactiveForeground to #F0F0F05C (36%) while the reference uses #F0F0F099 (60%), so an unfocused window's title was too dim. Now pinned by a unit test as well, so CI catches it without the reference installed.",
+      "apps/macos/src/ui-a11y.ts + webview.ts: motion tokens corrected to the reference's own published scale. Cursor ships --cursor-duration-instant/fast/normal/slow = 50/100/150/200ms and --cursor-easing-out-cubic = cubic-bezier(0.215, 0.61, 0.355, 1) inside its workbench bundle. An earlier change in this same day had moved Caret's tokens to DEFAULT_MOTION_TOKENS values (instant 0, drawer 180/120, cubic-bezier(.2,0,0,1)) for internal consistency; that was internally consistent but NOT the reference, so both ui-a11y.ts and the CSS fallbacks now carry the reference's values. MOTION_CURVE_STRONG holds --cursor-easing-out-quint for future emphasis transitions without adding unused CSS.",
+      "apps/macos/src/webview.ts: --caret-composer-radius changed 10px -> 12px. The reference's --conversation-surface-border-radius resolves to --cursor-radius-xl (12px), and its radius scale contains no 10px value at all, so the composer corner was the one off-scale radius in the shell.",
+      "apps/macos/src/caret-theme.ts: added the inactive/unfocused keys the pinned engine's default themes define but the reference's themes do not (statusBar.inactiveBackground, statusBar.inactiveForeground, activityBar.inactiveForeground, panelTitle.inactiveForeground) to all five palettes. Without them an UNFOCUSED Caret window showed the engine's colours - measured #FAFAFD in the light status bar - because a colourCustomizations override only replaces the keys it names. Verified at runtime after the fix: the IDE-mode light window's status bar is now a uniform rgb(243,243,243) across the full width, with the activity bar and side bar at rgb(243,243,243) and the editor at rgb(252,252,252).",
+      "apps/macos/src/webview.ts: audited every px value in the shell's CSS against the reference's published scales, per property (radius against the radius scale, type against the type scale). Three border-radius values were off the reference's radius scale - 11px on the notification badge, 5px on the pane chip and pane draft field, 1px on the account chevron - now --caret-radius-full, --caret-control-radius and --caret-radius-xs. apps/macos/test/webview.test.ts fails if any border-radius leaves the scale.",
+      "apps/macos/src/webview.ts: sidebar row height corrected from 22px to 28px, and the sidebar icon size from 12px to 13px. The reference's agent CSS sets --ui-sidebar-menu-button-min-height and --ui-tray-row-min-height to --cursor-height-base (28px) with row padding-top/bottom of 0, and --ui-sidebar-action-icon-size to spacing-3-25 (13px). The old 22px came from an earlier capture whose scale was uncertain; the reference's own token is stronger evidence, and the change moves Caret's measured row pitch from ~22px to ~28px against the reference's measured ~31px.",
+      "apps/macos/src/webview.ts: composer geometry aligned to the reference's prompt-input tokens - radius 12px -> 18px (--prompt-input-border-radius-expanded = radius-4xl), textarea min-height 44px -> 36px (--prompt-input-editor-min-height = spacing-9), max-height 180px -> 200px, padding 12px -> 8px 12px (--prompt-input-editor-padding). New --caret-composer-editor-min/max tokens carry the values so the gate can compare them.",
+      "scripts/cursor-parity-check.ts: removed a stale composer-radius entry (it compared against the conversation-surface radius, 12px, which is not the composer's) and added the three prompt-input component comparisons. The gate now compares 45 shell values, including the composer radius verified independently against the measured corner.",
+      "scripts/cursor-parity-check.ts: the gate now also compares the shell's own design tokens against the reference's --cursor-* custom properties extracted from the installed workbench bundle: 28 type/line-height/height/radius/control-radius/composer-radius/motion-duration/curve tokens, all matching.",
+      "scripts/png-pixel-probe.py: accepts RGB as well as RGBA PNGs (see toolingFix)."
+    ],
+    "tests": [
+      "apps/macos/test/webview.test.ts: motion assertions updated to the D15 values plus parity locks (control radius 6, transcript token, code role 13/20, no 12px/18px monospace left).",
+      "apps/macos/test/caret-theme.test.ts: light anchors, light chrome darker than the light editor, light covers the same keys as dark, and the theme-kind selector.",
+      "apps/macos/test/helpers/vscode-stub.ts: activeColorTheme + onDidChangeActiveColorTheme, themeKind state, fireActiveColorThemeChange().",
+      "apps/macos/test/ide-native-workbench.test.ts: light chrome paints when the theme is light; switching theme kind repaints the chrome."
+    ]
+  },
+  "verification": {
+    "tests": "624 pass / 0 fail / 3326 expect() calls across 86 files (bun run test)",
+    "typecheck": "tsc --noEmit clean",
+    "repoValidator": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "runtime": "Cursor 3.20.17 captured live via Computer Use; Caret shell rendered from the current working tree via scripts/shell-render-fixture.ts and measured with scripts/png-pixel-probe.py."
+  },
+  "paletteGate": {
+    "command": "bun run check:cursor-parity",
+    "result": "OK (340 colour keys across five themes, 32 authored by Caret, 0 mismatches; plus 44 shell values - type, line-height, height, radius, control radius, composer radius, row height, sidebar icon, motion durations, the easing curve and every spacing step)",
+    "gateValidated": "Deliberately changed --caret-row to 27px and confirmed the gate fails with 'caret 27px vs reference cursor-height-base 28px', then reverted. The gate detects a 1px regression rather than passing vacuously.",
+    "found": [
+      "dark titleBar.inactiveForeground was 36% white instead of the reference's 60%; fixed and pinned by a test",
+      "the composer radius was 10px, a value the reference's radius scale does not contain; its conversation surface uses radius-xl (12px); fixed",
+      "Caret's motion tokens did not match the reference's published duration/easing scale; corrected in both ui-a11y.ts and the CSS fallbacks"
+    ],
+    "referenceDesignSystem": "Cursor ships its agent design system in workbench.desktop.main.js as 405 --cursor-* custom properties. Caret's font-size (11/12/13/14), line-height (14/16/18/22), height (20/24/28/32), radius scale (2/4/6/8/12/14/16/18) and spacing values all match it; --conversation-font-size also resolves to font-size-lg, which is what the transcript body uses.",
+    "integrityCheck": "Every token the gate compares was verified to have exactly one definition in the bundle, so no comparison is against an arbitrary value out of several scoped variants.",
+    "resolvedQuestion": "The agent surface is painted with var(--glass-chat-surface-background, var(--cursor-bg-chrome)), i.e. --cursor-bg-chrome = #141414 in dark, which equals the sideBar.background Caret already uses. Although --cursor-sidebar and --cursor-editor are both #181818, --cursor-sidebar has no consumer that paints the chat surface, so Caret's current panel colour stands and last round's open question is closed in Caret's favour.",
+    "stillOpen": [
+      "--cursor-accent is #599CE7 while the reference's own VS Code theme sets button.background to #81A1C1 (dark) and #2778C1 (light); the agent UI accent and the theme accent disagree, and Caret follows the theme file. Needs a capture of the real primary button.",
+      "--conversation-block-gap and --conversation-text-inset are both 0px with exactly one definition each, but no consumer was found in the bundle, so the reference's effective message-block spacing could not be derived; Caret keeps its own spacing."
+    ],
+    "authorisedDeviations": [
+      "high-contrast focusBorder and statusBar.border",
+      "dark-midnight focusBorder"
+    ]
+  },
+  "runtimeVerification": {
+    "how": "Built only the extension and host (bun scripts/build-caret.ts, no --package) so the user's running Caret.app bundle was not modified, then launched the packaged Caret binary with --extensionDevelopmentPath=/Users/pond/caret/dist/mac-extension, a private profile (/tmp/caret-parity-profile), a scratch workspace (/tmp/caret-parity-workspace) and --password-store=basic --use-inmemory-secretstorage. The window was captured by CGWindowID (both instances share one bundle id, so Computer Use's app-scoped capture returned the user's window instead) and measured with scripts/png-pixel-probe.py. macOS is in light mode (AppleInterfaceStyle unset) and Cursor ships window.autoDetectColorScheme on, which is the mismatch this closes.",
+    "activation": "The private profile's settings.json received window.autoDetectColorScheme=true and the workspace received the full palette, proving the extension activated and wrote appearance settings at real runtime.",
+    "lightRun": {
+      "trigger": "OS light + autoDetect (Caret's new default)",
+      "paletteWritten": { "editor.background": "#FCFCFC", "sideBar.background": "#F3F3F3", "button.background": "#2778C1" },
+      "rendered": { "sidebar": "rgb(243,243,243)", "main": "rgb(252,252,252)", "titleStrip": "rgb(243,243,243)" },
+      "matches": "exactly the reference's cursor-light theme values (#F3F3F3 / #FCFCFC / #F3F3F3)"
+    },
+    "folderlessRun": {
+      "trigger": "OS light, no folder attached, fresh private profile - the default first screen",
+      "beforeThisFix": "no workbench.colorCustomizations was written (the workspace-scope write throws with no folder and the palette deliberately had no global fallback), so the first screen kept the engine's colours",
+      "after": { "paletteWritten": { "editor.background": "#FCFCFC", "sideBar.background": "#F3F3F3", "button.background": "#2778C1" }, "rendered": { "sidebar": "rgb(243,243,243)", "main": "rgb(252,252,252)" } },
+      "matches": "exactly the reference's cursor-light theme values"
+    },
+    "installedApp": {
+      "how": "The bundled app was refreshed with the documented step: bun scripts/build-caret.ts --package (it re-copied the extension, removed the bundled copilot agent UI, rewrote argv.json with password-store=basic + use-inmemory-secretstorage, then ad-hoc codesigned and verified the bundle). It was then launched from the packaged bundle with a private profile and no folder.",
+      "bundle": "VSCode-darwin-arm64/Caret.app/Contents/Resources/app/extensions/caret/out/extension.js (09:11) contains isCaretWorkbenchPalette and autoDetectColorScheme; argv.json carries use-inmemory-secretstorage; the copilot extension directory is gone.",
+      "rendered": { "sidebar": "rgb(243,243,243)", "main": "rgb(252,252,252)" },
+      "matches": "exactly the reference's cursor-light theme values - the same numbers the dev-host run produced",
+      "caveat": "Side effect to know about: repackaging rewrites and ad-hoc re-signs the very bundle a running Caret was launched from, and that running instance is no longer alive after the second --package of 2026-09-14. It was never explicitly killed (only this task's own private-profile PIDs were), so the most likely cause is macOS invalidating the running binary once its signature changed. Report it plainly rather than claiming the window was untouched, and prefer repackaging when no Caret window is in use."
+    },
+    "highContrastRun": {
+      "trigger": "window.autoDetectColorScheme=false with workbench.colorTheme='Default High Contrast' (a built-in hc-black theme, so this kind is reachable on any machine with Increase contrast on)",
+      "paletteWritten": { "editor.background": "#0A0A0A", "sideBar.background": "#0A0A0A", "button.background": "#434C5E", "badge.foreground": "#000000", "focusBorder": "#F0F0F066" },
+      "rendered": { "sidebar": "rgb(10,10,10)", "main": "rgb(10,10,10)", "sidebarSelectedRow": "rgb(69,76,93)" },
+      "matches": "the reference's cursor-dark-hc values (#0A0A0A chrome+editor; #434C5E selected row, within colour-management tolerance)"
+    },
+    "midnightRun": {
+      "trigger": "window.autoDetectColorScheme=false with workbench.colorTheme='Cursor Dark Midnight'",
+      "paletteWritten": { "editor.background": "#1e2127", "sideBar.background": "#191c22", "button.background": "#88c0d0", "tab.activeForeground": "#d8dee9" },
+      "rendered": { "sidebar": "rgb(26,28,34)", "main": "rgb(31,33,39)", "sidebarSelectedRow": "rgb(34,36,43)" },
+      "matches": "the reference's cursor-dark-midnight values (#191c22 sidebar, #1e2127 editor, #21242b selected row) within one or two units"
+    },
+    "ideModeLightRun": {
+      "why": "Earlier runtime checks were all in Agents mode, which hides the activity bar, tabs and status bar, so the IDE surface was unverified for the light palette.",
+      "trigger": "private profile with the folder attached, switched to IDE mode with the shell's own IDE toggle",
+      "found": "the status bar rendered rgb(250,250,253) = the engine default theme's statusBar.inactiveBackground (#FAFAFD) instead of the palette's #F3F3F3, because Caret overrode statusBar.background but not its inactive counterpart",
+      "afterFix": { "statusBar": "rgb(243,243,243) full width", "activityBar": "rgb(243,243,243)", "sideBar": "rgb(243,243,243)", "editor": "rgb(252,252,252)" },
+      "matches": "the reference's cursor-light values (#F3F3F3 chrome / #FCFCFC editor) exactly"
+    },
+    "darkRun": {
+      "trigger": "user set window.autoDetectColorScheme=false and workbench.colorTheme='Dark 2026' in the private profile",
+      "paletteWritten": { "editor.background": "#181818", "sideBar.background": "#141414", "button.background": "#81A1C1" },
+      "rendered": { "sidebar": "rgb(20,20,20)", "main": "rgb(24,24,24)", "titleStrip": "rgb(20,20,20)" },
+      "matches": "exactly the reference's cursor-dark theme values (#141414 / #181818 / #141414)",
+      "alsoProves": "the palette is re-selected from the theme kind at runtime, and the user's explicit autoDetectColorScheme=false was left untouched"
+    },
+    "surface": "OCR of the dark capture (scripts/image-ocr.swift) lists the Caret Agents shell: sidebar New task / Search / Automations / Customize / Projects / Open folder / Repositories / Settings, header Ready + IDE, composer pills, the mode pills and the four idea rows. So the measurements are of the real product shell, not an empty harness."
+    ,"stateCoverage": {
+      "how": "The real shell was rendered from scripts/shell-render-fixture.ts with the reference's light variables injected for the running, approval and panel fixtures, then measured the same way.",
+      "result": { "running": { "sidebar": "rgb(243,243,243)", "main": "rgb(252,252,252)" }, "approval": { "sidebar": "rgb(243,243,243)", "main": "rgb(243,243,243)" }, "panel": { "sidebar": "rgb(243,243,243)", "main": "rgb(243,243,243)" } },
+      "reading": "The sidebar holds #F3F3F3 in every state. running shows the editor surface #FCFCFC in main; approval and panel cover main with a raised surface, which is #F3F3F3 in the reference too (editorWidget/panel.background). No state drifts off the palette."
+    }
+  },
+  "delegationNote": "Per the workspace AGENTS.md and the astra-orchestrator skill, two bounded subagents were spawned first (parity_gap_explorer, shell_measure_tester). Both failed immediately with the account usage limit ('You've hit your usage limit... try again at Sep 19th, 2026') and were interrupted; the work was performed by the root instead. No subagent produced findings.",
+  "notVerified": {
+    "humanPixelReview": "The vision model was rate limited (HTTP 429) for the whole session, so nobody looked at the images. The claims are measured values only.",
+    "matchedSideBySide": "No sanitized Cursor window was stored in the repo (it shows the user's private task and repository names), so the comparison is Caret pixels vs Cursor's shipped theme files plus a live AX tree, not a stored side-by-side.",
+    "titleBarStrip": "Resolved in this round's runtime capture: the top strip rendered rgb(243,243,243) in light and rgb(20,20,20) in dark, i.e. it follows titleBar.activeBackground in both kinds. The earlier reading of #191a1c was taken from a capture whose own note allowed for a non-frontmost window.",
+    "syntaxTokens": "Editor token/syntax colours are still the pinned Code-OSS default, not the reference's tokenColors. This one is licensing-gated, not just unimplemented: the theme Caret is matching ships as the third-party extension `cursor-themes` 0.0.2 (repository github.com/ryokun6/cursor-themes) with NO license declared, and its tokenColors are 225 named rules. Copying that rule set into Caret needs a licence/permission decision, or Caret must author its own token palette. Only a small set of colour anchor values has been reused so far.",
+    "otherThemes": "All five reference themes now have a palette: dark, light, high contrast dark, dark midnight, and light colorblind. High contrast light has no reference theme and maps onto the light palette, which is recorded as a deviation. The two variant palettes are selected by theme name, a documented heuristic that needs revisiting if the reference renames them.",
+    "runningApp": "The packaged app bundle has been refreshed and verified (see runtimeVerification.installedApp). The user's already-open Caret window still runs the bundle it loaded at launch, so it will show the older look until that window is restarted; it was not closed or reconfigured.",
+    "stateCoverage": "Only the empty-draft shell was captured; running/approval/panel/error states and the IDE chrome were not captured this round."
+  },
+  "evidenceFiles": [
+    "caret-shell-light-2026-09-14.png",
+    "caret-shell-dark-2026-09-14.png",
+    "caret-agents-runtime-light-2026-09-14.png",
+    "caret-agents-runtime-dark-2026-09-14.png",
+    "caret-agents-folderless-light-2026-09-14.png",
+    "caret-packaged-folderless-light-2026-09-14.png",
+    "caret-agents-high-contrast-2026-09-14.png",
+    "caret-agents-dark-midnight-2026-09-14.png"
+  ],
+  "secondRound": {
+    "when": "2026-09-14, same session, after the first receipt was written",
+    "why": "The user asked to verify the match with Computer Use and screenshots rather than trust the token comparison, which left three measured questions open (openDelta, openRowPitch, composer column width).",
+    "captureMethod": "Both windows were captured with `screencapture -x -o -l <CGWindowID>` at device scale 2. The method was validated against a known quantity first: Caret's own light shell reads rgb(243,243,243) for #F3F3F3 and rgb(252,252,252) for #FCFCFC, i.e. this capture path is colour-accurate for an opaque window. Computer Use could not be used for Caret: its service resolves the bundle to VSCode-darwin-arm64/Caret.app and fails with kLSNoExecutableErr, and the vision model answered HTTP 429 for every image, so nothing here is an aesthetic judgement - every claim is a measured pixel.",
+    "resolvedOpenDelta": {
+      "question": "The reference's live light chrome read ~7 units darker than the #F3F3F3 its own theme file declares. Was that a real product difference?",
+      "answer": "No. The reference's agent chrome and chat surfaces are translucent (glass) surfaces: a window-only capture composites them over a transparent backdrop and darkens them, while a full-screen capture composites them over the desktop. In one screen capture containing both apps at once, the reference's sidebar and Caret's sidebar read the same rgb(250,250,251), and the reference's chat surface and Caret's page the same rgb(255,255,255). This retracts the earlier `correction` in `measured.palette` as well: the 236/245 readings are a property of capturing a translucent surface, not of the reference's palette.",
+      "howToRecheck": "Capture the reference window (236) and the same reference region in a full-screen capture (250) in the same minute; if they differ, the surface is translucent."
+    },
+    "changedThisRound": [
+      "--caret-row 28px -> 30px (apps/macos/src/webview.ts). The reference's rule is min-height var(--cursor-height-base)=28px with zero row padding, but its rendered row BOX is 30px: the \"New Chat\" row's own highlight fill spans y48..77 of a 1073px window, and the sidebar's text-row pitch measures ~30.7px across ~20 rows. Caret measured 28px pitch and now measures 30-32px, matching the reference's rhythm. scripts/cursor-parity-check.ts now asserts BOTH facts: the reference's token must still be 28px (else re-measure) and Caret must render the measured 30px box.",
+      "--caret-composer-column / --caret-transcript-column 437px -> 608px. Measured at the SAME 1710x1073 window as the reference: the reference's empty-draft prompt-input card spans x679..1286 = 608px including its 1px border, and Caret's card rendered 397px at both 1224px and 1710px windows - so the column is fixed, not proportional, and the earlier 437px value (derived as 41.8% of the pane off a 1224px render) was simply short. Caret now renders 608px at 1710x1073. Open: whether the reference's 608 is fixed or 41.8% of its pane (that reading gives 639 in Caret's pane); 608 is the only value measured like-for-like.",
+      "New --caret-composer-surface = color-mix(in srgb, #fff 6%, var(--caret-bg)). The reference paints the prompt input with --prompt-input-container-bg = --cursor-bg-input-surface = color-mix(in srgb, var(--cursor-base) 6%, transparent), i.e. one step ABOVE the page, and its --prompt-input-container-shadow is none. Measured: the reference's card reads #FCFCFC (= editor.background) on a page that reads #F5F5F6, while Caret painted the card with the chrome colour #F3F3F3 - one step BELOW the page, the opposite direction. Caret's card now reads rgb(252,252,252), the same as its page, defined by its hairline border, exactly as in the reference. The box-shadow was dropped for the same reason.",
+      "The empty-draft selector row (Folder / Branch / This Mac) moved from .home-stage into the prompt-input card, matching the reference's inline branch/This-Mac row; and the empty-draft textarea is now one 36px line (--prompt-input-editor-min-height) instead of rows=3. Together these cut the empty composer card from 152px to 122px tall (reference: 106px).",
+      "The empty-state composer's --caret-gutter inline padding was removed; it was insetting the card by 2x24px so a 608px column rendered a 560px card."
+    ],
+    "stillOpen": [
+      "Composer card height: Caret 122px vs reference 106px at the same window size. The reference's card holds the selector row + a 36px editor + a toolbar inside 106px, so Caret's toolbar/padding is still ~16px too tall.",
+      "Idea-row rhythm: the reference's four idea rows span y624..793 in a 1073px window (~42px each); Caret's separators measure 26px apart. Not changed - the reference's idea-row box was not derived.",
+      "Heading type scale is now CLOSED in Caret's favour: the reference's own agent CSS does contain .ui-osj86m{font-size:18px} plus 16/17/20px classes, so Caret's 18px page headings are inside the reference's real rendering scale even though its token scale stops at 14px.",
+      "The reference's dark-mode composer surface was not measured (switching the user's theme was out of scope), so --caret-composer-surface is verified in light only.",
+      "The non-empty (task) composer state was not captured on either side; the same token now drives it, so it is consistent by construction but unverified.",
+      "Nothing was visually reviewed: the vision model returned HTTP 429 for every image this whole session. All verification is pixel measurement, OCR and accessibility text."
+    ],
+    "verification": {
+      "tests": "640 pass / 0 fail / 3472 expect() calls across 86 files",
+      "typecheck": "tsc --noEmit clean",
+      "repoValidator": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+      "parityGate": "bun run check:cursor-parity: OK (340 colour keys, 0 mismatches; 46 shell values match, including the 30px row box)",
+      "render": "Caret's real shell from scripts/shell-render-fixture.ts with the light palette injected, rendered in headless Chrome at 1710x1073 device-scale-factor 2 and measured with scripts/png-pixel-probe.py: card 608px wide, sidebar row pitch 30-32px."
+    },
+    "supersededBy": "docs/maintenance/CARET-PLAN.md (the single authoritative plan; its S3 retires this webview shell in favour of the Code-OSS native Agents window, and its section 5/6 documents the SSOT split). The architecture document this field used to name is now docs/archive/2026-09-14-pre-ssot/CARET-AGENTS-WINDOW-ARCHITECTURE-2026-09-14.th.md, and the measured inventory written this session is archived at docs/archive/2026-09-14-pre-ssot/CARET-CURSOR-AGENTS-SPEC-2026-09-14.th.md. The row-box (30px), composer-column (608px) and composer-surface values above were measured against the now-retired shell, but they are measurements OF THE REFERENCE and stay valid for whichever shell renders them; they are carried in the live plan's measured table."
+  }
+}

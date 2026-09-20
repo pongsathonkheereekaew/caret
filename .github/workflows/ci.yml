@@ -1,0 +1,16 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+# NOTE (2026-09-10): macOS-only by decision (billing left untouched).
+# Runs on the always-on Mac (caret-mac). No ubuntu/windows matrix.
+jobs:
+  validate:
+    runs-on: [self-hosted, macOS, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/ci-validate.mjs

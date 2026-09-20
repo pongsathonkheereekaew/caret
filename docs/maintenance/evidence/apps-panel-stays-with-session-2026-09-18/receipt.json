@@ -1,0 +1,32 @@
+{
+  "scope": "Item 44: the Apps panel (Changes / Browser / Terminal / File) used to disappear from the Agents window's right pane when an existing session was opened, leaving the base tab strip whose Open new tab menu offered only Browser and Search. It now stays the pane while a session owns the editor group, and Terminal opens a real zsh tab there.",
+  "capturedAt": "2026-09-18T11:45:00+07:00",
+  "branch": "main",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "patchSet": {
+    "sha256": "74c6ca5cbb28d187dfc5027a9b9ea554985c4e823164fb5035111b5c95b6fbb1",
+    "patches": 36,
+    "changed": [
+      "patches/desktop/0021-caret-agent-home-utility.patch (the contribution that creates the panel)",
+      "patches/desktop/0039-caret-apps-panel-is-not-a-session-tab.patch (new)"
+    ]
+  },
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app (packaged by CARET_HOST_NODE=~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun run package:mac; bun run check:packaged green at this patch set)",
+  "method": "Cold launch through scripts/launch-caret-personal.ts, then macOS accessibility reads through the computer-use runtime (@oai/sky). Each state below is a screenshot plus the AX tree of the running window, stored beside this file. No DOM probe and no guesswork.",
+  "cause": "The right pane is the Caret Apps panel, and Caret's strip is that pane's only tab group. The contribution opened the panel only while the main editor group was empty, but the window also opens its own session tabs there (the managed Changes multi-diff and the empty Files placeholder), so opening a session replaced the panel with the base tab strip.",
+  "fix": "The panel claims the pane whenever the group's active tab is one of the window's own session tabs (or the group has no tab), opened under suppressEditorPartAutoVisibility so claiming a pane never reveals one; it skips a hidden editor area and the classic layout, leaves a user-opened file/search editor alone, and Show Apps records a user hide. The managed-tabs coordinator now counts the group's session tabs without the panel, so a session still gets its Changes/Files defaults.",
+  "states": {
+    "coldLaunch": "cold-launch.png / cold-launch.ax.txt - the rail toggle buttons Description: Changes, Browser, Terminal, File plus 'Open new tab menu' in the right pane.",
+    "emptyDraft": "draft-new-chat.png / draft-new-chat.ax.txt - the same strip over the four cards Changes / Browser / Terminal / File.",
+    "existingSessionOpened": "session-open-existing.png / session-open-existing.ax.txt - after clicking the sidebar row 'Reply with exactly: caret-live-ok'; the same strip is still the pane, with the chat in the centre column.",
+    "terminalInThatSession": "session-terminal-open.png / session-terminal-open.ax.txt - after clicking Terminal: the AX tree carries 'tab (selected) Description: zsh' and the terminal field 'Terminal 3, zsh', and the screenshot shows the live prompt 'pond@CEDIA-M cedia %' in the right panel."
+  },
+  "regressionCovered": [
+    "bun run test 881 pass / 0 fail (97 files)",
+    "bun run typecheck clean",
+    "bun test apps/macos/test/desktop-patch-set.test.ts 0 fail (both patches apply in order and the mirror matches the checkout)",
+    "bun test apps/macos/test/ide-native-workbench.test.ts 67 pass (pins patch 0021's text and sha256)",
+    "node scripts/ci-validate.mjs CI-OK"
+  ],
+  "notVerified": "The Hide Apps / detail-only transitions were not re-measured; they are unchanged by this work, and the classic (non-single-pane) layout keeps the previous behaviour by construction."
+}

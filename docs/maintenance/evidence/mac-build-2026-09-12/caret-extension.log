@@ -1,0 +1,6 @@
+command: PATH=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin:$PATH npm ci --prefix extensions/caret --no-audit --no-fund
+result: PASS (added 2 packages in 792ms)
+
+command: PATH=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin:$PATH npm --prefix extensions/caret run compile
+result: PASS (tsc -p ./; no diagnostics)
+

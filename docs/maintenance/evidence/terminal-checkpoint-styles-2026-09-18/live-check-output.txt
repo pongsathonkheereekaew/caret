@@ -1,0 +1,18 @@
+checkpoint.runs = [{"row":0,"col":0,"text":"ERR","foreground":"#cc6666"},{"row":0,"col":3,"text":" ok "},{"row":0,"col":7,"text":"NOTE","bold":true,"background":"#81a2be"}]
+checkpoint.lines = ["ERR ok NOTE"]
+seed = "\u001b[?25l\u001b[2J\u001b[H\u001b[1;1H\u001b[0m\u001b[38;2;204;102;102mERR\u001b[1;4H\u001b[0m ok \u001b[1;8H\u001b[0m\u001b[1;48;2;129;162;190mNOTE\u001b[0m\u001b[K\u001b[1;12H\u001b[?25h"
+xterm row0 = [
+  "\"E\" fg=cc6666 bg=palette:-1",
+  "\"R\" fg=cc6666 bg=palette:-1",
+  "\"R\" fg=cc6666 bg=palette:-1",
+  "\" \" fg=palette:-1 bg=palette:-1",
+  "\"o\" fg=palette:-1 bg=palette:-1",
+  "\"k\" fg=palette:-1 bg=palette:-1",
+  "\" \" fg=palette:-1 bg=palette:-1",
+  "\"N\" fg=palette:-1 bg=81a2be bold",
+  "\"O\" fg=palette:-1 bg=81a2be bold",
+  "\"T\" fg=palette:-1 bg=81a2be bold",
+  "\"E\" fg=palette:-1 bg=81a2be bold",
+  "\"\" fg=palette:-1 bg=palette:-1"
+]
+LIVE-OK: native engine styles -> checkpoint runs -> xterm truecolour cells

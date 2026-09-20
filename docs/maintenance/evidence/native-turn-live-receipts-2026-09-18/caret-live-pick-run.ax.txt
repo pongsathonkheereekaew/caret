@@ -1,0 +1,205 @@
+Window: "Agents", App: Caret.
+0 standard window Agents, Secondary Actions: Raise
+	1 container Agents
+		2 container
+			3 HTML content Agents, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/sessions/electron-browser/sessions.html
+				4 container
+					5 container
+						6 container
+							7 toolbar
+								8 toggle button Description: Toggle Side Bar (⌘B), Value: 1
+									9 text 
+							10 toolbar
+								11 button Go Back (⌃-)
+									12 text 
+								13 button (disabled) Go Forward (⌃⇧-)
+									14 text 
+							15 toolbar
+								16 toggle button Description: Toggle Side Panel (⌥⌘B), Value: 1
+									17 text 
+							18 toolbar
+								19 button IDE (⇧⌘A)
+						20 container
+							21 splitter Resize sidebar
+							22 container
+								23 container
+									24 container
+										25 outline Sessions
+											26 container
+												27 row Automations
+													28 container
+														29 text Automations
+												30 row cedia, 17
+													31 container
+														32 text cedia
+												33 row Run the shell command `echo caret-live-ok` and show me its output. Then create a, updated 3 hrs ago, State: Completed
+													34 container
+														35 text 
+														36 text Run the shell command `echo caret-live-ok` and show me its output. Then create a
+														37 text  · 3 hrs ago
+												38 row Run the shell command `echo caret-live-ok` and show me its output. Then create a, updated 3 hrs ago, State: Completed
+													39 container
+														40 text 
+														41 text Run the shell command `echo caret-live-ok` and show me its output. Then create a
+														42 text  · 3 hrs ago
+												43 row Run the shell command `echo caret-live-ok` and show me its output., updated 3 hrs ago, State: Completed
+													44 container
+														45 text 
+														46 text Run the shell command `echo caret-live-ok` and show me its output.
+														47 text  · 4 hrs ago
+												48 row Run the shell command `echo caret-live-ok` and show me its output. Then create a, updated 4 hrs ago, State: Completed
+													49 container
+														50 text 
+														51 text Run the shell command `echo caret-live-ok` and show me its output. Then create a
+														52 text  · 4 hrs ago
+												53 row (selected) Reply with exactly: caret-live-ok, updated 2 hrs ago, State: Completed
+													54 container
+														55 text 
+														56 text Reply with exactly: caret-live-ok
+														57 text  · 2 hrs ago
+												58 row Show 12 more sessions
+													59 container
+														60 text +12 more
+								61 button New Chat
+								62 button Search
+								63 button Automations
+								64 button Customize
+								65 text Projects
+								66 button New Project
+								67 text Repositories
+								68 button Filter Repositories
+								69 button Add Repository
+								70 text No repository open
+							71 container
+								72 container
+									73 splitter Resize panel
+									74 container
+										75 container
+											76 text 
+											77 text Reply with exactly: caret-live-ok
+											78 toolbar
+												79 pop up button More Actions...
+													80 text 
+											81 container
+												82 container
+													83 container
+														84 content list Chat
+															85 container
+																86 container Reply with exactly: caret-live-ok
+																	87 container
+																		88 toolbar
+																			89 button Clears the chat and undoes all changes
+																		90 text Reply with exactly: caret-live-ok
+																91 container  Inspect this in the accessible view with Option+F2
+																	92 container
+																		93 toolbar
+																			94 toggle button Description: Helpful, Value: 0
+																				95 text 
+																			96 toggle button Description: Unhelpful, Value: 0
+																				97 text 
+																98 container Run the shell command `echo caret-live-ok` and show me its output. Attached context: - prompt:AGENTS.md - prompt:customizationsIndex
+																	99 container
+																		100 toolbar
+																			101 button Restores workspace and chat to this point
+																			102 text ·
+																			103 button Fork conversation from this point
+																		104 container
+																			105 text Run the shell command 
+																			106 text echo caret-live-ok
+																			107 text  and show me its output.
+																			108 text Attached context:
+																			109 content list
+																				110 container
+																					111 AXListMarker • 
+																					112 text prompt:AGENTS.md
+																				113 container
+																					114 AXListMarker • 
+																					115 text prompt:customizationsIndex
+																116 container  Inspect this in the accessible view with Option+F2
+																	117 container
+																		118 toolbar
+																			119 toggle button Description: Helpful, Value: 0
+																				120 text 
+																			121 toggle button Description: Unhelpful, Value: 0
+																				122 text 
+																123 container @omp Reply with exactly: caret-live-ok
+																	124 container
+																		125 toolbar
+																			126 button Restores workspace and chat to this point
+																			127 text ·
+																			128 button Fork conversation from this point
+																		129 container
+																			130 text @omp  Reply with exactly: caret-live-ok
+																		131 container Sent 9/18/2026, 5:23 PM
+																			132 text 5:23 PM
+																133 container **Caret stopped this turn.** 401 User not found. Inspect this in the accessible view with Option+F2
+																	134 container
+																		135 container
+																			136 text Caret stopped this turn.  401 User not found.
+																		137 toolbar
+																			138 button Retry
+																				139 text 
+																			140 toggle button Description: Helpful, Value: 0
+																				141 text 
+																			142 toggle button Description: Unhelpful, Value: 0
+																				143 text 
+																		144 container Completed 9/18/2026, 5:28 PM, Elapsed time 4m 37s
+																			145 text 5:28 PM
+																			146 text 4m 37s
+														147 container
+															148 container
+																149 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+															150 toolbar
+																151 button Add Context... (⌘/)
+																	152 text 
+																153 pop up button Agent
+																	154 text 
+																	155 text Agent
+																156 container Models, DeepSeek V4.1 Flash
+																	157 pop up button Models, DeepSeek V4.1 Flash
+																		158 text 
+																		159 text DeepSeek V4.1 Flash
+															160 toolbar
+																161 toggle button Description: Dictate (Speech to Text) (⌘I), Value: 0
+																	162 text 
+																163 button Send [⌥] Send to New Chat (⇧⌘Enter)
+																	164 text 
+														165 button Context window usage: 1%
+															166 image
+															167 text 1%
+														168 toolbar Prompt timeline
+															169 pop up button Show prompts
+															170 container
+																171 button Prompt: Reply with exactly: caret-live-ok
+																	172 text Reply with exactly: caret-live-ok
+																173 button Prompt: Run the shell command `echo caret-live-ok` and show me its output.
+																	174 text Run the shell command `echo caret-live-ok` and show me its output.
+																175 button Prompt: @omp Reply with exactly: caret-live-ok
+																	176 text @omp Reply with exactly: caret-live-ok
+									177 container
+										178 container
+											179 toggle button Description: Changes, Value: 0
+											180 toggle button Description: Browser, Value: 0
+											181 toggle button Description: Terminal, Value: 0
+											182 toggle button Description: File, Value: 0
+											183 pop up button Open new tab menu
+											184 toggle button Description: Toggle Pinned Summary, Value: 0
+											185 container
+												186 button Changes
+												187 button Browser
+												188 button Terminal
+												189 button File
+					190 text Analyzing
+					191 text Caret stopped this turn. 401 User not found.
+	192 close button
+	193 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	194 minimize button
+195 menu bar
+	196 Caret
+	197 File
+	198 Edit
+	199 View
+	200 Window
+	201 Help
+
+The focused UI element is 149 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1

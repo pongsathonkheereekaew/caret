@@ -1,0 +1,161 @@
+diff --git a/product.json b/product.json
+index aff5af5aaf7..76a1edb8ec3 100644
+--- a/product.json
++++ b/product.json
+@@ -1,19 +1,28 @@
+ {
+-	"nameShort": "Caret",
++	"nameShort": "Cedia",
+-	"nameLong": "Caret",
++	"nameLong": "Cedia",
++	"extensionEnabledApiProposals": {
++		"cedia.cedia": [
++			"chatSessionsProvider",
++			"chatParticipantPrivate",
++			"defaultChatParticipant",
++			"chatProvider",
++			"chatParticipantAdditions"
++		]
++	},
+-	"applicationName": "caret",
++	"applicationName": "cedia",
+-	"dataFolderName": ".caret",
++	"dataFolderName": ".cedia",
+-	"sharedDataFolderName": ".caret-shared",
++	"sharedDataFolderName": ".cedia-shared",
+-	"win32MutexName": "caret",
++	"win32MutexName": "cedia",
+ 	"licenseName": "MIT",
+ 	"licenseUrl": "https://github.com/caret/caret/blob/main/LICENSE.txt",
+ 	"serverLicenseUrl": "https://github.com/caret/caret/blob/main/LICENSE.txt",
+ 	"serverGreeting": [],
+ 	"serverLicense": [],
+ 	"serverLicensePrompt": "",
+ 	"serverApplicationName": "caret-server",
+ 	"serverDataFolderName": ".caret-server",
+ 	"tunnelApplicationName": "caret-tunnel",
+ 	"win32DirName": "Caret",
+ 	"win32NameVersion": "Caret",
+ 	"win32RegValueName": "Caret",
+@@ -20,19 +29,19 @@
+ 	"win32arm64AppId": "{{6EEC2ACB-0188-4459-94F3-4BC82D263DC4}",
+ 	"win32x64UserAppId": "{{460EAC3A-263B-4180-A538-11B0A71CD9BD}",
+ 	"win32arm64UserAppId": "{{33AAD53C-2DA9-4B3B-B547-E962F06DD230}",
+-	"win32AppUserModelId": "Caret.Caret",
+-	"win32ShellNameShort": "C&aret",
+-	"win32TunnelServiceMutex": "caret-tunnelservice",
+-	"win32TunnelMutex": "caret-tunnel",
+-	"darwinBundleIdentifier": "com.caret.editor",
++	"win32AppUserModelId": "Cedia.Cedia",
++	"win32ShellNameShort": "C&edia",
++	"win32TunnelServiceMutex": "cedia-tunnelservice",
++	"win32TunnelMutex": "cedia-tunnel",
++	"darwinBundleIdentifier": "com.cedia.editor",
+ 	"darwinProfileUUID": "39590E3B-08E4-4986-991A-362B3C2290F7",
+ 	"darwinProfilePayloadUUID": "621173B9-B6DF-4ECA-ADB0-12271E743DA5",
+-	"linuxIconName": "caret",
++	"linuxIconName": "cedia",
+ 	"licenseFileName": "LICENSE.txt",
+ 	"reportIssueUrl": "https://github.com/caret/caret/issues/new",
+ 	"nodejsArtifactFeed": "",
+ 	"electronArtifactFeed": "",
+-	"urlProtocol": "caret",
++	"urlProtocol": "cedia",
+ 	"extensionsGallery": {
+ 		"serviceUrl": "https://open-vsx.org/vscode/gallery",
+ 		"itemUrl": "https://open-vsx.org/vscode/item",
+@@ -92,81 +98,7 @@
+ 			}
+ 		}
+ 	],
+-	"defaultChatAgent": {
+-		"extensionId": "GitHub.copilot",
+-		"chatExtensionId": "GitHub.copilot-chat",
+-		"chatExtensionOutputId": "GitHub.copilot-chat.GitHub Copilot Chat.log",
+-		"chatExtensionOutputExtensionStateCommand": "github.copilot.debug.extensionState",
+-		"documentationUrl": "https://aka.ms/github-copilot-overview",
+-		"termsStatementUrl": "https://aka.ms/github-copilot-terms-statement",
+-		"privacyStatementUrl": "https://aka.ms/github-copilot-privacy-statement",
+-		"skusDocumentationUrl": "https://aka.ms/github-copilot-plans",
+-		"optimizeUsageDocumentationUrl": "https://aka.ms/token-usage-tips",
+-		"publicCodeMatchesUrl": "https://aka.ms/github-copilot-match-public-code",
+-		"managePlanUrl": "https://aka.ms/github-copilot-manage-plan",
+-		"upgradePlanUrl": "https://aka.ms/github-copilot-upgrade-plan",
+-		"signUpUrl": "https://aka.ms/github-sign-up",
+-		"provider": {
+-			"default": {
+-				"id": "github",
+-				"name": "GitHub"
+-			},
+-			"enterprise": {
+-				"id": "github-enterprise",
+-				"name": "GHE"
+-			},
+-			"google": {
+-				"id": "google",
+-				"name": "Google"
+-			},
+-			"apple": {
+-				"id": "apple",
+-				"name": "Apple"
+-			},
+-			"microsoft": {
+-				"id": "microsoft",
+-				"name": "Microsoft"
+-			}
+-		},
+-		"providerExtensionId": "vscode.github-authentication",
+-		"providerUriSetting": "github-enterprise.uri",
+-		"providerScopes": [
+-			[
+-				"read:user",
+-				"user:email",
+-				"repo",
+-				"workflow"
+-			],
+-			[
+-				"user:email"
+-			],
+-			[
+-				"read:user"
+-			]
+-		],
+-		"entitlementUrl": "https://api.github.com/copilot_internal/user",
+-		"entitlementSignupLimitedUrl": "https://api.github.com/copilot_internal/subscribe_limited_user",
+-		"chatQuotaExceededContext": "github.copilot.chat.quotaExceeded",
+-		"completionsQuotaExceededContext": "github.copilot.completions.quotaExceeded",
+-		"walkthroughCommand": "github.copilot.open.walkthrough",
+-		"completionsMenuCommand": "github.copilot.toggleStatusMenu",
+-		"chatRefreshTokenCommand": "github.copilot.refreshToken",
+-		"generateCommitMessageCommand": "github.copilot.git.generateCommitMessage",
+-		"resolveMergeConflictsCommand": "github.copilot.git.resolveMergeConflicts",
+-		"completionsAdvancedSetting": "github.copilot.advanced",
+-		"completionsEnablementSetting": "github.copilot.enable",
+-		"nextEditSuggestionsSetting": "github.copilot.nextEditSuggestions.enabled",
+-		"tokenEntitlementUrl": "https://api.github.com/copilot_internal/v2/token",
+-		"mcpRegistryDataUrl": "https://api.github.com/copilot/mcp_registry",
+-		"managedSettingsUrl": "https://api.github.com/copilot_internal/managed_settings"
+-	},
+ 	"trustedExtensionAuthAccess": {
+-		"github": [
+-			"GitHub.copilot-chat"
+-		],
+-		"github-enterprise": [
+-			"GitHub.copilot-chat"
+-		],
+ 		"microsoft": [
+ 			"vscode.github-authentication"
+ 		]
+@@ -246,8 +178,8 @@
+ 			"type": "light"
+ 		}
+ 	],
+-	"builtInExtensionsEnabledWithAutoUpdates": [
+-		"GitHub.copilot-chat"
+-	],
+-	"sessionsWindowAllowedExtensions": []
++	"builtInExtensionsEnabledWithAutoUpdates": [],
++	"sessionsWindowAllowedExtensions": [
++		"cedia.cedia"
++	]
+ }

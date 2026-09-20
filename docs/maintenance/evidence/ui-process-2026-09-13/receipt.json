@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-09-13T04:40:00.000Z",
+  "scope": "UI plan process-all local implementation",
+  "implemented": [
+    "UI-S1 view-state Agent/IDE + draft/scroll keys",
+    "UI-S2 composer axes, dispatch guard, approval stale/double, attachments, catalog honesty",
+    "UI-S3 work panel tabs + last-good artifact lineage helpers",
+    "UI-S4 Mac recovery banner + iOS Activity/Settings projection",
+    "UI-S5 a11y/motion helpers"
+  ],
+  "verifiedBy": "apps/macos/test unit suite + bunx tsc -p apps/macos",
+  "notVerified": [
+    "COV-S02-01 Caret.app A-IDE-A screenshot and owner PID",
+    "live upload/OMP turn/two approval on real host",
+    "PTY resize, browser isolate, port isolation",
+    "iPhone cellular, revoke, quit-UI host continues",
+    "VoiceOver/contrast measurement/CPU baseline",
+    "UI-S6 simulator",
+    "CX-01 Codex pixel freeze"
+  ],
+  "blockedExternal": ["CX-01 Codex capture", "real iPhone", "paid provider turns"]
+}

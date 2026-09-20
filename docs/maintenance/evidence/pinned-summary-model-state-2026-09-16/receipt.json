@@ -1,0 +1,29 @@
+{
+  "slice": "Pinned summary: what the reference does, and moving its state into the panel model",
+  "capturedAt": "2026-09-16T02:10:00+07:00",
+  "branch": "main",
+  "method": "grep of the installed Cursor bundle; desktop source change folded into patch 0021; npm run typecheck-client; bundle + copy + build-caret.ts --package; CDP checks on the packaged Agents window; bun test packages/omp-adapter packages/relay apps/host apps/macos/test",
+  "question": {
+    "cursor": "Cursor has no pinned summary at all: its workbench bundle contains 'Open new tab menu' (the Apps panel's +) but no 'Toggle Pinned Summary', no 'summary-pinned' and no equivalent. Its right side is the panel; per-session information is in the sidebar rows.",
+    "codex": "not inspected - Computer Use refuses to read the Codex app ('not allowed to use the app com.openai.codex for safety reasons'). The pattern Caret implemented came from the plan's section 4 note that the control is modelled on Codex.",
+    "decision": "it stays in the pane. A floating summary would be a third window over one session, and the SSOT keeps one execution/transcript owner with the windows as projections; the case a float serves (seeing it while in the IDE) is already the Caret dock's job. What the pin is for is surviving pane changes, which is a model problem."
+  },
+  "change": {
+    "problem": "the pin was DOM-only: toggleSummary flipped summary-pinned on the pane's element, the summary was mounted per pane, and nothing stored the choice, so a layout that re-creates the pane could drop it",
+    "fix": "IAppsPanelModel owns summaryPinned and toggleSummaryPinned(); the pane's toggleSummary calls the model and applySummaryPinned() (called from renderTabs, so also on construction) mirrors it onto the panel element and the React strip button",
+    "patch": "folded into 0021-caret-agent-home-utility.patch, which creates both files; digest b15678e83dd6b159183158807f48a362d9fd073c4e3f9dfee1fc7891f5e8322c"
+  },
+  "verified": {
+    "typecheckClient": "cd desktop && npm run typecheck-client -> 0 errors",
+    "onScreen": "packaged app, CDP: the toggle's pressed class and the summary strip's display: flex follow the model; the strip reads 'No active session' for this window",
+    "suites": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test -> 736 pass / 0 fail",
+    "prepareDesktop": "27 patches, 18 removals",
+    "parity": "340 keys checked, 0 mismatches",
+    "ciValidate": "CI-OK parents=198 ui=75 children=129 lock-shas=10 doc-links=69 md=90",
+    "needle": "apps/macos/test/ide-native-workbench.test.ts pins the model-owned pin in patch 0021"
+  },
+  "notVerified": [
+    "The pane-rebuild path was not reproduced: the side-panel toggle (hide then show) and the File card both left the panel element in place (a tag set before the round trip survived), so no teardown was observed. The fix is verified by construction and by the behaviour checks, not by an observed teardown.",
+    "Whether Cursor ships anything similar under a name we did not grep for is not knowable from the bundle alone; what was checked is the exact control we implement plus its obvious spellings."
+  ]
+}

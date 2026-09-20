@@ -1,0 +1,84 @@
+[x=0.031 y=0.013 w=0.023] Caret
+[x=0.064 y=0.011 w=0.013] File
+[x=0.089 y=0.013 w=0.016] Edit
+[x=0.113 y=0.013 w=0.036] Selection
+[x=0.158 y=0.011 w=0.020] View
+[x=0.189 y=0.011 w=0.012] Go
+[x=0.211 y=0.013 w=0.016] Run
+[x=0.235 y=0.011 w=0.032] Terminal
+[x=0.279 y=0.011 w=0.031] Window
+[x=0.318 y=0.011 w=0.019] Help
+[x=0.808 y=0.011 w=0.013] A
+[x=0.878 y=0.011 w=0.010] Q
+[x=0.900 y=0.011 w=0.010] 8
+[x=0.922 y=0.011 w=0.071] Mon 14 Sep 03:25
+[x=0.093 y=0.051 w=0.009] →
+[x=0.215 y=0.049 w=0.009] hi
+[x=0.919 y=0.049 w=0.033] L Share
+[x=0.962 y=0.049 w=0.012] :=
+[x=0.010 y=0.085 w=0.032] Codex
+[x=0.173 y=0.085 w=0.009] Д
+[x=0.294 y=0.074 w=0.401] • Cals tne rear vscoae. a1tt commana wIn (HEAD → working Iree) , so users get coae-Uss's own
+[x=0.324 y=0.103 w=0.023] < →
+[x=0.359 y=0.105 w=0.020] Caret
+[x=0.855 y=0.103 w=0.013] 08
+[x=0.972 y=0.103 w=0.009] +
+[x=0.010 y=0.118 w=0.051] C New chat
+[x=0.118 y=0.136 w=0.036] EXPLORER
+[x=0.821 y=0.127 w=0.061] New TaskShow IDE,
+[x=0.823 y=0.147 w=0.019] TXN
+[x=0.852 y=0.147 w=0.015] THI
+[x=0.903 y=0.136 w=0.010] X
+[x=0.930 y=0.132 w=0.054] +72,873 -198
+[x=0.022 y=0.147 w=0.052] Pull requests
+[x=0.110 y=0.163 w=0.052] V WORKSPACE
+[x=0.022 y=0.176 w=0.044] Scheduled
+[x=0.115 y=0.183 w=0.039] › .vscode
+[x=0.863 y=0.176 w=0.028] • keady
+[x=0.920 y=0.187 w=0.019] ation
+[x=0.022 y=0.203 w=0.031] Plugins
+[x=0.009 y=0.232 w=0.045] •.. Explore
+[x=0.920 y=0.241 w=0.061] e living agent v
+[x=0.009 y=0.270 w=0.034] Projects
+[x=0.020 y=0.299 w=0.025] caret
+[x=0.022 y=0.328 w=0.010] hi
+[x=0.022 y=0.355 w=0.060] how is progres
+[x=0.022 y=0.384 w=0.057] how current pl
+[x=0.023 y=0.411 w=0.009] hi
+[x=0.795 y=0.415 w=0.112] Folder v Folder v This Mac v
+[x=0.023 y=0.437 w=0.057] Caret bиữооřıı
+[x=0.023 y=0.467 w=0.044] Show more
+[x=0.799 y=0.462 w=0.086] Plan, Build, / for skills,
+[x=0.884 y=0.464 w=0.023] @ for
+[x=0.799 y=0.484 w=0.032] context
+[x=0.009 y=0.502 w=0.048] C aetheria
+[x=0.831 y=0.536 w=0.025] Model
+[x=0.879 y=0.536 w=0.032] Thinking
+[x=0.009 y=0.567 w=0.036] A cedia
+[x=0.023 y=0.594 w=0.057] add this comm
+[x=0.433 y=0.600 w=0.080] Show All Commands
+[x=0.023 y=0.623 w=0.058] Update this ht1
+[x=0.433 y=0.625 w=0.065] Start Debugging
+[x=0.581 y=0.625 w=0.010] F5
+[x=0.798 y=0.625 w=0.052] Plan New Idea
+[x=0.866 y=0.625 w=0.035] Multitask
+[x=0.433 y=0.647 w=0.064] Toggle Terminal
+[x=0.798 y=0.661 w=0.048] Run in Cloud
+[x=0.009 y=0.696 w=0.034] Recents
+[x=0.881 y=0.685 w=0.031] Turn a fr
+[x=0.794 y=0.701 w=0.118] • Build from a design inPortaitv
+[x=0.807 y=0.717 w=0.105] Deploy my prototybieh örg thie
+[x=0.807 y=0.748 w=0.061] Start with a plan
+[x=0.868 y=0.737 w=0.044] implemente
+[x=0.805 y=0.772 w=0.058] Debug an issue
+[x=0.863 y=0.774 w=0.048] andfix trick
+[x=0.110 y=0.848 w=0.039] › OUTLINE
+[x=0.110 y=0.868 w=0.042] ) TIMELINE
+[x=0.103 y=0.886 w=0.052] C Caret ready
+[x=0.163 y=0.886 w=0.035] ДОД О
+[x=0.295 y=0.912 w=0.047] Do anything
+[x=0.295 y=0.958 w=0.012] +
+[x=0.317 y=0.958 w=0.052] O Full access
+[x=0.509 y=0.958 w=0.163] DeepSeek V4.1 Flash (Command C.. Max v
+[x=0.023 y=0.971 w=0.089] Pongsathon Kheeree...
+[x=0.129 y=0.971 w=0.033] •ll Voice

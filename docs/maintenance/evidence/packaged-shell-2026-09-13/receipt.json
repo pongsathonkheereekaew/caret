@@ -1,0 +1,51 @@
+{
+  "scope": "Packaged Caret.app runtime verification of the spec-aligned Agents shell revision (after the D01/D02/C01 restore)",
+  "capturedAt": "2026-09-13T17:00:23Z",
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app",
+  "build": {
+    "command": "CARET_HOST_NODE=<bundled node v24.18.0> bun scripts/build-caret.ts --package",
+    "note": "portable runtime reused through attestOmpRuntime; app re-signed ad-hoc; the running bundle now serves this revision instead of the 20:15 build",
+    "packagedExtensionJsSha256Prefix": "685b62dbf1b66d62",
+    "packagedHostCliSha256Prefix": "7143874816d204b9",
+    "structuralReceipt": "docs/maintenance/evidence/packaged-caret-2026-09-13/receipt.json"
+  },
+  "bundleContains": [
+    "out/extension.js:6128 --caret-row: 40px",
+    "out/extension.js:6132 --caret-transcript-column: 900px; --caret-composer-column: 720px",
+    "out/extension.js:6133 --caret-sidebar: 240px",
+    "out/extension.js:6136 --caret-motion-instant: 0ms",
+    "out/extension.js:6142 --caret-motion-curve: cubic-bezier(.2, 0, 0, 1)"
+  ],
+  "liveSession": {
+    "launch": "Contents/MacOS/Caret --user-data-dir /tmp/caret-ui-run-20260913/user-data --password-store=basic (empty window, no folder)",
+    "fixtureNotes": [
+      "user-data-dir must keep the instance IPC socket path under 103 chars; a longer path fails with `listen EINVAL ... main.sock` and the app exits silently with empty logs — this failure mode is what a 'silent death' looks like (cost two launches here)",
+      "opening a workspace folder still shows the 'Do you trust the authors of these files' prompt even with security.workspace.trust.enabled=false in the fixture settings; an empty window starts the Agents shell without a prompt",
+      "fixture settings: caret.hostStateDir -> fixture host-state dir, security.workspace.trust.enabled=false"
+    ],
+    "window": "1440x900 logical (System Events reported 145,130; measured edges: left 135, right 1574.5), retina 2x, capture 3420x2224",
+    "measured": {
+      "sidebar": "240 logical px — panel spans PNG x 310..787 (478 physical px = 239 logical) plus the 1px sidebar border; the 2px sash follows at PNG 788..793; so the D01 >=1200 band (sidebar 240) is live",
+      "composer": "box spans PNG x 1280..2623 = 671 logical px, i.e. the 720px composer column minus the 2x24px gutters, centred in the main pane",
+      "chrome": "no Explorer, editor tabs, CHAT aux panel or status bar; the Agents shell fills the window; traffic lights float over a 20px top/left window-background inset"
+    },
+    "screenshot": "/tmp/caret-ui-run-20260913/shot7.png (not stored in repo per the interaction spec)"
+  },
+  "verified": [
+    "packaged app launches with this revision and renders the Agents shell (single Projects heading, inline selector row, composer with Model/Thinking, pills with the disabled Run in Cloud, icon+title+muted idea rows)",
+    "live sidebar measures 240 logical px at a 1440px window",
+    "live composer column measures 720 logical px (671-672px box plus gutters)",
+    "structural checks: ad-hoc codesign verifies, argv.json password-store=basic, bundled standalone OMP and host present"
+  ],
+  "notVerified": [
+    "light theme, high contrast, reduced motion, 200% zoom, Thai IME, VoiceOver on the packaged app",
+    "the 900-1199 and sub-900 responsive bands and the drawer path on the packaged app",
+    "Cursor running/queued/approval/error states and timing",
+    "Codex pixel freeze (CX-01 still reference-blocked)",
+    "host/provider turns: the fixture host started, but no OMP execution was exercised"
+  ],
+  "openObservations": [
+    "The webview content sits inside a ~20px window-background inset on the top-left (traffic lights float over it) instead of running flush to the window edge; cause not identified (host chrome vs workbench layout) — a G3/UI-S1 chrome question, not a D01 value issue",
+    "Seven orphaned crashpad-handler + host-serve process pairs from the earlier /tmp/caret-ui-shell-20260913 fixture session were still running during this check and were not reaped"
+  ]
+}

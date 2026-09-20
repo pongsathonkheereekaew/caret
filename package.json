@@ -1,0 +1,58 @@
+{
+  "name": "cedia",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/host",
+    "apps/macos",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun scripts/build-cedia.ts",
+    "build:agent": "bun scripts/build-agent-window.ts",
+    "build:mac": "bun scripts/build-cedia.ts --runtime --desktop",
+    "build:portable": "bun scripts/build-cedia.ts --portable",
+    "check:cedia-ui": "bun scripts/cedia-ui-check.ts",
+    "check:packaged": "bun scripts/check-packaged-shell.ts",
+    "check:repo": "node scripts/ci-validate.mjs",
+    "check:terminal": "bun scripts/terminal-conformance.ts",
+    "eval:shadow": "bun scripts/typesafe-shadow-eval.ts",
+    "host": "node apps/host/src/cli.ts",
+    "package:mac": "bun scripts/build-cedia.ts --package",
+    "prepare:desktop": "bun scripts/prepare-desktop.ts",
+    "prepare:omp": "bun scripts/prepare-omp-runtime.ts",
+    "smoke:omp": "bun scripts/omp-smoke.ts",
+    "smoke:omp:ast": "bun scripts/omp-native-ast-smoke.ts",
+    "smoke:omp:codeoss": "bun scripts/omp-codeoss-editor-smoke.ts",
+    "smoke:omp:editor": "bun scripts/omp-native-editor-smoke.ts",
+    "smoke:omp:g1": "bun scripts/omp-g1-smoke.ts",
+    "smoke:omp:live": "bun scripts/omp-live-turn.ts",
+    "smoke:omp:permissions": "bun scripts/omp-native-permission-smoke.ts",
+    "smoke:omp:ui": "bun scripts/omp-ui-smoke.ts",
+    "smoke:omp:virtual": "bun scripts/omp-virtual-ui-smoke.ts",
+    "smoke:portable": "bun scripts/portable-runtime-smoke.ts",
+    "smoke:relay": "bun scripts/relay-smoke.ts",
+    "test": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test scripts/lib",
+    "test:mobile": "cd apps/ios && bun run test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@base-ui/react": "1.7.0",
+    "@tabler/icons-react": "^3.44.0",
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/bun": "1.3.10",
+    "@types/qrcode": "1.5.6",
+    "@types/ws": "8.18.1",
+    "@xterm/headless": "6.1.0-beta.302",
+    "class-variance-authority": "^0.7.1",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "base64-js": "1.5.1",
+    "qrcode": "1.5.4",
+    "tweetnacl": "1.0.3",
+    "ws": "8.20.0"
+  }
+}

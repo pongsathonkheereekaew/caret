@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "baselineDate": "2026-09-12",
+  "ompVersion": "18.1.18",
+  "sources": [
+    {
+      "name": "omp",
+      "repository": "https://github.com/can1357/oh-my-pi",
+      "revision": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+      "license": "MIT",
+      "licensePath": "LICENSE",
+      "retainedNotice": "docs/upstream-notices/omp-LICENSE.txt",
+      "licenseSha256": "16c45f9d667442781f03fa198914cc39abcaa48ec5ed8f644643e554ca2fbf63",
+      "role": "runtime/protocol reference"
+    },
+    {
+      "name": "cedia-native",
+      "repository": "https://github.com/pongsathonkheereekaew/caret",
+      "revision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+      "license": "MIT",
+      "licensePath": "LICENSE.txt",
+      "retainedNotice": "docs/upstream-notices/cedia-native-LICENSE.txt",
+      "licenseSha256": "9480271317925265e806a9a196aaa33410a962fa9d4d1e248a4a5187bc8c9df9",
+      "role": "Mac IDE build baseline"
+    }
+  ],
+  "paseoCandidate": {
+    "repository": "https://github.com/getpaseo/paseo",
+    "revision": "d1b705a0cd91617a5707fae25d80cb0be3057950",
+    "status": "reference-only; no Paseo source vendored in G0"
+  },
+  "scope": "G0 selected source pins. Not a release SBOM or third-party dependency license certification."
+}

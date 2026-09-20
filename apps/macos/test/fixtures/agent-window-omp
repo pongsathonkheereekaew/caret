@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+FIXTURE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec "${CEDIA_NODE:-node}" "$FIXTURE_DIR/agent-window-omp.mjs" "$@"

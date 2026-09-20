@@ -1,0 +1,29 @@
+{
+  "scope": "S2 — list Caret host sessions in the native Agents window sidebars by bridging contributed chat sessions into the window's sessions model.",
+  "capturedAt": "2026-09-14T15:50:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "problem": "The extension published chat session items, but the Agents window sidebar is fed by ISessionsService.visibleSessions <- ISessionsManagementService <- ISessionsProvidersService, and only the agent-host family registered an ISessionsProvider. Nothing bridged contributed chat sessions into that model, so the window showed an empty Sessions tree.",
+  "change": {
+    "desktopPatch": "patches/desktop/0010-caret-sessions-bridge.patch",
+    "files": [
+      "new: src/vs/sessions/contrib/providers/extensionSessions/browser/extensionSessionsProvider.contribution.ts — ExtensionSessionsProvider reads IChatSessionsService.getChatSessionItems() and exposes each item as an ISession/IChat with observables; subscribes to onDidChangeSessionItems + onDidChangeItemsProviders; sendRequest delegates to chatService.sendRequest; unsupported actions (rename/archive/delete/fork/side chat/multi-chat/model picker) are capability-false or explicitly rejected rather than faked",
+      "edited: src/vs/sessions/sessions.desktop.main.ts — imports the contribution so the sessions window loads it"
+    ],
+    "failSafe": "The contribution constructs/registers inside try/catch and refresh() swallows read failures with a warn log, so the window degrades to the previous (empty) list instead of failing to open."
+  },
+  "verified": {
+    "sidebarRows": "CDP against the packaged app launched with --agents: visible tree rows are \"caret-ui-acceptance, 1\" (workspace group) and \"New task, updated 2 days ago, State: Completed\" — the Caret host's real session for project caret-ui-acceptance.",
+    "workspaceGrouping": "The row groups under the session's real working directory because the extension now sends item.metadata.workingDirectoryPath/repositoryPath; before that it landed in an \"Unknown\" group.",
+    "openPath": "Clicking the row opens the session's chat view in the Agents window (composer, welcome content, Models control present).",
+    "noErrors": "No error or warning lines for caret.caret or [extensionSessions] in the window's exthost log.",
+    "checks": "desktop npm run typecheck-client 0 errors; bun run typecheck 0 errors; bun test 975 pass, 0 fail except the pre-existing upstream/omp 'published legal payloads' case; scripts/ci-validate.mjs CI-OK; bun scripts/prepare-desktop.ts re-run is a no-op (8 patches, 18 removals)."
+  },
+  "correctedObservation": "An earlier probe reported the chat as read-only with the banner \"Caret picked up this session, which was created in another application.\" That was a false alarm: the banner element exists in the DOM but is display:none (rect 0x0), and the probe read textContent instead of rendered text. The base only shows that banner when ISession.isExternal === true, which this provider never sets.",
+  "stillOpen": [
+    "Sending a prompt from the composer to OMP and streaming the transcript back is not yet verified end-to-end from the window.",
+    "The composer's model control still shows the engine's sign-in copy instead of models advertised by OMP.",
+    "S3: the Caret webview shell still opens inside the Agents window (element labelled .../globalStorage/caret.caret/window.caret-shell).",
+    "S4: the Agents window keeps a 298px right column (x=1137..1435 at 1440x900) holding \"Editor Group 1 (empty)\", plus the disabled pet button and the title action \"Run Task is not available for this session type\"."
+  ]
+}

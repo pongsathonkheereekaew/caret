@@ -1,0 +1,52 @@
+G0 verification receipt
+Date: 2026-09-12
+Checkout: /Users/pond/caret/source
+Branch: caret/g0-omp-foundation
+
+Commands and results
+
+1. `bun test packages/omp-adapter`
+   PASS — 18 tests, 48 assertions, 0 failures (Bun fixture runtime).
+   Covers UTF-8/JSONL framing, protocol-v2 reassembly, exact 42-command
+   inventory, rpc-ui negotiation, environment isolation, coalesced invalid
+   chunk startup failure, out-of-order/late responses, command failure,
+   dispatched vs not-dispatched timeout outcomes, backpressure queue expiry,
+   explicit extension UI responses, stderr bounds, EOF/SIGTERM/SIGKILL
+   teardown and abrupt child exit, plus final ACK/event delivery after child
+   exit and during intentional stdin EOF close.
+
+2. `CARET_FIXTURE_NODE=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node
+   bun test packages/omp-adapter`
+   PASS — 18 tests, 48 assertions, 0 failures; the same suite with the
+   desktop Node 24.18.0 runtime launching the fixture children.
+
+3. `bun run typecheck`
+   PASS — `tsc --noEmit` completed without diagnostics.
+
+4. `node scripts/ci-validate.mjs`
+   PASS — `CI-OK parents=198 ui=75 children=129 lock-shas=10`.
+
+5. `bun test packages/omp-adapter/test/adapter.test.ts --test-name-pattern
+   'backpressure|reaps a child'` (run three times)
+   PASS — 2 tests/10 assertions per run, 0 failures; all three runs skipped
+   the expired queued command and confirmed the stubborn child was reaped.
+
+6. `CARET_OMP_BINARY=/Users/pond/.local/bin/omp CARET_SMOKE_RECEIPT=.../bun-smoke.json
+   bun scripts/omp-smoke.ts`
+   PASS — Bun 1.4.2, OMP `omp/18.1.18`, binary SHA-256
+   `035a35dcb249edb939fa02b74fc7c0df9b2eb659079349fbffb188e1b558957a`.
+   Receipt checks ready/v2, effective rpc-ui tools, trusted local command,
+   isolated history/config, deny/allow extension UI confirmation, zero model
+   turns and bounded close. Adapter implementation hashes are in the JSON
+   receipt.
+
+7. `CARET_OMP_BINARY=/Users/pond/.local/bin/omp CARET_SMOKE_RECEIPT=.../node-smoke.json
+   /Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin/node scripts/omp-smoke.ts`
+   PASS — Node 24.18.0, same OMP binary SHA-256 and same eight checks as Bun.
+
+Scope limits
+
+These are provider-free local adapter/OMP checks. They do not certify model
+streaming, policy approval interception, durable host/session recovery, Mac UI,
+iPhone connectivity, signing/notarization, DAW compatibility or full OMP
+feature parity.

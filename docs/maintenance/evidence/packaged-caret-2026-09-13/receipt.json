@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-09-17T10:12:20.351Z",
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app",
+  "binary": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/MacOS/Caret",
+  "passwordStore": "basic",
+  "inmemorySecretStorage": true,
+  "ompSha256": "da4f5c5461123bd9811a237a6a8a5c8ac2760827bfb966a1b2e30acccae679ad",
+  "hostSha256": "cf8dfa48e03e72c6c3fa7d5d0432892d6f53b737cdbd3480c5f7e638b7350933",
+  "checks": [
+    "caret-binary-present",
+    "adhoc-codesign-verify",
+    "argv-password-store-basic",
+    "argv-inmemory-secretstorage",
+    "bundled-standalone-omp",
+    "bundled-host"
+  ],
+  "uiVerified": false,
+  "ios": "deferred"
+}

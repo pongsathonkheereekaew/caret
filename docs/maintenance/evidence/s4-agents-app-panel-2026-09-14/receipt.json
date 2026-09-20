@@ -1,0 +1,33 @@
+{
+  "scope": "S4 third slice for the Agents window (CARET-PLAN section 3.2): give the right-hand app panel the reference's control names, remove the editor watermark the reference does not have, and name the composer microphone the way the reference does.",
+  "capturedAt": "2026-09-14T23:05:00+07:00",
+  "branch": "main",
+  "revision": "working tree on top of 7a07935cab4 (S3 slice)",
+  "method": "dev build from the desktop/ checkout (patches 0001-0018 applied, `node build/next/index.ts transpile`) launched with `--agents --remote-debugging-port=9333` on a fresh profile, then CDP Runtime.evaluate against the live DOM.",
+  "change": {
+    "desktopPatches": [
+      "patches/desktop/0017-caret-agents-app-panel-chrome.patch - 3 files, all under src/vs/sessions/**",
+      "patches/desktop/0018-caret-agents-composer-voice-copy.patch - 1 file, under src/vs/sessions/**"
+    ],
+    "panelControls": "contrib/editor/browser/editor.contribution.ts renames the single-pane editor-title controls to section 3.2's vocabulary: Maximize Editor Area -> Enter Full Screen, Restore Editor Area -> Exit Full Screen, Close Editor Area -> Hide Apps. contrib/sessions/browser/sessionsActions.ts renames the empty-group toolbar's `sessions.closeEditorArea` action to Hide Apps as well, so both entry points agree.",
+    "watermark": "browser/media/workbench.css hides `.editor-group-watermark` for `.agent-sessions-workbench` only. The reference app panel has no editor watermark. The rule targets the watermark itself, not its wrapper, because the wrapper also hosts the panel's own toolbar (which section 3.2 keeps).",
+    "composerVoice": "contrib/chat/browser/newChatInput.ts renames the composer microphone from `Dictate (Speech to Text)` to `Start voice input`, which is the reference's accessible name for that control. The localize id is unchanged."
+  },
+  "verified": {
+    "watermark": "PASS. Before: `.part.editor .editor-group-watermark` computed `display: flex` at 272x859. After: computed `display: none`.",
+    "hideApps": "PASS. The empty editor group's toolbar reads `Empty editor group actions / Hide Apps / Add Tab` where it previously read `Empty editor group actions / Close Editor Area / Add Tab`. `grep -rl \"Close Editor Area\" out/vs/sessions` now matches only the SINGLE_PANE_SCENARIOS.md prose, no code.",
+    "enterFullScreen": "PASS by bundle: `out/vs/sessions/contrib/editor/browser/editor.contribution.js` contains `Enter Full Screen`, and the string does not appear in `out/vs/workbench/workbench.desktop.main.js` (0 hits). The control itself is only visible once the panel has a tab, so it was not visible in this draft-state DOM read; the label is pinned by the repo test instead.",
+    "composerVoice": "PASS. `.sessions-chat-stt-button` aria-label is `Start voice input` where it previously read `Dictate (Speech to Text)`. The surrounding toolbar reads `Add Context... / Models, Auto / Start voice input / Send`.",
+    "patchIntegrity": "PASS. `bun scripts/prepare-desktop.ts` reports 16 patches + 18 removals on the pinned base; both new digests match their files. 0017 and 0018 were also reverse-checked against the applied tree.",
+    "tests": "PASS. The repo test `keeps the Agents window app-panel and composer-voice patches in agreement with the manifest` pins every renamed string plus both digests: apps/macos/test/ide-native-workbench.test.ts, 48 tests pass."
+  },
+  "stillOpen": [
+    "The right-hand panel is still an *editor group*, not the reference's fixed-tab Apps panel. The reference (section 3.2 / AX rows 79-88) is one panel whose tab strip always shows Changes / Browser / Terminal / File plus `Open new tab menu`; Caret's tab strip only renders tabs that are actually open, so a fresh draft shows an empty group. Closing this needs a real feature (a fixed-tab panel part), not a copy change - a Terminal editor surface does not exist in this window at all.",
+    "`Add Tab` is core workbench copy (src/vs/workbench/browser/parts/editor/editorTabsControl.ts) shared with the IDE window, so it was not renamed to the reference's `Open new tab menu`; there is no sessions-scoped seam for that string.",
+    "The composer toolbar is still missing the reference's reasoning/effort popup (`High`). Caret has no reasoning control in this composer yet; adding one is an OMP-capability question, not copy.",
+    "The composer's first row is still `Workspace` + `Customize` chips, not the reference's project / branch / `This Mac` row. The workspace chip already takes the selected project's name, so it reads as the reference once a project is selected; the branch combo is unwired (`branchPicker.ts` is only used by the automation dialog) and needs a git source.",
+    "The sidebar still lacks the reference's Search, Projects, Repositories and Getting Started entries. `Customize` has a real command behind it (`sessions.customization.overview`) and could be lifted into the sidebar, but Projects/Repositories/Search have no surface in this window yet, and section 5 forbids shipping controls without a real capability.",
+    "The reference's idea rows with per-row `Dismiss recommendation` are still absent from the empty draft.",
+    "Pet elements remain in the DOM (hidden) rather than unregistered, and the geometry target (sidebar 255px, rig 1710x1073) is still unmeasured - this run used a 1440x900 dev window and the sidebar measured 280px."
+  ]
+}

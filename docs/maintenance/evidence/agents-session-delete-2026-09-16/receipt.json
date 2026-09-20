@@ -1,0 +1,49 @@
+{
+  "slice": "sessions-delete",
+  "date": "2026-09-16",
+  "queueItem": "user request: add 'delete chat' to the session right-click menu (only archive existed)",
+  "reference": "the base's own session item menu (sessionsViewPane.deleteSession, gated on sessionSupportsDelete) and its confirmation dialog",
+  "before": {
+    "bridge": "patches/desktop/0010 declared capabilities.supportsDelete: false and both delete methods threw UNSUPPORTED, so the base never offered the item",
+    "host": "no delete route or store method existed; sessions could only be archived"
+  },
+  "change": {
+    "host": [
+      "DurableStore.deleteSession(id): deletes the row inside a transaction; commands and events follow through ON DELETE CASCADE (PRAGMA foreign_keys=ON)",
+      "CaretHost.deleteSession(id): verify the session exists, stop its runtime, delete the row, remove stateDir/sessions/<id> and stateDir/artifacts/<id>; a session worktree is deliberately left on disk",
+      "router: DELETE /v1/sessions/:id -> { deleted: true }, with the existing 404 for unknown ids"
+    ],
+    "extension": [
+      "CaretHostClient.deleteSession(sessionId)",
+      "command caret.session.delete (manifest title 'Delete Chat'), mapping caret://session/<id> resources back to host ids and republishing the item collection after the deletes"
+    ],
+    "bridge": [
+      "patch 0010: capabilities.supportsDelete: true, deleteSession/deleteSessions execute caret.session.delete with the session resources and then refresh()"
+    ],
+    "tests": [
+      "apps/host/test/store.test.ts: row gone, commands and events gone (cascade proven with a second read-only connection), unknown id throws not found",
+      "apps/host/test/service.test.ts: runtime stopped, record gone, transcript directory removed, second delete and a later start are not_found",
+      "apps/host/test/http.test.ts: DELETE 200 {deleted:true}, transcript dir gone, GET 404, DELETE 404",
+      "apps/macos/test/ide-native-workbench.test.ts: needles for supportsDelete, the command constant, the extension registration and the manifest entry"
+    ]
+  },
+  "verified": {
+    "gates": [
+      "bun test apps/host: 26 pass",
+      "bun scripts/prepare-desktop.ts: 30 patches / 18 removals (0010 re-cut)",
+      "bun test apps/macos/test: 754 pass overall, 1 environmental fail (menus-contract.test.ts needs rg on PATH)",
+      "cd desktop && npm run typecheck-client: 0 errors; bun run typecheck: clean; check:cursor-parity: 340 keys / 0 mismatches; ci-validate: CI-OK"
+    ],
+    "onScreen": [
+      "right-click a session row: menu contains Delete... (group 1_edit) alongside Archive/Pin",
+      "Delete... opens the base dialog 'Are you sure you want to delete this session? This action cannot be undone.'",
+      "confirming shows 'Deleted 1 chat.', removes exactly that row (its sibling in the same group stays) and removes the session from the host list and disk",
+      "scratch sessions were created through the host API for these checks, so no real work was deleted"
+    ]
+  },
+  "notVerified": [
+    "worktree-backed sessions: the worktree directory is left on disk by design",
+    "the shell (IDE window) session menu still offers Archive only"
+  ],
+  "note": "the empty session list seen during this session was not caused by delete: the host's projects 'caret' and 'caret-ui-acceptance' and 8 of its 9 sessions are archived on this machine (the app's own Remove Project / Archive Chats paths archive rows that way), and the list hides archived rows - after creating an unarchived session the sidebar listed its project group again"
+}

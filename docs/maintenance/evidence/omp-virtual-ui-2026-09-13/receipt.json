@@ -1,0 +1,40 @@
+{
+  "date": "2026-09-12T19:14:55.848Z",
+  "executable": "/Users/pond/caret/source/dist/omp-standalone/omp",
+  "sourceReference": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "runtimeKind": "standalone-binary",
+  "sourceVerified": true,
+  "sourceRevision": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "sourceTree": "4922eb19332d79edff624b89787b19a174817085",
+  "executableSha256": "2e7ff2589934422aaea1bc13825826432aa55042718f5833cd2f1c02765382d5",
+  "patchManifestSha256": "72af44aab1b38a938ad2109d3d0bb2d299238cac1f2a2ad4400d4d0b64986461",
+  "bunSha256": "35d20dd0263e5c950194434b925454fdfa9ba6e4467da960410fa05b08a7a5b5",
+  "nativeSha256": "02d51ae4292728e9053aeaf22cc45d7bd2a420a3918461afd2af334b359b1d04",
+  "fixtureSha256": "3015021bc6d4b451f1b372822eabdad76fb23c854d0146a75b8e6dbe6f530954",
+  "hostRuntime": {
+    "name": "bun",
+    "version": "1.4.2"
+  },
+  "model": {
+    "kind": "loopback-scripted",
+    "requests": 3,
+    "toolCalls": 2
+  },
+  "checks": [
+    "prompt-before-protocol-negotiation-is-rejected-while-startup-custom-is-pending",
+    "startup-custom-input-still-works-after-pre-negotiation-prompt",
+    "subprocess-ready-advertises-virtual-ui-v1",
+    "negotiate-opens-virtual-terminal",
+    "session-start-custom-waits-for-negotiated-input",
+    "virtual-custom-editor-renders-and-accepts-input",
+    "slash-custom-command-completes-without-model",
+    "first-run-without-model-opens-native-provider-selector-and-cancels",
+    "fixture-bash-wrapper-advertised",
+    "builtin-bash-pty-uses-omp-native-pty",
+    "abort-cancels-native-pty-before-completion",
+    "client-eof-closes-pending-custom-ui-and-queued-prompt-without-kill",
+    "host-bootstrap-concurrent-get-state-and-host-tools",
+    "host-command-delivers-virtual-terminal-input"
+  ],
+  "limitations": "No external provider inference, visual Mac/iPhone rendering, cellular transport, signing, or production editor bridge. The host bootstrap check records whether startSession can complete while a session_start custom UI is pending; input is sent through CaretHost's durable command path."
+}

@@ -1,0 +1,54 @@
+{
+  "slice": "C1 - Agent Home composer: the starter rows below the card, and the reference card height",
+  "method": "Reference numbers come from reference-cursor-agents-1710x1112.png (the native 3420x2224 Capture at DPR 2) via scripts/png-pixel-probe.py driven by /tmp/geom-probe.py; Caret numbers are live DOM rects from the running dev build in the same 1710x1112 CSS window, plus caret-composer-starters-1710x1112.png captured at that size.",
+
+  "reference": {
+    "composerCard": { "xCss": [493.5, 1099], "yCss": [545.5, 649], "widthCss": 605.5, "heightCss": 103.5, "fill": "#fcfcfc on #f5f5f6" },
+    "contextRow": { "yCss": 516, "note": "the workspace / branch / runtime chips sit on the surface above the card, with no card fill behind them" },
+    "starterRows": {
+      "count": 4,
+      "firstRowYCss": 717,
+      "rowPitchCss": 34.5,
+      "leftXCss": 509.6,
+      "textWidthCss": 390,
+      "shape": "one line per row: title, then the description in a dimmer weight beside it"
+    },
+    "quickActionChips": { "yCss": 670, "labels": ["Plan New Idea", "Multitask"] },
+    "cardInterior": { "placeholderYCss": 556, "footerRowYCss": 622.5, "attachChipXCss": [504, 522.5], "sendButtonXCss": [1070, 1088.5] }
+  },
+
+  "caret": {
+    "window": [1440, 900],
+    "contextRow": [389, 292, 608, 24],
+    "composerCard": [389, 330, 608, 104],
+    "starterRows": {
+      "count": 3,
+      "rect": [389, 446, 608, 149],
+      "rowBoxes": [[402, 489, 582, 28], [402, 521, 582, 28], [402, 554, 582, 28]],
+      "rowPitchCss": 32,
+      "texts": [
+        "Implement a feature - Describe what you want to build",
+        "Fix a bug - Describe the unexpected behavior",
+        "Fix CI - Describe a failing check or paste a link"
+      ]
+    },
+    "cardWidthMatches2201ReferenceGap": "the card is the reference's 608 CSS wide and centred on the centre surface, so at the reference's 1710 window it would sit at 551..1159 against the reference's 493.5..1099 - the reference's card is 605.5 wide but sits 57 CSS further left because its centre column starts at 267 and its own layout centres the card at 796 while ours centres on the same surface. Both are the centre of the centre column.",
+    "capture": "caret-composer-starters-1710x1112.png"
+  },
+
+  "comparison": {
+    "cardHeightCss": { "reference": 103.5, "caret": 104, "delta": 0.5 },
+    "cardWidthCss": { "reference": 605.5, "caret": 608, "delta": 2.5 },
+    "starterPlacement": "below the card in both, 12 CSS below in ours against the reference's 68 CSS from the card bottom to the first row",
+    "starterRows": { "reference": 4, "caret": 3, "delta": -1 },
+    "rowPitchCss": { "reference": 34.5, "caret": 32, "delta": -2.5 },
+    "rowShape": "one line per row in both - the base stacks the description under the title, and the Caret stylesheet puts them on one grid row to match"
+  },
+
+  "notImplementedHere": {
+    "branchChip": "The reference's context row has three chips: the workspace, 'Select branch' and the runtime. Caret has a real workspace picker but no git-branch source for a new session (the fork's branchPicker is Copilot-sessions code, dropped by the removals list, and agentHostSessionBranchActions only copies the branch of an existing session), so a branch chip would be a control with nothing behind it.",
+    "runtimeChip": "'This Mac' is Cursor's name for the execution target. Caret's only real target today is the local agent host; the remote/sandbox hosts exist but are not selectable from the new-session composer.",
+    "effortChip": "The 'High' chip is the model/effort control of the session provider. Caret registers no provider config actions yet, which is the same gap as the model picker: the plan's S2 records 'send a prompt to OMP + model picker from OMP' as still missing.",
+    "quickActionChips": "'Plan New Idea' and 'Multitask' have no counterpart anywhere in the tree (no string, no setting, no command), so they need a composer mode that does not exist yet rather than a wiring fix."
+  }
+}

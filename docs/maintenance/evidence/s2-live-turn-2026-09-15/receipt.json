@@ -1,0 +1,93 @@
+{
+  "date": "2026-09-15T11:01:49.190Z",
+  "mode": "live-omp-turn",
+  "host": {
+    "descriptorPath": "/Users/pond/Library/Application Support/Caret/host/host.json",
+    "protocolVersion": 1,
+    "reportedOmpVersion": "18.1.18"
+  },
+  "project": {
+    "id": "f1b765e7-69d9-4bfd-865e-a97f47d06695",
+    "path": "/Users/pond/caret"
+  },
+  "session": {
+    "id": "94e8b9bd-a9f9-4f46-a909-adda72d0cdfb",
+    "incarnationBeforeStart": "d1b2058c-1e4d-45a3-88c8-150ea5359654",
+    "incarnation": "549cdb61-5914-459c-9e33-0f339bad1be9",
+    "finalStatus": "idle",
+    "finalIncarnation": "549cdb61-5914-459c-9e33-0f339bad1be9"
+  },
+  "command": {
+    "id": "5205c217-4463-4fa1-a178-00a22a124c89",
+    "kind": "prompt",
+    "status": "acknowledged"
+  },
+  "stream": {
+    "frameCount": 62,
+    "frameTypes": [
+      "ready",
+      "advisor_cost_changed",
+      "response",
+      "available_commands_update",
+      "caret_terminal_open",
+      "caret_terminal_output",
+      "caret_frame_reference",
+      "caret_command",
+      "agent_start",
+      "turn_start",
+      "message_start",
+      "message_end",
+      "message_update",
+      "turn_end",
+      "agent_end"
+    ],
+    "counts": {
+      "ready": 1,
+      "advisor_cost_changed": 1,
+      "response": 5,
+      "available_commands_update": 3,
+      "caret_terminal_open": 1,
+      "caret_terminal_output": 30,
+      "caret_frame_reference": 2,
+      "caret_command": 2,
+      "agent_start": 1,
+      "turn_start": 1,
+      "message_start": 2,
+      "message_end": 2,
+      "message_update": 9,
+      "turn_end": 1,
+      "agent_end": 1
+    }
+  },
+  "result": {
+    "expected": "caret-live-turn-ok",
+    "answer": "caret-live-turn-ok",
+    "matches": true,
+    "model": {
+      "provider": "commandcode",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "api": "openai-completions",
+      "stopReason": "stop"
+    },
+    "usage": {
+      "cacheRead": 24448,
+      "cacheWrite": 0,
+      "cost": {
+        "cacheRead": 0.000073344,
+        "cacheWrite": 0,
+        "input": 0.00003615,
+        "output": 0.0000048,
+        "total": 0.000114294
+      },
+      "input": 241,
+      "output": 8,
+      "totalTokens": 24697
+    }
+  },
+  "implementationSourceHashes": {
+    "apps/host/src/service.ts": "ed066835a1b10b77e598869cea2d7bc212cbd7cc67af341108839121f21a8ba1",
+    "apps/macos/src/chat-sessions.ts": "694dc0a1e5dd86d3ac988933210ca7267d1c2a1abec17439bc89df5413413860",
+    "scripts/omp-live-turn.ts": "3bb44357321e7315cb9f68e4c19c33744d7991d98707c693a91a7c0e9552893c"
+  },
+  "limitations": "One prompt over one provider/model chosen by the user's OMP configuration; this is not multi-turn, tool-use, permission, or approval coverage."
+}

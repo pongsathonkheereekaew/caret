@@ -1,0 +1,27 @@
+{
+  "scope": "S3 slice: the legacy Caret webview shell no longer mounts inside the native Agents window",
+  "capturedAt": "2026-09-14T21:24:00+07:00",
+  "branch": "main",
+  "revision": "working tree on top of f667743b58f",
+  "method": "edit + bun test apps/macos + bun scripts/build-caret.ts --desktop (re-applies the 13 desktop patches, rebuilds the Mac extension) + dev launch `desktop/scripts/code.sh --agents --remote-debugging-port=9351 --user-data-dir=/tmp/caret-s3-verify` + CDP Runtime.evaluate on the live window",
+  "change": {
+    "extension": "apps/macos/src/extension.ts",
+    "guard": "ensureAgentsPanel() returns immediately when inAgentsWindow() is true, so the legacy `caret.agentsShell` editor is never opened in the native Agents window (it stays reachable outside it).",
+    "workspaceFile": "writeCaretAgentsWorkspace() no longer writes the `window.caret-shell` marker file into globalStorage."
+  },
+  "verified": {
+    "shellGone": "PASS: CDP on the live Agents window - body text contains no 'caret-shell' at all (was: the window's text ended with 'window.caret-shell').",
+    "singleSurface": "PASS: the window now renders only the native sessions surface - header 'IDE', sidebar 'Sessions / New Chat / Automations / Workspace / Customize' plus the host session row, composer with 'Plan, Build, / for skills, @ for context' and Models.",
+    "compiledGuard": "PASS: the built bundle dist/mac-extension/out/extension.js contains `ensureAgentsPanel() { if (this.inAgentsWindow()) return; ...`.",
+    "tests": "PASS: bun test apps/macos -> 561 pass, 0 fail, 2877 expect() calls.",
+    "desktopPrep": "PASS: bun scripts/build-caret.ts --desktop -> 'Caret desktop patches applied (13 patches, 18 removals)'."
+  },
+  "stillOpen": [
+    "The shell module itself (apps/macos/src/webview.ts, TASK_WEBVIEW_CSS, the caretComposer webview views, the caret.agentsShell contribution and its tests) is still in the repo; the plan's retirement ledger row stays open until those are deleted and the parity check stops importing TASK_WEBVIEW_CSS.",
+    "The right side of the Agents window is now empty: Cursor shows an Apps panel there (heading 'Tabs' + Open new tab menu + Enter Full Screen + Hide Apps, with Changes / Browser / Terminal / File), and Caret renders no panel until a tab exists. This is the next S4 item.",
+    "Sidebar vocabulary is still the base's (Sessions / Workspace / Customize) rather than Cursor's Projects / Repositories.",
+    "The pet button is present in the DOM but hidden (setting default false).",
+    "Unrelated working-tree changes from another session (brand/app-icon work: assets/brand/**, apps/ios icons, scripts/lib/app-icon.ts, scripts/build-caret.ts) were present and were deliberately left untouched and uncommitted."
+  ],
+  "checks": "bun test apps/macos 561 pass / 0 fail; ci-validate run separately in the same revision"
+}

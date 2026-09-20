@@ -1,0 +1,124 @@
+diff --git a/src/vs/code/electron-main/app.ts b/src/vs/code/electron-main/app.ts
+index 85a1a9d7993..56613e6166e 100644
+--- a/src/vs/code/electron-main/app.ts
++++ b/src/vs/code/electron-main/app.ts
+@@ -101,6 +101,7 @@ import { WebviewMainService } from '../../platform/webview/electron-main/webview
+ import { AgentsWindowOpenSource, isFolderToOpen, isWorkspaceToOpen, IWindowOpenable } from '../../platform/window/common/window.js';
+ import { getAllWindowsExcludingOffscreen, IWindowsMainService, OpenContext } from '../../platform/windows/electron-main/windows.js';
+ import { ICodeWindow } from '../../platform/window/electron-main/window.js';
++import { applyCediaAgentTrafficLightPosition } from '../../platform/window/electron-main/cediaAgentChrome.js';
+ import { WindowsMainService } from '../../platform/windows/electron-main/windowsMainService.js';
+ import { ActiveWindowManager } from '../../platform/windows/node/windowTracker.js';
+ import { hasWorkspaceFileExtension, isSingleFolderWorkspaceIdentifier } from '../../platform/workspace/common/workspace.js';
+@@ -215,6 +216,8 @@ type CediaAgentWindowModule = {
+ 		readonly pickFolder: (event: unknown) => Promise<string | null>;
+ 		readonly openIde: (input: { cwd: string; path?: string; line?: number }, event: unknown) => Promise<void>;
+ 		readonly openExternal: (url: string) => Promise<void>;
++		readonly getZoomFactor?: (event: unknown) => number;
++		readonly zoom?: (event: unknown, action: 'in' | 'out' | 'reset') => number;
+ 		readonly version?: string;
+ 	}): { dispose(): void };
+ };
+@@ -807,6 +810,34 @@ export class CodeApplication extends Disposable {
+ 						throw new Error('Could not open external link');
+ 					}
+ 				},
++				getZoomFactor: event => {
++					const window = windowForEvent(event);
++					if (!window?.win) {
++						throw new Error('Untrusted Agent Window sender');
++					}
++					const zoomFactor = window.win.webContents.getZoomFactor();
++					applyCediaAgentTrafficLightPosition(window.win, zoomFactor);
++					return zoomFactor;
++				},
++				zoom: (event, action) => {
++					const window = windowForEvent(event);
++					if (!window?.win) {
++						throw new Error('Untrusted Agent Window sender');
++					}
++					const contents = window.win.webContents;
++					const currentLevel = contents.getZoomLevel();
++					const nextLevel = action === 'reset'
++						? 0
++						: Math.max(-5, Math.min(20, currentLevel + (action === 'in' ? 1 : -1)));
++					contents.setZoomLevel(nextLevel);
++					// Persist reset as an explicit level 0 so reopening the Agent Window
++					// remains at 100% even when the global IDE default is customized.
++					window.notifyZoomLevel(nextLevel);
++					const zoomFactor = contents.getZoomFactor();
++					applyCediaAgentTrafficLightPosition(window.win, zoomFactor);
++					window.send('vscode:cediaZoomFactor', zoomFactor);
++					return zoomFactor;
++				},
+ 				version: this.productService.version,
+ 			});
+ 
+diff --git a/src/vs/platform/windows/electron-main/windowImpl.ts b/src/vs/platform/windows/electron-main/windowImpl.ts
+index e458b53a351..2269b535cb5 100644
+--- a/src/vs/platform/windows/electron-main/windowImpl.ts
++++ b/src/vs/platform/windows/electron-main/windowImpl.ts
+@@ -47,6 +47,7 @@ import { VSBuffer } from '../../../base/common/buffer.js';
+ import { errorHandler } from '../../../base/common/errors.js';
+ import { FocusMode, IApplicationBadge } from '../../native/common/native.js';
+ import { Color } from '../../../base/common/color.js';
++import { applyCediaAgentTrafficLightPosition } from '../../window/electron-main/cediaAgentChrome.js';
+ 
+ export interface IWindowCreationOptions {
+ 	readonly state: IWindowState;
+@@ -782,6 +783,9 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
+ 			mark('code/willCreateCodeBrowserWindow');
+ 			this._win = new electron.BrowserWindow(options);
+ 			mark('code/didCreateCodeBrowserWindow');
++			if (isMacintosh && config.isSessionsWindow) {
++				applyCediaAgentTrafficLightPosition(this._win, this._win.webContents.getZoomFactor());
++			}
+ 
+ 			this._id = this._win.id;
+ 			this.setWin(this._win, options);
+@@ -1605,6 +1608,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
+ 
+ 	notifyZoomLevel(zoomLevel: number | undefined): void {
+ 		this.customZoomLevel = zoomLevel;
++		if (this._config?.isSessionsWindow) {
++			this._config.zoomLevel = zoomLevel;
++			this._config.isCustomZoomLevel = typeof zoomLevel === 'number';
++			this.configObjectUrl.update(this._config);
++		}
+ 	}
+ 
+ 	private getZoomLevel(): number | undefined {
+diff --git a/src/vs/platform/window/electron-main/cediaAgentChrome.ts b/src/vs/platform/window/electron-main/cediaAgentChrome.ts
+new file mode 100644
+index 00000000000..e4ff92de8f6
+--- /dev/null
++++ b/src/vs/platform/window/electron-main/cediaAgentChrome.ts
+@@ -0,0 +1,28 @@
++/*---------------------------------------------------------------------------------------------
++ *  Cedia Agent Window's native macOS chrome geometry.
++ *--------------------------------------------------------------------------------------------*/
++
++import type { BrowserWindow } from 'electron';
++
++/** Keep this paired with Synara's desktopChrome.ts header geometry. */
++export const CEDIA_AGENT_HEADER_HEIGHT_PX = 46;
++export const CEDIA_AGENT_TRAFFIC_LIGHT_INSET_X_PX = 16;
++export const CEDIA_AGENT_TRAFFIC_LIGHT_DOT_RADIUS_PX = 7;
++
++export function resolveCediaAgentTrafficLightPosition(zoomFactor: number): { x: number; y: number } {
++	const safeZoom = typeof zoomFactor === 'number' && Number.isFinite(zoomFactor) && zoomFactor > 0 ? zoomFactor : 1;
++	return {
++		x: CEDIA_AGENT_TRAFFIC_LIGHT_INSET_X_PX,
++		y: Math.round((CEDIA_AGENT_HEADER_HEIGHT_PX * safeZoom) / 2 - CEDIA_AGENT_TRAFFIC_LIGHT_DOT_RADIUS_PX),
++	};
++}
++
++/** Electron exposes this only on macOS builds; keep the call optional for other shells. */
++export function applyCediaAgentTrafficLightPosition(window: BrowserWindow, zoomFactor: number): void {
++	const setWindowButtonPosition = (window as BrowserWindow & {
++		setWindowButtonPosition?: (position: { x: number; y: number }) => void;
++	}).setWindowButtonPosition;
++	if (typeof setWindowButtonPosition === 'function') {
++		setWindowButtonPosition.call(window, resolveCediaAgentTrafficLightPosition(zoomFactor));
++	}
++}

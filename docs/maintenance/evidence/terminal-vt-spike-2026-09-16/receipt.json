@@ -1,0 +1,41 @@
+{
+  "slice": "terminal-vt-evaluation",
+  "date": "2026-09-16",
+  "question": "Is Ghostty's VT core (libghostty-vt, via @coder/libghostty-vt-node) better than the xterm.js the pinned base ships, for the headless terminal state Caret would keep on the host/mobile path - and is adopting it safe?",
+  "answer": "yes on the path it would be used: 25.7x throughput at realistic (8 KiB) chunk sizes, 4.5x less memory per live terminal, and a structured snapshot API xterm lacks; behaviourally identical on all 12 corpus cases. Safe to try: MIT, prebuilt for darwin-arm64, no install-time toolchain.",
+  "method": {
+    "engines": {
+      "shipped": "@xterm/headless 6.1.0-beta.302 (the exact version desktop/package.json pins)",
+      "candidate": "@coder/libghostty-vt-node 0.1.0-beta.0, native info {napiVersion: 10, ghosttyVersion: '0.1.0-dev', platform: darwin, arch: arm64}"
+    },
+    "runtime": "Node 24.18.0 (the runtime the Caret host bundles)",
+    "where": "scratch directory outside the repository; only the corpus and its runner landed in the tree",
+    "payload": "coloured log lines, CR progress redraws, cursor-addressed alternate-screen writes, CSI ?2026 frames, OSC 0 title, OSC 8 hyperlink, Thai lines with combining marks"
+  },
+  "measurements": {
+    "feed_1_3MB_chunks": { "xtermMbPerSec": 79.6, "ghosttyMbPerSec": 38.8, "note": "xterm faster when writes are huge" },
+    "feed_8KiB_chunks": { "xtermMbPerSec": 5.1, "ghosttyMbPerSec": 131.1, "ratio": "25.7x ghostty", "note": "the shape a PTY reader actually delivers" },
+    "rss_per_live_terminal_mb": { "xterm": 7.27, "ghostty": 1.63, "note": "120x30, scrollback 2000, 8 terminals" },
+    "visible_text_read_ms_per_1000": { "xterm": 5.7, "ghostty": 46.7 },
+    "structured_snapshot_cells_ms_per_100": { "xterm": "no equivalent API", "ghostty": 47.5 }
+  },
+  "conformance": {
+    "corpus": "12 cases in apps/macos/src/terminal-conformance.ts (OSC 633/133, OSC 8, CSI ?2026, Thai combining, CJK width, box drawing, DECSC/DECRC, scroll region + RI, erase+CR, alt-screen round trip, ZWJ emoji recorded only)",
+    "xterm": "12/12",
+    "ghostty": "12/12",
+    "note": "the first runs failed 3 cases against my own expectations, not the engines: a bare LF keeps the column, an on-screen line is not an empty screen, and a reverse index keeps the moved line's column"
+  },
+  "landed": [
+    "apps/macos/src/terminal-conformance.ts - engine-agnostic corpus + runner",
+    "scripts/lib/terminal-engines.ts - xterm adapter (shipped engine) + optional Ghostty adapter (dynamic import)",
+    "scripts/terminal-conformance.ts and `bun run check:terminal` - the report",
+    "apps/macos/test/terminal-conformance.test.ts - the gate: required cases must hold on the shipped engine; also the acceptance test for any future swap",
+    "root devDependency @xterm/headless@6.1.0-beta.302 (same line as the desktop pin)"
+  ],
+  "caveats": [
+    "@coder/libghostty-vt-node is 0.1.0-beta.0 and upstream libghostty-vt has no tagged version and an unstable C API: pin the commit and treat updates as deliberate work",
+    "no Windows prebuild, and building from source needs Zig - fine for the macOS target, a gate before Windows",
+    "the visible terminal is untouched: the workbench still renders xterm.js, and Cursor does too, so replacing the renderer remains a section 5 deviation decision",
+    "single-run measurements on one machine: order-of-magnitude, not competitive benchmarking"
+  ]
+}

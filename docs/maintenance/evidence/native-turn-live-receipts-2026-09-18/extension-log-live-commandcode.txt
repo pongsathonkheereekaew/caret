@@ -1,0 +1,5 @@
+/Users/pond/Library/Application Support/Caret/logs/20260918T194957//window1/exthost/caret.caret/Caret.log:4:2026-09-18 19:50:08.617 [info] Caret language models: 873 advertised by OMP.
+/Users/pond/Library/Application Support/Caret/logs/20260918T194957//window1/exthost/caret.caret/Caret.log:5:2026-09-18 19:50:08.617 [info] Caret language models: 873 rows after collapsing OMP's duplicate ids.
+/Users/pond/Library/Application Support/Caret/logs/20260918T194957//window1/exthost/caret.caret/Caret.log:6:2026-09-18 19:50:08.687 [info] Caret session option catalog: 873 model(s) advertised by OMP, 0 role(s) configure
+/Users/pond/Library/Application Support/Caret/logs/20260918T194957//window1/exthost/caret.caret/Caret.log:7:2026-09-18 19:50:09.051 [info] Caret session option catalog: 873 model(s) advertised by OMP, 0 role(s) configure
+/Users/pond/Library/Application Support/Caret/logs/20260918T194957//window1/exthost/caret.caret/Caret.log:8:2026-09-18 19:53:20.992 [info] Caret participant turn for session 82fd1d28-51e7-4455-a7e7-d6879848b1df

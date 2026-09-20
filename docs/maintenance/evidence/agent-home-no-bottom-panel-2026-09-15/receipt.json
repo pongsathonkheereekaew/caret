@@ -1,0 +1,29 @@
+{
+  "slice": "The Agents window has no bottom panel",
+  "capturedAt": "2026-09-15T16:05:00+07:00",
+  "branch": "main",
+  "method": "new desktop patch 0026 + transpile + CDP on the running Agents window (DOM measurement and a real cmd+J key event)",
+  "problem": {
+    "symptom": "the terminal is an Apps panel tab on the right, but the Agents window still had a bottom panel: cmd+J opened it as an empty strip with Output and Terminal in it",
+    "measured": "before the change, .part.panel had height 0 on load and 296 after cmd+J"
+  },
+  "change": {
+    "patch": "0026-caret-agents-no-bottom-panel.patch touches only src/vs/sessions/browser/workbench.ts: _effectiveVisible never reports the panel as visible, setPanelHidden refuses to show it, and a saved \"visible\" is not restored on load. The part stays in the layout bookkeeping, so every other call site still resolves, and the IDE window - which has its own workbench - keeps its panel.",
+    "whyNotRemove": "deleting the part from the grid would touch the panel node, the persisted sizes, the maximized-view path and the pane-composite service at once; refusing visibility removes the chrome without putting the layout bookkeeping in an invalid state."
+  },
+  "verified": {
+    "liveLoad": "with the extension and the Apps panel in the running dev Agents window, .part.panel is height 0",
+    "liveToggle": "a real cmd+J key event leaves .part.panel at height 0 (it opened to 296 before the change)",
+    "terminalStillWorks": "opening Terminal from the Apps panel strip produced a zsh tab with a live xterm inside .caret-apps-panel, and the bottom panel stayed at 0 - also after pressing cmd+J again",
+    "patchSet": "24/24 patches apply from the pinned base, the resulting tree is byte-identical to the checkout, and 24/24 reverse-check; apps/macos/test/desktop-patch-set.test.ts covers it",
+    "manifestTest": "apps/macos/test/ide-native-workbench.test.ts pins the patch needles, its one-file scope and the manifest digest",
+    "suites": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test -> 713 pass / 0 fail, 3782 expect() calls",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10 doc-links=69 md=83"
+  },
+  "notVerified": [
+    "The packaged Caret macOS app; every live run used the dev Agents window.",
+    "Keyboard shortcuts other than cmd+J that could try to reveal the panel (the terminal toggle was exercised through the Apps panel, not through its keybinding).",
+    "The phone/tablet layout of the sessions workbench, where the panel had its own default visibility."
+  ]
+}

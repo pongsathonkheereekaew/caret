@@ -1,0 +1,15 @@
+{
+  "capturedAt": "2026-09-13T03:57:17.507Z",
+  "syntheticOnly": true,
+  "paidModelCalls": 0,
+  "nodeSha256": "ee6fb0e015284d83a91e8ec5213f43a157f8a392b58555301682892ba928c04a",
+  "ompSha256": "fe76b727c6281ef8355be202ba57ed580cb0985ddacbc6cfcb5918b0d9de0d4b",
+  "hostSha256": "7143874816d204b9705c9829c6cf8df660f0824394f0bba30dacb6acdeef3e36",
+  "checks": [
+    "runtime-relocated-to-path-with-spaces",
+    "no-bun-or-node-on-path-required",
+    "detached-host-survives-launcher-exit",
+    "bundled-omp-start-with-no-provider-and-get-state",
+    "graceful-task-stop"
+  ]
+}

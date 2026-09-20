@@ -1,0 +1,53 @@
+{
+  "scope": "Slice C1: the Agent Home composer - the reference's starter rows under the card, and the reference card height.",
+  "capturedAt": "2026-09-15T08:20:00+07:00",
+  "branch": "main",
+  "revision": "caret working tree on top of 7a07935cab4; desktop/ checkout at the pinned base ea1912fd6a05b80a56b2ad9b955075211deea521 with patches 0001-0023 applied",
+  "referenceScreenshot": "reference-cursor-agents-1710x1112.png (the user's native capture of the reference Agents window, 3420x2224 = 1710x1112 CSS at DPR 2)",
+  "previousScreenshot": "caret-agent-home-1710x1112.png (this slice's before, patches 0001-0022)",
+  "newScreenshot": "docs/maintenance/evidence/agent-home-visual-2026-09-14/caret-composer-starters-1710x1112.png",
+  "visionCheck": "NOT PERFORMED - the image tool answered HTTP 429 again. The comparison is DOM-measured on the Caret side and pixel-measured on the reference side (scripts/png-pixel-probe.py + scripts/image-ocr.swift).",
+
+  "change": {
+    "desktopPatch": "patches/desktop/0023-caret-agent-home-composer-starters.patch - 5 files: 3 new (contrib/home/browser/agentHomePromptOptions.ts, its contribution, media/agentHomeComposer.css), 1 exported helper in contrib/onboardingTours/browser/newSessionViewV3Prompt.ts, and the entry import in sessions.desktop.main.ts. Nothing under src/vs/workbench/**. Digest 02849c3be4daa67618080567195720bb73b4413d4a2e4147d60f705b32f0b8ab.",
+    "whatItDoes": "Attaches an INewSessionPromptOptionsController to the active new-session composer so the empty Agent Home lists the base's own starters, each of which inserts its prompt into the input with the placeholder selected. The base only ever surfaces these from the 'sessions.onboarding.newSessionViewV3' onboarding tour, which is behind a Copilot experiment flag and a no-recent-sessions trigger, so the Agents window showed none.",
+    "copy": "No new starter copy was written. The three starters are the base's own localized strings, now exported from the file that already owned them and consumed by Caret, so there is one source of truth for the wording.",
+    "sizing": "The composer card is 104 CSS tall against the base's 86, matching the reference's 103.5, and the starter rows sit below the card as in the reference: the input stack becomes an explicit column and the standalone prompt-option slot is ordered after the input wrapper.",
+    "rowShape": "The reference draws a starter as one line - icon, title, description - where the base stacks the description under the title. The Caret stylesheet puts all three on one grid row, so the list reads as a list."
+  },
+
+  "beforeAfter": {
+    "starterRows": { "before": 0, "after": 3 },
+    "composerCardHeightCss": { "before": 86, "after": 104 },
+    "starterPlacement": { "before": "none rendered", "after": "below the card, 12 CSS gap" },
+    "starterRowHeightCss": { "before": null, "after": 28 }
+  },
+
+  "fixedVisibleDifferences": [
+    "The empty Agent Home now lists starter rows under the composer, which the reference shows and Caret did not have at all.",
+    "The composer card is the reference's height (104 against 103.5) instead of hugging the toolbar at 86.",
+    "A starter reads as one line, like the reference, instead of a two-line block."
+  ],
+
+  "remainingVisibleDifferences": [
+    "Three starter rows against the reference's four. The base's non-repository set is three (implement a feature, fix a bug, fix CI); the reference's fourth row is Cursor's own generated idea, and Caret has no generator to draw from.",
+    "The context row still shows the workspace picker alone. The reference's 'Select branch' and 'This Mac' chips have no real source in Caret yet - see the notImplementedHere block of geometry-composer-starters.json for what each one would need.",
+    "The 'High' effort chip and the 'Plan New Idea' / 'Multitask' quick-action chips are not implemented: the first needs the session provider's config actions (the plan's S2 gap) and the second needs a composer mode that does not exist in the tree at all.",
+    "Our starter rows are 28 CSS tall on a 32 CSS pitch against the reference's ~34.5, and the first row is 12 CSS under the card against the reference's larger gap.",
+    "Caret's light theme renders the surface and card at #f7f7fa / #ffffff where the reference capture is #f5f5f6 / #fcfcfc, so the two windows do not compare colour for colour."
+  ],
+
+  "commandsRun": [
+    "bun scripts/prepare-desktop.ts -> 'Caret desktop patches applied (21 patches, 18 removals)'",
+    "bun test apps/macos/test/ide-native-workbench.test.ts -> 53 pass, 0 fail, 310 expect() calls",
+    "cd desktop && npx tsc --project ./src/tsconfig.json --noEmit --skipLibCheck -> clean",
+    "cd desktop && node build/next/index.ts transpile",
+    "launch .build/electron/Caret.app with VSCODE_DEV=1, --agents, --remote-debugging-port=9341 on a fresh profile",
+    "CDP Runtime.evaluate for the composer, card and starter rects (live: 3 rows, card 608x104, rows 28 tall)",
+    "CDP emulated 1710x1112 at DPR 2 + Page.captureScreenshot -> caret-composer-starters-1710x1112.png",
+    "python3 /tmp/geom-probe.py on the reference and on the Caret capture (col x=1600, row y=1150, dividers)",
+    "cd desktop && git apply --reverse --check patches/desktop/0023-caret-agent-home-composer-starters.patch -> OK"
+  ],
+
+  "ideUnaffected": "Everything in the patch is under src/vs/sessions/**: two new files, one new stylesheet, an export added to the sessions onboarding prompt file, and one entry import placed in the workbench-contributions region (well clear of the hunks patches 0010 and 0022 own in that file). The repo test asserts the patch contains a/src/vs/sessions/ and not src/vs/workbench/, and desktop npm run typecheck-client passes."
+}

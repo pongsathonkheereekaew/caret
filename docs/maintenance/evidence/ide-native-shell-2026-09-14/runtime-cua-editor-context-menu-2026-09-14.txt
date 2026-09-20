@@ -1,0 +1,344 @@
+Window: "greet.ts — workspace — Caret", App: Caret.
+0 standard window greet.ts — workspace — Caret, URL: file:///tmp/caret-ide-v5/workspace/src/greet.ts, Secondary Actions: Raise
+	1 container greet.ts — workspace — Caret
+		2 container
+			3 HTML content greet.ts — workspace — Caret, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html
+				4 container
+					5 container
+						6 container
+							7 toolbar
+								8 button (disabled) Go Back (⌃-)
+									9 text 
+								10 button (disabled) Go Forward (⌃⇧-)
+									11 text 
+								12 button greet.ts — workspace — Caret
+							13 toolbar Title actions
+								14 button Customize Layout...
+									15 text 
+								16 toggle button Description: Toggle Primary Side Bar (⌘B), Value: 1
+									17 text 
+								18 toggle button Description: Toggle Panel (⌘J), Value: 1
+									19 text 
+								20 toggle button Description: Toggle Secondary Side Bar (⌥⌘B), Value: 1
+									21 text 
+						22 container
+							23 container
+								24 tab group Active View Switcher
+									25 tab (selected) Explorer (⇧⌘E), Value: 1
+										26 container Explorer (⇧⌘E)
+											27 text 
+									28 tab (settable, integer) Search (⇧⌘F), Value: 0
+										29 container Search (⇧⌘F)
+											30 text 
+									31 tab (settable, integer) Source Control (⌃⇧G), Value: 0
+										32 container Source Control (⌃⇧G)
+											33 text 
+									34 tab (settable, integer) Run and Debug (⇧⌘D), Value: 0
+										35 container Run and Debug (⇧⌘D)
+											36 text 
+									37 tab (settable, integer) Extensions (⇧⌘X), Value: 0
+										38 container Extensions (⇧⌘X)
+											39 text 
+									40 tab (settable, integer) Caret, Value: 0
+										41 container Caret
+								42 toolbar Manage
+									43 pop up button Accounts
+										44 container Accounts
+											45 text 
+									46 pop up button Manage
+										47 container Manage
+											48 text 
+							49 container
+								50 heading EXPLORER, Value: 2
+									51 text EXPLORER
+								52 toolbar Explorer actions
+									53 pop up button Views and More Actions...
+								54 container
+									55 container
+										56 button Explorer Section: workspace
+											57 text 
+											58 heading Description: Explorer Section: workspace, Value: 3
+												59 text WORKSPACE
+										60 outline Files Explorer
+											61 container
+												62 row .vscode
+													63 container
+														64 text 
+														65 container /tmp/caret-ide-v5/workspace/.vscode
+															66 text .vscode
+												67 row src
+													68 container
+														69 text 
+														70 container /tmp/caret-ide-v5/workspace/src
+															71 text src
+												72 row (selected) greet.ts
+													73 container
+														74 container /tmp/caret-ide-v5/workspace/src/greet.ts
+															75 text 
+															76 text greet.ts
+									77 button Outline Section
+										78 text 
+										79 heading OUTLINE, Value: 3
+											80 text OUTLINE
+									81 button Timeline Section
+										82 text 
+										83 heading TIMELINE, Value: 3
+											84 text TIMELINE
+							85 container
+								86 container
+								87 container
+									88 container
+										89 container
+											90 tab group
+												91 tab (selected) Description: greet.ts, preview, Value: 1
+													92 container greet.ts
+														93 text 
+														94 text greet.ts
+													95 toolbar Tab actions
+														96 button Close (⌘W)
+															97 text 
+											98 toolbar Editor actions
+												99 button Edit Selection with Caret (⌘K)
+													100 text 
+												101 button Review Active File in Diff (⌥⌘R)
+													102 text 
+												103 button Split Editor Right (⌘\) [⌥] Split Editor Down
+													104 text 
+												105 pop up button More Actions...
+													106 text 
+										107 content list
+											108 container
+												109 container /tmp/caret-ide-v5/workspace/src
+													110 text src
+												111 text 
+											112 container
+												113 container /tmp/caret-ide-v5/workspace/src/greet.ts
+													114 text 
+													115 text greet.ts
+												116 text 
+											117 text …
+										118 container greet.ts, preview
+											119 container
+												120 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+												121 list box Show Code Actions (⌘.)
+													122 text 
+								123 container
+									124 tab group Active View Switcher
+										125 tab (settable, integer) Problems (⇧⌘M), Value: 0
+											126 container Problems (⇧⌘M)
+												127 text PROBLEMS
+										128 tab (settable, integer) Output (⇧⌘U), Value: 0
+											129 container Output (⇧⌘U)
+												130 text OUTPUT
+										131 tab (settable, integer) Debug Console (⇧⌘Y), Value: 0
+											132 container Debug Console (⇧⌘Y)
+												133 text DEBUG CONSOLE
+										134 tab (selected) Terminal (⌃`), Value: 1
+											135 container Terminal (⌃`)
+												136 text TERMINAL
+										137 tab (settable, integer) Ports, Value: 0
+											138 container Ports
+												139 text PORTS
+									140 toolbar Terminal actions
+										141 button Focus Terminal (⌘↓) [⌥] Split Terminal (⌘\)
+											142 text 
+											143 text OMP interaction
+										144 button New Terminal (⌃⇧`) [⌥] Split Terminal (⌘\)
+											145 button New Terminal (⌃⇧`) [⌥] Split Terminal (⌘\)
+										146 pop up button Launch Profile...
+										147 button Split Terminal (⌘\)
+										148 button Kill Terminal
+										149 pop up button Views and More Actions...
+									150 toolbar
+										151 toggle button Description: Maximize Panel, Value: 0
+											152 text 
+										153 button Hide Panel (⌘J)
+											154 text 
+									155 container
+										156 container
+							157 container
+								158 tab group Active View Switcher
+									159 tab (selected) Caret, Value: 1
+										160 container Caret
+											161 text CARET
+								162 toolbar Caret: Agents actions
+									163 button New Task (⌥⌘N)
+									164 text ⌥⌘N
+									165 button Show IDE (⌥⌘I)
+									166 text ⌥⌘I
+								167 toolbar
+									168 toggle button Description: Maximize Secondary Side Bar, Value: 0
+										169 text 
+									170 button Hide Secondary Side Bar (⌥⌘B)
+										171 text 
+								172 container
+						173 container
+							174 container remote
+								175 button remote
+							176 container comment-discussion Caret ready, Caret is connected to the Mac host. Click to open the task.
+								177 button comment-discussion Caret ready, Caret is connected to the Mac host. Click to open the task.
+									178 text 
+									179 text  Caret ready
+							180 container No Problems
+								181 button No Problems
+									182 text 
+									183 text  0 
+									184 text 
+									185 text  0
+							186 container Notifications
+								187 button Notifications
+							188 container TypeScript
+								189 button TypeScript
+							190 container Editor Language Status: No tsconfig, next: 6.0.3, TypeScript version
+								191 button Editor Language Status: No tsconfig, next: 6.0.3, TypeScript version
+							192 container LF
+								193 button LF
+							194 container UTF-8
+								195 button UTF-8
+							196 container Spaces: 2
+								197 button Spaces: 2
+							198 container Ln 4, Col 1 (63 selected)
+								199 button Ln 4, Col 1 (63 selected)
+					200 text expanded
+					201 HTML content vscode-webview://0773994be8liq1218rgbpokb5ekuglmgofoff5cfjqra599fgoo5/index.html?id=c943b8bd-7216-4b89-816e-201e30679191&parentId=1&origin=7f0713f0-09ce-4343-ae66-55349f62d439&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView
+						202 container Agents
+							203 HTML content New task — workspace — Caret, URL: vscode-webview://0773994be8liq1218rgbpokb5ekuglmgofoff5cfjqra599fgoo5/index.html?id=c943b8bd-7216-4b89-816e-201e30679191&parentId=1&origin=7f0713f0-09ce-4343-ae66-55349f62d439&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView
+								204 container Task
+									205 container
+										206 text Ready
+										207 toggle button IDE, Value: 1
+										208 toggle button Agents, Value: 0
+									209 container
+										210 button (disabled) Back, Help: No previous view.
+										211 button (disabled) Forward, Help: No next view.
+										212 heading New task, Value: 1
+											213 text New task
+										214 text workspace · Folder · /private/tmp/caret-ide-v5/workspace · This Mac
+										215 container Task resources
+											216 button Changes
+											217 button Browser
+											218 button Terminal
+											219 button Files
+											220 pop up button Task actions
+										221 text Host connected. idle.
+										222 text Need more space to split this task. Widen the window past 720px.
+										223 button Maximize area
+										224 button Open another window
+										225 container Task transcript
+											226 text New task
+										227 text entry area (settable) Description: Message Caret, Placeholder: Plan, Build, / for skills, @ for context, Value: Explain what this selected code does, and call out anything surprising or risky. (src/greet.ts#L1-L4)
+
+```typescript
+export function greet(name: string) {
+  return "hi " + name;
+}
+
+```
+										228 button Add
+										229 pop up button Description: Model, Help: Choose a model. Use Add → Model to refresh. Caret does not pick a billed fallback.
+											230 (selected) Model
+										231 pop up button (disabled) Description: Thinking level, Help: OMP has not advertised thinking levels for this model., Value: Thinking
+										232 button (disabled) Choose a model
+										233 text Choose a model before sending. Caret does not pick a billed fallback.
+					234 menu Secondary Actions: Cancel
+						235 Go to Definition F12
+							236 container Go to Definition
+								237 text Go to Definition
+							238 text F12
+						239 Go to Type Definition
+							240 container Go to Type Definition
+								241 text Go to Type Definition
+						242 Go to Source Definition
+							243 container Go to Source Definition
+								244 text Go to Source Definition
+						245 Go to Implementations ⌘F12
+							246 container Go to Implementations
+								247 text Go to Implementations
+							248 text ⌘F12
+						249 Go to References ⇧F12
+							250 container Go to References
+								251 text Go to References
+							252 text ⇧F12
+						253 Peek
+							254 container Peek
+								255 text Peek
+						256 Find All References ⇧⌥F12
+							257 container Find All References
+								258 text Find All References
+							259 text ⇧⌥F12
+						260 Find All Implementations
+							261 container Find All Implementations
+								262 text Find All Implementations
+						263 Show Call Hierarchy ⇧⌥H
+							264 container Show Call Hierarchy
+								265 text Show Call Hierarchy
+							266 text ⇧⌥H
+						267 Rename Symbol F2
+							268 container Rename Symbol
+								269 text Rename Symbol
+							270 text F2
+						271 Change All Occurrences ⌘F2
+							272 container Change All Occurrences
+								273 text Change All Occurrences
+							274 text ⌘F2
+						275 Format Document ⇧⌥F
+							276 container Format Document
+								277 text Format Document
+							278 text ⇧⌥F
+						279 Format Selection ⌘K ⌘F
+							280 container Format Selection
+								281 text Format Selection
+							282 text ⌘K ⌘F
+						283 Refactor... ⌃⇧R
+							284 container Refactor...
+								285 text Refactor...
+							286 text ⌃⇧R
+						287 Source Action...
+							288 container Source Action...
+								289 text Source Action...
+						290 Cut ⌘X
+							291 container Cut
+								292 text Cut
+							293 text ⌘X
+						294 Copy ⌘C
+							295 container Copy
+								296 text Copy
+							297 text ⌘C
+						298 Paste ⌘V
+							299 container Paste
+								300 text Paste
+							301 text ⌘V
+						302 Add Selection to Caret Task ⌥⌘K
+							303 container Add Selection to Caret Task
+								304 text Add Selection to Caret Task
+							305 text ⌥⌘K
+						306 Edit Selection with Caret ⌘K
+							307 container Edit Selection with Caret
+								308 text Edit Selection with Caret
+							309 text ⌘K
+						310 Explain Selection with Caret
+							311 container Explain Selection with Caret
+								312 text Explain Selection with Caret
+						313 Fix Selection with Caret
+							314 container Fix Selection with Caret
+								315 text Fix Selection with Caret
+						316 Command Palette... ⇧⌘P
+							317 container Command Palette...
+								318 text Command Palette...
+							319 text ⇧⌘P
+	320 close button
+	321 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	322 minimize button
+323 menu bar
+	324 Caret
+	325 File
+	326 Edit
+	327 Selection
+	328 View
+	329 Go
+	330 Run
+	331 Terminal
+	332 Window
+	333 Help
+
+The focused UI element is 234 menu Secondary Actions: Cancel

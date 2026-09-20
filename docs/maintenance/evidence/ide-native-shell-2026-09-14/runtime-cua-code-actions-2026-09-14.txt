@@ -1,0 +1,307 @@
+Window: "greet.ts — workspace — Caret", App: Caret.
+0 standard window greet.ts — workspace — Caret, URL: file:///tmp/caret-ide-v5/workspace/src/greet.ts, Secondary Actions: Raise
+	1 container greet.ts — workspace — Caret
+		2 container
+			3 HTML content greet.ts — workspace — Caret, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html
+				4 container
+					5 container
+						6 container
+							7 toolbar
+								8 button (disabled) Go Back (⌃-)
+									9 text 
+								10 button (disabled) Go Forward (⌃⇧-)
+									11 text 
+								12 button greet.ts — workspace — Caret
+							13 toolbar Title actions
+								14 button Customize Layout...
+									15 text 
+								16 toggle button Description: Toggle Primary Side Bar (⌘B), Value: 1
+									17 text 
+								18 toggle button Description: Toggle Panel (⌘J), Value: 1
+									19 text 
+								20 toggle button Description: Toggle Secondary Side Bar (⌥⌘B), Value: 1
+									21 text 
+						22 container
+							23 container
+								24 tab group Active View Switcher
+									25 tab (selected) Explorer (⇧⌘E), Value: 1
+										26 container Explorer (⇧⌘E)
+											27 text 
+									28 tab (settable, integer) Search (⇧⌘F), Value: 0
+										29 container Search (⇧⌘F)
+											30 text 
+									31 tab (settable, integer) Source Control (⌃⇧G), Value: 0
+										32 container Source Control (⌃⇧G)
+											33 text 
+									34 tab (settable, integer) Run and Debug (⇧⌘D), Value: 0
+										35 container Run and Debug (⇧⌘D)
+											36 text 
+									37 tab (settable, integer) Extensions (⇧⌘X), Value: 0
+										38 container Extensions (⇧⌘X)
+											39 text 
+									40 tab (settable, integer) Caret, Value: 0
+										41 container Caret
+								42 toolbar Manage
+									43 pop up button Accounts
+										44 container Accounts
+											45 text 
+									46 pop up button Manage
+										47 container Manage
+											48 text 
+							49 container
+								50 heading EXPLORER, Value: 2
+									51 text EXPLORER
+								52 toolbar Explorer actions
+									53 pop up button Views and More Actions...
+								54 container
+									55 container
+										56 button Explorer Section: workspace
+											57 text 
+											58 heading Description: Explorer Section: workspace, Value: 3
+												59 text WORKSPACE
+										60 outline Files Explorer
+											61 container
+												62 row .vscode
+													63 container
+														64 text 
+														65 container /tmp/caret-ide-v5/workspace/.vscode
+															66 text .vscode
+												67 row src
+													68 container
+														69 text 
+														70 container /tmp/caret-ide-v5/workspace/src
+															71 text src
+												72 row (selected) greet.ts
+													73 container
+														74 container /tmp/caret-ide-v5/workspace/src/greet.ts
+															75 text 
+															76 text greet.ts
+									77 button Outline Section
+										78 text 
+										79 heading OUTLINE, Value: 3
+											80 text OUTLINE
+									81 button Timeline Section
+										82 text 
+										83 heading TIMELINE, Value: 3
+											84 text TIMELINE
+							85 container
+								86 container
+								87 container
+									88 container
+										89 container
+											90 tab group
+												91 tab (selected) Description: greet.ts, preview, Value: 1
+													92 container greet.ts
+														93 text 
+														94 text greet.ts
+													95 toolbar Tab actions
+														96 button Close (⌘W)
+															97 text 
+											98 toolbar Editor actions
+												99 button Edit Selection with Caret (⌘K)
+													100 text 
+												101 button Review Active File in Diff (⌥⌘R)
+													102 text 
+												103 button Split Editor Right (⌘\) [⌥] Split Editor Down
+													104 text 
+												105 pop up button More Actions...
+													106 text 
+										107 content list
+											108 container
+												109 container /tmp/caret-ide-v5/workspace/src
+													110 text src
+												111 text 
+											112 container
+												113 container /tmp/caret-ide-v5/workspace/src/greet.ts
+													114 text 
+													115 text greet.ts
+												116 text 
+											117 text …
+										118 container greet.ts, preview
+											119 container
+												120 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+												121 list box Show Code Actions (⌘.)
+													122 text 
+												123 list box Action Widget
+													124 container
+														125 Help: Enter to Apply, Value: Caret: Explain Selection, Quick Fix
+															126 text 
+															127 text Caret: Explain Selection
+														128 Help: Enter to Apply, Value: Caret: Fix Selection, Quick Fix
+															129 text 
+															130 text Caret: Fix Selection
+														131 Help: Enter to Apply, Value: Caret: Edit Selection, Quick Fix
+															132 text 
+															133 text Caret: Edit Selection
+														134 Help: Enter to Apply, Value: Caret: Add Selection to Task, Quick Fix
+															135 text 
+															136 text Caret: Add Selection to Task
+														137 Help: Enter to Apply, Value: Caret: Review File in Diff, Quick Fix
+															138 text 
+															139 text Caret: Review File in Diff
+														140 Help: Enter to Apply, Value: Convert named export to default export, Rewrite
+															141 text 
+															142 text Convert named export to default export
+														143 Help: Enter to Apply, Value: Convert parameters to destructured object, Rewrite
+															144 text 
+															145 text Convert parameters to destructured object
+														146 Help: Enter to Apply, Value: Infer function return type, Rewrite
+															147 text 
+															148 text Infer function return type
+														149 Help: Enter to Apply, Value: Move to file, Move
+															150 text 
+															151 text Move to file
+														152 Help: Enter to Apply, Value: Move to a new file, Move
+															153 text 
+															154 text Move to a new file
+														155 Help: Enter to Apply, Value: Async Function Expression, Surround With
+															156 text 
+															157 text Async Function Expression
+														158 Help: Enter to Apply, Value: Async Function Statement, Surround With
+															159 text 
+															160 text Async Function Statement
+														161 Help: Enter to Apply, Value: Do-While Statement, Surround With
+															162 text 
+															163 text Do-While Statement
+														164 Help: Enter to Apply, Value: For Loop, Surround With
+															165 text 
+															166 text For Loop
+														167 Help: Enter to Apply, Value: More..., Surround With
+															168 text 
+															169 text More...
+												170 toolbar
+													171 button Learn more about JS/TS refactorings
+								172 container
+									173 tab group Active View Switcher
+										174 tab (settable, integer) Problems (⇧⌘M), Value: 0
+											175 container Problems (⇧⌘M)
+												176 text PROBLEMS
+										177 tab (settable, integer) Output (⇧⌘U), Value: 0
+											178 container Output (⇧⌘U)
+												179 text OUTPUT
+										180 tab (settable, integer) Debug Console (⇧⌘Y), Value: 0
+											181 container Debug Console (⇧⌘Y)
+												182 text DEBUG CONSOLE
+										183 tab (selected) Terminal (⌃`), Value: 1
+											184 container Terminal (⌃`)
+												185 text TERMINAL
+										186 tab (settable, integer) Ports, Value: 0
+											187 container Ports
+												188 text PORTS
+									189 toolbar Terminal actions
+										190 button Focus Terminal (⌘↓) [⌥] Split Terminal (⌘\)
+											191 text 
+											192 text OMP interaction
+										193 button New Terminal (⌃⇧`) [⌥] Split Terminal (⌘\)
+											194 button New Terminal (⌃⇧`) [⌥] Split Terminal (⌘\)
+										195 pop up button Launch Profile...
+										196 button Split Terminal (⌘\)
+										197 button Kill Terminal
+										198 pop up button Views and More Actions...
+									199 toolbar
+										200 toggle button Description: Maximize Panel, Value: 0
+											201 text 
+										202 button Hide Panel (⌘J)
+											203 text 
+									204 container
+										205 container
+							206 container
+								207 tab group Active View Switcher
+									208 tab (selected) Caret, Value: 1
+										209 container Caret
+											210 text CARET
+								211 toolbar Caret: Agents actions
+									212 button New Task (⌥⌘N)
+									213 text ⌥⌘N
+									214 button Show IDE (⌥⌘I)
+									215 text ⌥⌘I
+								216 toolbar
+									217 toggle button Description: Maximize Secondary Side Bar, Value: 0
+										218 text 
+									219 button Hide Secondary Side Bar (⌥⌘B)
+										220 text 
+								221 container
+						222 container
+							223 container remote
+								224 button remote
+							225 container comment-discussion Caret ready, Caret is connected to the Mac host. Click to open the task.
+								226 button comment-discussion Caret ready, Caret is connected to the Mac host. Click to open the task.
+									227 text 
+									228 text  Caret ready
+							229 container No Problems
+								230 button No Problems
+									231 text 
+									232 text  0 
+									233 text 
+									234 text  0
+							235 container Notifications
+								236 button Notifications
+							237 container TypeScript
+								238 button TypeScript
+							239 container Editor Language Status: No tsconfig, next: 6.0.3, TypeScript version
+								240 button Editor Language Status: No tsconfig, next: 6.0.3, TypeScript version
+							241 container LF
+								242 button LF
+							243 container UTF-8
+								244 button UTF-8
+							245 container Spaces: 2
+								246 button Spaces: 2
+							247 container Ln 4, Col 1 (63 selected)
+								248 button Ln 4, Col 1 (63 selected)
+					249 text expanded
+					250 HTML content vscode-webview://0773994be8liq1218rgbpokb5ekuglmgofoff5cfjqra599fgoo5/index.html?id=c943b8bd-7216-4b89-816e-201e30679191&parentId=1&origin=7f0713f0-09ce-4343-ae66-55349f62d439&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView
+						251 container Agents
+							252 HTML content New task — workspace — Caret, URL: vscode-webview://0773994be8liq1218rgbpokb5ekuglmgofoff5cfjqra599fgoo5/index.html?id=c943b8bd-7216-4b89-816e-201e30679191&parentId=1&origin=7f0713f0-09ce-4343-ae66-55349f62d439&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app&purpose=webviewView
+								253 container Task
+									254 container
+										255 text Ready
+										256 toggle button IDE, Value: 1
+										257 toggle button Agents, Value: 0
+									258 container
+										259 button (disabled) Back, Help: No previous view.
+										260 button (disabled) Forward, Help: No next view.
+										261 heading New task, Value: 1
+											262 text New task
+										263 text workspace · Folder · /private/tmp/caret-ide-v5/workspace · This Mac
+										264 container Task resources
+											265 button Changes
+											266 button Browser
+											267 button Terminal
+											268 button Files
+											269 pop up button Task actions
+										270 text Host connected. idle.
+										271 text Need more space to split this task. Widen the window past 720px.
+										272 button Maximize area
+										273 button Open another window
+										274 container Task transcript
+											275 text New task
+										276 text entry area (settable) Description: Message Caret, Placeholder: Plan, Build, / for skills, @ for context, Value: Explain what this selected code does, and call out anything surprising or risky. (src/greet.ts#L1-L4)
+
+```typescript
+export function greet(name: string) {
+  return "hi " + name;
+}
+
+```
+										277 button Add
+										278 pop up button Description: Model, Help: Choose a model. Use Add → Model to refresh. Caret does not pick a billed fallback.
+											279 (selected) Model
+										280 pop up button (disabled) Description: Thinking level, Help: OMP has not advertised thinking levels for this model., Value: Thinking
+										281 button (disabled) Choose a model
+										282 text Choose a model before sending. Caret does not pick a billed fallback.
+	283 close button
+	284 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	285 minimize button
+286 menu bar
+	287 Caret
+	288 File
+	289 Edit
+	290 Selection
+	291 View
+	292 Go
+	293 Run
+	294 Terminal
+	295 Window
+	296 Help
+
+The focused UI element is 125 Help: Enter to Apply, Value: Caret: Explain Selection, Quick Fix

@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-09-12T20:40:17.713731+00:00",
+  "mobileTests": {
+    "passed": 43,
+    "failed": 0,
+    "assertions": 139
+  },
+  "typecheckPassed": true,
+  "independentReviewComplete": false,
+  "browserVerified": false,
+  "nativeIPhoneVerified": false,
+  "webExportRefreshed": false,
+  "limitations": [
+    "Combined OSC color queries and indexed OSC4 query responses remain open.",
+    "Fresh redraw recovery is not a serialized terminal checkpoint.",
+    "Mac outbound response regex/key ambiguity is unchanged."
+  ],
+  "sources": {
+    "packages/mobile/src/core/virtual-terminal.ts": "05cd3ef3d475e9b6ce80577922b076ec79d727e0659c045979c626e517b217ee",
+    "packages/mobile/src/components/VirtualTerminal.tsx": "e9fa3723cdd854cea6f88b031a92738dae504765707202a33099d1825cdbcb74",
+    "packages/mobile/src/components/terminal/document.ts": "e48123b9dc2e3614df7a4849d0bc8fe362addf0ccebee8ef0ad625ed17d4a726",
+    "packages/mobile/App.tsx": "70fd512f60bc08731642e53ac8824bb121b64c4e178f80a91db59816efb2b7df",
+    "packages/mobile/src/__tests__/virtual-terminal.test.ts": "3b9b613e81008f1e36fc507f3dd983cc904b570e760b135f94bc7a295fe34562"
+  }
+}

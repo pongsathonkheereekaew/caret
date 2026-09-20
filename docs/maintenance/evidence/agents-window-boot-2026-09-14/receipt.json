@@ -1,0 +1,65 @@
+{
+  "scope": "S1c — route the Caret Agents entry to the base sessions window, retire patches/desktop/0002 and the caret.agentsWindow context key, then verify the agents window at runtime.",
+  "capturedAt": "2026-09-14T14:30:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "question": "Why does the Agents window still not look like Cursor?",
+  "answer": "Because until this slice the Agents window never rendered at all. Two unguarded reads of product.json's removed defaultChatAgent threw during workbench startup; one of them also killed the IDE window. Both windows now mount.",
+  "finding": {
+    "symptom": "A Caret window exists (CGWindowList: layer 0, name=Caret) but captures as a flat #1e1e1e surface with no text. OCR of the window PNG returns 0 runs; renderer.log is empty; main.log stops after storage init.",
+    "firstCrash": {
+      "window": "Agents (sessions.html)",
+      "exception": "TypeError: Cannot read properties of undefined (reading 'chatExtensionId')",
+      "thrownFrom": "toDefaultAccountConfig() via DefaultAccountService constructor (workbench/services/accounts/browser/defaultAccount.ts)",
+      "cause": "patches/desktop/0003 removes defaultChatAgent from product.json; the account service read through it unguarded."
+    },
+    "secondCrash": {
+      "window": "IDE (workbench.html)",
+      "exception": "Error: Onboarding requires a default chat agent product configuration.",
+      "thrownFrom": "module-level assertDefined() in welcomeOnboarding/browser/onboardingVariationA.ts",
+      "cause": "Same missing configuration. Because the assert runs at import time it took the whole workbench bundle down, so the IDE window was blank too.",
+      "note": "patch 0001 disables that onboarding by default ('workbench.welcomePage.experimentalOnboarding' = false), so nothing was gained by keeping the throw."
+    },
+    "retractedClaim": "The S1a record said the empty Agents window was 'expected because Caret's provider is not written yet' and offered '0 Copilot mentions' as runtime evidence. That reading was wrong: the window never mounted, so its emptiness proved nothing about the surface."
+  },
+  "change": {
+    "patches": [
+      "0008-caret-agents-window-menus.patch — drops Selection/Go/Terminal from src/vs/sessions/browser/parts/menubar.contribution.ts (the Agents window keeps Caret/File/Edit/View/Window/Help)",
+      "0009-caret-no-default-chat-agent.patch — makes defaultChatAgent readers tolerate its absence: workbench/services/accounts/browser/defaultAccount.ts, platform/extensionManagement/common/extensionGalleryService.ts, platform/extensionManagement/common/abstractExtensionManagementService.ts, workbench/contrib/extensions/browser/extensionsWorkbenchService.ts, workbench/contrib/chat/browser/widget/chatWidget.ts, workbench/contrib/welcomeOnboarding/browser/onboardingVariationA.ts"
+    ],
+    "removed": [
+      "patches/desktop/0002 and 0004 (superseded by 0008 / reverted)",
+      "context key caret.agentsWindow from apps/macos/src/workbench-mode.ts and extension.ts",
+      "the mode-switch path: openAgentsWindow() now executes workbench.action.openAgentsWindow"
+    ],
+    "reproducibility": "bun scripts/prepare-desktop.ts re-run is a no-op and reports 7 patches + 18 removals; 18 files are covered by patches, 5 working-tree entries are build output (branding svg/icns, argv.json, extensions/caret/runtime) and 0 are unrecorded source drift."
+  },
+  "method": {
+    "build": "bun scripts/prepare-desktop.ts -> node scripts/ci-validate.mjs (CI-OK parents=198 ui=75 children=129 lock-shas=10) -> npm run gulp vscode-darwin-arm64-min (5.22 min) -> bun scripts/build-caret.ts --package",
+    "runtimeRead": "CDP over --remote-debugging-port on the packaged app: Runtime.evaluate against the window's own DOM plus Runtime.exceptionThrown/Log.entryAdded capture. No vision model and no AX were needed (the vision model returned HTTP 429 again this session; AXIsProcessTrusted() is false for processes spawned from this shell).",
+    "menuEvidence": "The native macOS menu bar could not be read live, so the menu set is evidenced two ways: the built sessions bundle contains 0 occurrences of \"mSelection\"/\"mGo\"/\"mTerminal\" (while the workbench bundle still contains them), and platform/menubar/electron-main/menubar.ts only draws a menu when shouldDrawMenu(id) finds items registered for that id."
+  },
+  "verified": {
+    "agentsWindow": {
+      "title": "Agents",
+      "workbenchMounted": true,
+      "sidebar": ["Sessions", "New \u2318N", "Automations", "Workspace", "Customize", "Filter Sessions", "Find Session"],
+      "main": ["Open in Editor", "Send your first prompt", "Add Context\u2026", "Models", "Dictate (Speech to Text)", "Voice Mode", "Send"],
+      "copilotMentionsInInnerText": 0,
+      "signInGatePresent": false
+    },
+    "ideWindow": { "title": "New task \u2014 Caret", "workbenchMounted": true, "caretExtensionWebviewLoaded": true },
+    "measurements": [
+      { "window": "Agents (--agents)", "timeToFirstWindow": "1.65s", "workbenchMounted": "1.80s", "steadyRss": "721MB across 7 processes" },
+      { "window": "IDE", "timeToFirstWindow": "1.48s", "workbenchMounted": "1.61s", "steadyRss": "642MB across 8 processes" }
+    ],
+    "repoChecks": "bun run typecheck = 0 errors; desktop npm run typecheck-client = 0 errors; bun test = 0 failures in apps/packages plus one pre-existing upstream/omp failure ('published legal payloads > lists every legal file explicitly in the native core package', expects native/vcs.js and native/vcs.d.ts), which this slice does not touch."
+  },
+  "remainingGapsNotClosedHere": [
+    "Composer still shows the label 'Models, sign in to use Copilot'.",
+    "The Agents window still carries an editor group (labels: Editor Group 1 (empty), Add Tab, Close Editor Area, Editor actions), which the parity contract \u00a73 forbids.",
+    "The VS Code pet (Show Aquarium) is still in the build.",
+    "Sidebar reads Workspace/Customize rather than Projects/Repositories.",
+    "The desktop fork's caret.openAgentsWindow command still opens the caretComposer webview from the Command Palette."
+  ]
+}

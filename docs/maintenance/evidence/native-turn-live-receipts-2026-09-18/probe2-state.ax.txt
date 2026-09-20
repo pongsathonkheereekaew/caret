@@ -1,0 +1,141 @@
+Window: "Agents", App: Caret.
+0 standard window Agents, Secondary Actions: Raise
+	1 container Agents
+		2 container
+			3 HTML content Agents, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/sessions/electron-browser/sessions.html
+				4 container
+					5 container
+						6 container
+							7 toolbar
+								8 toggle button Toggle Side Bar (⌘B)
+									9 text 
+							10 toolbar
+								11 button Go Back (⌃-)
+									12 text 
+								13 button (disabled) Go Forward (⌃⇧-)
+									14 text 
+							15 toolbar
+								16 toggle button Toggle Side Panel (⌥⌘B)
+									17 text 
+							18 toolbar
+								19 button IDE (⇧⌘A)
+						20 container
+							21 splitter Resize sidebar
+							22 container
+								23 container
+									24 container
+										25 outline Sessions
+											26 container
+												27 row Automations
+													28 container
+														29 text Automations
+												30 row cedia, 14
+													31 container
+														32 text cedia
+												33 row Run the shell command `echo caret-live-ok` and show me its output. Then create a, updated 6 mins ago, State: Completed
+													34 container
+														35 text 
+														36 text Run the shell command `echo caret-live-ok` and show me its output. Then create a
+														37 text  · 6 mins ago
+												38 row Reply with exactly: caret-live-ok, updated 2 hrs ago, State: Completed
+													39 container
+														40 text 
+														41 text Reply with exactly: caret-live-ok
+														42 text  · 2 hrs ago
+												43 row final check: in place, updated 7 mins ago, State: Completed
+													44 container
+														45 text 
+														46 text final check: in place
+														47 text  · 7 mins ago
+												48 row diag three, updated 6 hrs ago, State: Completed
+													49 container
+														50 text 
+														51 text diag three
+														52 text  · 6 hrs ago
+												53 row diag two, updated 6 hrs ago, State: Completed
+													54 container
+														55 text 
+														56 text diag two
+														57 text  · 6 hrs ago
+												58 row Show 9 more sessions
+													59 container
+														60 text +9 more
+								61 button New Chat
+								62 button Search
+								63 button Automations
+								64 button Customize
+								65 text Projects
+								66 button New Project
+								67 text Repositories
+								68 button Filter Repositories
+								69 button Add Repository
+								70 text No repository open
+							71 container
+								72 container
+									73 splitter Resize panel
+									74 container
+										75 container
+											76 container
+												77 pop up button Workspace: cedia
+												78 button (disabled) Session Type, Caret
+													79 text 
+													80 text Caret
+												81 container Runs on this Mac
+													82 text This Mac
+												83 container Send your first prompt
+													84 heading Send your first prompt
+														85 text Send your first prompt
+													86 toolbar
+														87 button Close
+															88 text 
+													89 toggle button Implement a feature: Describe what you want to build
+														90 text Implement a feature
+														91 text Describe what you want to build
+													92 toggle button Fix a bug: Describe the unexpected behavior
+														93 text Fix a bug
+														94 text Describe the unexpected behavior
+													95 toggle button Fix CI: Describe a failing check or paste a link
+														96 text Fix CI
+														97 text Describe a failing check or paste a link
+												98 container
+													99 container
+														100 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+														101 text Plan, Build, / for skills, @ for context
+													102 button Add Context...
+													103 toolbar
+														104 container Models, DeepSeek V4.1 Flash
+															105 pop up button Models, DeepSeek V4.1 Flash
+																106 text 
+																107 text DeepSeek V4.1 Flash
+													108 button Start voice input
+													109 button (disabled) Send
+														110 text 
+									111 container
+										112 container
+											113 toggle button Changes
+											114 toggle button Browser
+											115 toggle button Terminal
+											116 toggle button File
+											117 pop up button Open new tab menu
+											118 toggle button Toggle Pinned Summary
+											119 container
+												120 button Changes
+												121 button Browser
+												122 button Terminal
+												123 button File
+					124 container Fix a bug Describe the unexpected behavior
+						125 container
+							126 text Fix a bug
+							127 text Describe the unexpected behavior
+	128 close button
+	129 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	130 minimize button
+131 menu bar
+	132 Caret
+	133 File
+	134 Edit
+	135 View
+	136 Window
+	137 Help
+
+The focused UI element is 100 editor (settable) The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1

@@ -1,0 +1,108 @@
+Window: "New task — Caret", App: Caret.
+0 standard window New task — Caret, Secondary Actions: Raise
+	1 container New task — Caret
+		2 container
+			3 HTML content New task — Caret, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html
+				4 container
+					5 container
+						6 container
+							7 text New task — Caret
+							8 toolbar Title actions
+								9 button Review Active File in Diff (⌥⌘R)
+									10 text 
+								11 button Split Editor Right (⌘\) [⌥] Split Editor Down
+									12 text 
+								13 button Close (⌘W) [⌥] Close All (⌘K W)
+									14 text 
+								15 toggle button Description: Toggle Primary Side Bar (⌘B), Value: 0
+									16 text 
+								17 toggle button Description: Toggle Panel (⌘J), Value: 0
+									18 text 
+								19 toggle button Description: Toggle Secondary Side Bar (⌥⌘B), Value: 0
+									20 text 
+								21 pop up button More Actions...
+									22 text 
+						23 container
+							24 container
+								25 container
+									26 container
+					27 HTML content vscode-webview://0vej4coqulhur00dru2h27itjilo0rs4s7uvvj7n1fig3cf613c2/index.html?id=051502b4-8236-44f8-8321-2bf31a16d4cc&parentId=1&origin=2168d3dc-0827-426b-ade0-b75139491e4a&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app
+						28 container undefined
+							29 HTML content New task — workspace — Caret, URL: vscode-webview://0vej4coqulhur00dru2h27itjilo0rs4s7uvvj7n1fig3cf613c2/index.html?id=051502b4-8236-44f8-8321-2bf31a16d4cc&parentId=1&origin=2168d3dc-0827-426b-ade0-b75139491e4a&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app
+								30 container
+									31 container Chats
+										32 button New task
+										33 search text field (settable) Description: Search All, Tasks, Files, Actions, Settings, Placeholder: Search
+										34 button (disabled) Automations, Help: Automations need a host that advertises schedules. Caret does not invent cloud runs.
+										35 button Customize
+										36 button Projects
+										37 button Open folder
+										38 button Open folder
+										39 content list
+											40 button workspace
+										41 content list
+											42 button workspace
+										43 text Repositories
+										44 container
+											45 button Status
+											46 button Archived
+											47 button Env, Help: Only sessions that advertise This Mac. Cloud is not a filter value.
+											48 button Source
+											49 button PR, Help: PR unknown only. Open/closed PR states are not advertised.
+											50 button Clear filters
+											51 button Collapse all
+											52 button Mark 1 selected result as read, Help: Clears unread on the filtered results in this window. Caret will not mark every project read.
+										53 content list
+											54 button New task Draft 19m, Help: This Mac · OMP · PR Unknown
+												55 text New task
+												56 text Draft
+												57 text 19m
+											58 pop up button Task actions
+										59 button Settings
+									60 splitter Description: Resize sidebar, Value: 50
+									61 container Task
+										62 container
+											63 text Ready
+											64 toggle button IDE, Value: 0
+										65 container
+											66 container
+												67 button workspace
+												68 button main
+												69 button This Mac, Help: Run on This Mac. Cloud and relay destinations are not advertised.
+											70 text entry area (settable) Description: Message Caret, Placeholder: Plan, Build, / for skills, @ for context
+											71 button Add
+											72 pop up button Description: Model, Help: Choose a model. Use Add → Model to refresh. Caret does not pick a billed fallback.
+												73 (selected) Model
+											74 pop up button (disabled) Description: Thinking level, Help: OMP has not advertised thinking levels for this model., Value: Thinking
+											75 button (disabled) Choose a model
+											76 button Plan New Idea
+											77 button Multitask
+											78 button (disabled) Run in Cloud, Help: Cloud is not a Caret runtime.
+											79 button Build from a design Turn a frame into a working UI in this repo
+												80 text Build from a design
+												81 text Turn a frame into a working UI in this repo
+											82 button Deploy my prototype Put it on a live link anyone can open
+												83 text Deploy my prototype
+												84 text Put it on a live link anyone can open
+											85 button Start with a plan Align on implementation before writing code
+												86 text Start with a plan
+												87 text Align on implementation before writing code
+											88 button Debug an issue Find root causes and fix tricky bugs
+												89 text Debug an issue
+												90 text Find root causes and fix tricky bugs
+	91 close button
+	92 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	93 minimize button
+94 menu bar
+	95 Caret
+	96 File
+	97 Edit
+	98 Selection
+	99 View
+	100 Go
+	101 Run
+	102 Terminal
+	103 Window
+	104 Help
+
+The focused UI element is 29 HTML content New task — workspace — Caret, URL: vscode-webview://0vej4coqulhur00dru2h27itjilo0rs4s7uvvj7n1fig3cf613c2/index.html?id=051502b4-8236-44f8-8321-2bf31a16d4cc&parentId=1&origin=2168d3dc-0827-426b-ade0-b75139491e4a&swVersion=6&extensionId=caret.caret&platform=electron&vscode-resource-base-authority=vscode-resource.vscode-cdn.net&parentOrigin=vscode-file%3A%2F%2Fvscode-app

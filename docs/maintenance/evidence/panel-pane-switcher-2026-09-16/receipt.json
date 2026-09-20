@@ -1,0 +1,27 @@
+{
+  "slice": "Parity queue item 3, slice 1 — the Apps panel strip becomes the reference's pane switcher",
+  "capturedAt": "2026-09-16T03:50:00+07:00",
+  "branch": "main",
+  "method": "desktop source change folded into patch 0021; npm run typecheck-client; bundle + copy + build-caret.ts --package; CDP checks on the packaged Agents window; bun test apps/macos/test",
+  "change": {
+    "split": "runLauncher(launcher, mode: 'reuse' | 'new'): the strip's entries reuse (pane switcher), the `+` menu always adds an instance, the empty-state cards use 'new' (nothing is open, so equivalent)",
+    "why": "the reference's strip switches panes and marks the active one while `+` opens another instance; Caret had one path for both, and it had just been flipped to 'always new' while fixing the menu-behind-the-native-page bug",
+    "railMarking": "already present (launcherRail.update with active: entry.kind === activeTab?.kind); it now has a pane switch to report",
+    "patch": "0021-caret-agent-home-utility.patch re-cut for the file it creates; digest 8d81460957930f4e36dc70ca3c321a47987d56d48ffcc3a8a4459e0238a5e19f"
+  },
+  "verified": {
+    "onScreen": "packaged app, CDP: fresh panel + rail Browser -> tabs ['Browser*'] and the rail marks Browser active; rail Browser again -> still ['Browser*'] (a switch, not a new tab); + -> Browser -> ['Browser','Browser*'] (a second instance, newest active)",
+    "typecheckClient": "cd desktop && npm run typecheck-client -> 0 errors",
+    "prepareDesktop": "28 patches, 18 removals",
+    "suites": "bun test apps/macos/test -> 594 pass / 0 fail, with the 0021 needles pinning the signature and both call sites"
+  },
+  "notVerified": [
+    "The visible pane after a switch was read from tab state and the rail's active mark, not from the native overlay; no real-mouse pass was run for this change.",
+    "changes/file are still editor-group tabs, not panes of this panel — the rest of item 3."
+  ],
+  "next": [
+    "Item 3, slice 2: changes/file as real panes of the panel (today they run workbench.action.agentSessions.newChangesTab and quick open).",
+    "Item 4: inject --caret-* at the workbench level.",
+    "Item 5: the AX/DOM comparison against the reference."
+  ]
+}

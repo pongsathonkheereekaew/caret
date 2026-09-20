@@ -1,0 +1,69 @@
+{
+  "slice": "Dead-code retirement: the retired shell pieces, the duplicate Agents route, and five modules nothing called",
+  "capturedAt": "2026-09-17T10:20:00+07:00",
+  "branch": "main",
+  "method": "grep of the whole tree (excluding desktop/node_modules/dist) for every importer; desktop patch 0034 cut from the pinned base; prepare-desktop.ts; desktop-patch-set.test.ts (rebuild from base); npm run compile-client + bundle grep; bun test apps/macos/test; bun run typecheck; tsc on the fork; check:repo; check:cursor-parity",
+  "question": {
+    "asked": "Do we still carry dead code - the chrome shell we no longer use, and things that conflict?",
+    "answer": "Yes, in three shapes: modules with no production caller, a retired second agent surface for one window, and a third route to the Agents window inside the pinned desktop fork."
+  },
+  "change": {
+    "deadModules": [
+      "apps/macos/src/artifact-filters.ts (41 lines)",
+      "apps/macos/src/artifact-lineage.ts (55)",
+      "apps/macos/src/markdown-table.ts (49)",
+      "apps/macos/src/settings-hits.ts (18)",
+      "apps/macos/src/transcript-find.ts (47)"
+    ],
+    "whyDead": "Each was imported only by its own test file. The shell re-implements the same behaviour inline: markdown table separator rule at webview.ts:495, settings search at webview.ts:1428, artifact type filter at webview.ts:1915. They are residue of the pre-SSOT D06/D12/D13/A16 item set, which no longer appears in docs/ or backlog/.",
+    "deletedTests": [
+      "apps/macos/test/artifact-filters.test.ts",
+      "apps/macos/test/artifact-lineage.test.ts",
+      "apps/macos/test/markdown-table.test.ts",
+      "apps/macos/test/settings-hits.test.ts",
+      "apps/macos/test/transcript-find.test.ts"
+    ],
+    "retiredShellPieces": {
+      "removed": [
+        "the caretComposer webview view and its caretAgents activity-bar container",
+        "the caret.agentsShell custom editor, the *.caret-shell document and openAgentsShellEditor()",
+        "the caretAgents fallback WebviewPanel and the provider's #panel field",
+        "the caret.openTask command (a duplicate of caret.showAgents: same handler, different title)",
+        "agentsWindowOpenMode() and the 'shell' destination it could return"
+      ],
+      "redirected": "the three paths that used to reveal the full-page shell now call revealAgentSurface(), which focuses the surviving dock (caretComposerDock.focus)",
+      "restrictedMode": "the restricted renderer moved from caretComposer to caretComposerDock. Registering it on the retired view left the dock with no provider at all, so a restricted window could open the dock as a 'no data provider' error.",
+      "kept": [
+        "apps/macos/src/webview.ts + TASK_WEBVIEW_CSS (the live IDE dock - S3 stays open)",
+        "scripts/shell-render-fixture.ts (a Bun.serve renderer for that same live shell, still the tool for the open AX/DOM parity check)"
+      ]
+    },
+    "desktopRoute": {
+      "removed": "src/vs/workbench/contrib/agentWorkbench/ - 13 tracked files, a self-contained island whose only live effect was two command-palette entries",
+      "conflict": "caret.openAgentsWindow opened view id 'caretComposer', the retired webview shell, in parallel with workbench.action.openAgentsWindow (the extension's route). caret.openIde recorded a mode flag no when-clause reads: the context key caretWorkbenchShell appears in no condition anywhere in the tree.",
+      "mechanism": "manifest removals entry 'src/vs/workbench/contrib/agentWorkbench' + patch 0034-caret-drop-agent-workbench-shell.patch, whose only hunk drops the island's import from workbench.common.main.ts (a base file no other patch touches, so it reverse-checks normally)",
+      "patchDigest": "0034: f69b399c4e2aee9280982d2f9f05f618a57a71227e297b62670a1335579b2e32"
+    }
+  },
+  "verified": {
+    "macTests": "cd apps/macos && bun test test -> 611 pass / 0 fail (baseline before the change: 625 pass / 0 fail; the difference is the 5 deleted test files and the 4 agentsWindowOpenMode assertions)",
+    "caughtByExistingTests": [
+      "command-contract + ide-native-command-ids flagged caretComposer.focus in focusDock()'s fallback loop the moment the view was deleted - the dead-id guard doing its job",
+      "ide-native-workbench flagged the declared command list and the registered views list"
+    ],
+    "typecheck": "bun run typecheck -> 0 errors",
+    "forkTypecheck": "cd desktop && npx tsc --project src/tsconfig.json --noEmit --skipLibCheck -> 0 errors",
+    "bundle": "cd desktop && npm run compile-client -> exit 0. Rebuilt out/vs/workbench/workbench.desktop.main.js contains 0 occurrences of caret.openAgentsWindow and 0 of caretWorkbenchShell; the compiled island directory is gone. The same grep before the change found the command in out-vscode and out-vscode-min.",
+    "extensionBundle": "bun run build -> 'Built Caret host and Mac extension in dist'. dist/mac-extension/out/extension.js now has 0 occurrences of agentsShell and 0 of caret.openTask, and carries caretComposerDock and revealAgentSurface (3 each). Before the rebuild the same file had 2 and 2: the compiled extension is what a personal build actually loads, so it was regenerated rather than left describing the deleted code.",
+    "prepareDesktop": "bun scripts/prepare-desktop.ts -> 32 patches, 19 removals",
+    "patchSet": "apps/macos/test/desktop-patch-set.test.ts rebuilds the tree from the pinned base by applying all 32 patches in manifest order and compares every touched path byte-for-byte with the checkout -> pass, no drift",
+    "repoChecks": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=3 doc-links=137 md=82 evidence=81; bun scripts/cursor-parity-check.ts -> 340 keys checked, 0 mismatches",
+    "guardTightened": "apps/macos/test/omp-owner.test.ts: the 'no OMP launcher in the client' guard used exec[A-Za-z]*\\([^)]*omp, which matches executeCommand(\"caretComposerDock.focus\") for the 'omp' inside 'Composer'. It now requires a word boundary before omp, which still catches execFile(\"omp\", ...) and execFileAsync(ompPath, ...) and no longer fires on workbench commands."
+  },
+  "notVerified": [
+    "No on-screen pass: the change was not driven in a running window with CDP. The extension half is covered by the suite that already models activation (ide-native-workbench, command-contract, menus-contract), and the desktop half by tsc + the rebuilt bundle grep, but nobody has clicked the Agents entry in a freshly packaged build.",
+    "out-vscode and out-vscode-min are earlier build outputs inside the pinned checkout and still hold the retired command until the next package run regenerates them (they are what `build-caret.ts --package` rewrites). No packaged Caret.app exists in dist/ - it holds brand/host/mac-extension/omp/omp-standalone - so no application bundle is stale.",
+    "Removing caret.openTask is a user-visible palette change: the entry is gone rather than renamed. Nothing in the repo (manifests, docs, tests, extension code) referenced it beyond the declaration itself.",
+    "Left alone on purpose, and worth naming so the next pass does not have to re-derive it: openCaretAgentsWindow() has no caller. setWorkbenchMode(\"agents\", { newWindow: true }) is the only way into it and nothing calls it - the one new-window action the UI posts is open_ide_new_window, which takes the ide branch. It is a capability the extension holds but never offers (the base command behind caret.showAgents already opens the window), not residue of a retired design like the agentWorkbench island: deleting it would cascade into writeCaretAgentsWorkspace -> serializeCaretAgentsWorkspace -> CARET_AGENTS_WORKSPACE and the tests that pin the Agents workspace file, which is a decision about the workspace contract rather than a deletion of dead code."
+  ]
+}

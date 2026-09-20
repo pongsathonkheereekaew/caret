@@ -1,0 +1,44 @@
+{
+  "name": "@cedia/agent-window",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.2",
+  "workspaces": [
+    "vendor/synara/apps/web",
+    "vendor/synara/packages/contracts",
+    "vendor/synara/packages/shared"
+  ],
+  "catalog": {
+    "effect": "https://pkg.pr.new/Effect-TS/effect-smol/effect@8881a9b",
+    "@effect/language-service": "0.75.1",
+    "@effect/vitest": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/vitest@8881a9b",
+    "@types/bun": "^1.4.1",
+    "@types/node": "^24.10.13",
+    "tsdown": "^0.20.3",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host localhost",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.vendor.json"
+  },
+  "overrides": {
+    "react-icons": "5.6.0"
+  },
+  "dependencies": {
+    "@synara/contracts": "workspace:*",
+    "@synara/shared": "workspace:*",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.2.1",
+    "@types/node": "catalog:",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "6.0.1",
+    "typescript": "catalog:",
+    "vite": "8.1.5"
+  }
+}

@@ -1,0 +1,13 @@
+Caret terminal command verification - real packaged app (CUA), 2026-09-14
+
+Palette item selected: Caret: Add Terminal Selection to Caret Task
+Result notification: Info: Select terminal output first. Caret cites the real selection; it will not send the whole scrollback., source: Caret Mac task extension
+
+-- real window AX summary captured in the same call --
+tabs: PROBLEMS 10 | OUTPUT | DEBUG CONSOLE | TERMINAL | PORTS | CARET (view-title actions: New Task Option+Command+N, Show IDE Option+Command+I)
+status bar: main* | Caret ready | 10 | 0 | TypeScript | LF | UTF-8 | Spaces: 2 | Ln 5, Col 1 (112 selected)
+dock: IDE Agents | workspace Folder This Mac | composer placeholder 'Plan, Build, / for skills, @ for context'
+idea rows: Build from a design - Turn a frame into a working UI in this repo | Deploy my prototype - Put it on a live link anyone can open | Start with a plan - Align on implementation before writing code | Debug an issue - Find root causes and fix tricky bugs
+
+-- limit --
+A real terminal text selection could not be produced through the accessibility surface: Focus Terminal and clicking the terminal tab/container did not move focus (the editor kept 112 selected and received the typed text), so terminalTextSelected stayed false. The terminal/context menu entry appearance therefore remains unverified; the command itself is verified above.

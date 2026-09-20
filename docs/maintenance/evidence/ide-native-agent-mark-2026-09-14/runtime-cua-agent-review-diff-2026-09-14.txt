@@ -1,0 +1,48 @@
+Caret agent-edit REVIEW diff - real packaged app (Computer Use), 2026-09-14
+
+Same fixture as runtime-cua-agent-mark-2026-09-14.txt (private profile, private
+host, scripted zero-cost model). This run exercises the third decision on a
+Caret edit - Review - on top of Keep and Take Back.
+
+After the agent's guarded edit landed in the buffer, the editor-title actions
+read (accessibility tree, running packaged app):
+
+  103 toolbar Editor actions
+    104 button Review Active File in Diff (Option+Command+R)
+    106 button Review the Caret Edit      <- new, gated on caret.agentEditPending
+    108 button Keep the Caret Edit
+    110 button Take Back the Caret Edit
+
+Clicking 106 opened a real Code-OSS diff editor. Its tab read:
+
+  tab (selected) Description: src/greet.ts (before Caret / after Caret) (greet.ts)
+    container src/greet.ts (before Caret / after Caret)
+      (/file:/private/tmp/caret-agent-mark/workspace/src/greet.ts
+       <-> /private/tmp/caret-agent-mark/workspace/src/greet.ts)
+
+so the left side is Caret's read-only virtual pre-edit document (scheme
+caret-agent-edit) and the right side is the live buffer - the engine's own
+"before Caret <-> after Caret" diff, not a Caret-drawn view. The diff's own
+toolbar was present too: Open File, Previous Change, Next Change, Revert Block,
+Show Leading/Trailing Whitespace Differences, Toggle Collapse Unchanged
+Regions. The three Caret actions were offered from the diff editor as well.
+
+Take Back was then run from the diff editor title. The accessibility diff after
+the click:
+
+  Removed element IDs: 111-128  (the diff editor's Caret actions)
+  + 255 button (disabled) Previous Change
+  + 257 button (disabled) Next Change
+  + 270 container Caret: took back the edit to src/greet.ts
+
+Previous/Next Change became disabled because the two sides are now identical -
+the buffer was restored to the pre-edit text - and the status line is
+forgetAgentEdit()'s own message. So the review diff tracked the real edit and
+went to zero changes when the edit was taken back.
+
+The fixture's own assertions passed again on this run (receipt.json.checks, all
+six), so the buffer/disk facts and the review surface were observed together.
+
+Screenshot: runtime-window-agent-review-2026-09-14.png (the diff editor open).
+The vision model was rate-limited this session, so the shot was not read back as
+an image; the claims rest on the accessibility tree and the fixture assertions.

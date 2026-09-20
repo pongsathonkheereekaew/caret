@@ -1,0 +1,25 @@
+{
+  "slice": "The sidebar's Projects section is the reference's header, and the projects stay the session groups",
+  "capturedAt": "2026-09-15T17:05:00+07:00",
+  "branch": "main",
+  "method": "desktop patch 0022 change + CDP checks on the running Agents window + bun test + bun run typecheck",
+  "reference": {
+    "measured": "docs/maintenance/CARET-PLAN.md section 3: the sidebar reads Hide Sidebar / Go Back / Go Forward, New Chat / Search / Automations / Customize, Projects (+ New Project), Repositories (+ Customize Sidebar, Open Workspace), then session rows grouped by project (status, name, relative time) - and the table names the header's IDE entry as switching to the editor window, a different window",
+    "reading": "Projects is a heading with its add action; the stacked projects are the session groups below the navigation, not rows inside Projects. The section table keeps Projects and Repositories separate, and the screenshot correction records that the sidebar ends at Repositories + repo rows with no Getting Started card and no account/settings rows in this state"
+  },
+  "change": "the Projects section renders its header and the `+ New Project` action only. It no longer adds a second New Project row, no longer lists the window's workspace folders under it, and no longer prints 'No project open'; the projects themselves are the workspace groups the session list draws below the navigation, which already stack, carry the status icon and the relative time, and reorder by drag. The navigation's own project menu went with those rows - the same menu is bound to the session list's groups, which is where the projects are.",
+  "verified": {
+    "sidebar": "CDP: Projects renders actions=[New Project] with no entries and no empty note; Repositories keeps actions=[Filter Repositories, Add Repository] with its empty note; the session list still stacks its groups (Automations, cedia)",
+    "projectMenu": "right-click on the cedia group still opens the six reference entries in order: Pin Project, Edit Project..., Reveal in Finder, Create Permanent Worktree, Archive Chats, Remove Project",
+    "unitTests": "apps/macos/test/agent-home-project-menu.test.ts now pins one context-menu binding - the delegated one on the session list's groups - and still pins the six entries, their order, the registered commands and the failure path. ide-native-workbench.test.ts keeps the Agent Home chrome needles.",
+    "patchAgreement": "0022 regenerated for its own file only, digest updated, 24/24 patches apply from the pinned base and the produced tree equals the checkout",
+    "suites": "714 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host and apps/macos/test",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK; bun run check:cursor-parity -> OK (340 keys, 0 mismatches)"
+  },
+  "notVerified": [
+    "Drag-reordering the project groups: the base marks workspace sections reorderable, which is where the reference's sortable groups come from, but the drag itself was not performed in this run.",
+    "A window with a workspace folder open: this profile has none, so the Repositories rows and the previous Projects folder rows were checked in their empty state only.",
+    "The packaged app: the checks ran in the dev Agents window."
+  ]
+}

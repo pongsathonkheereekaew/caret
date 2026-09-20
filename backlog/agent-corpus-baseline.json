@@ -1,0 +1,251 @@
+{
+  "n": 30,
+  "passed": 30,
+  "passRate": 1,
+  "p50": 25278,
+  "p95": 60348,
+  "totalApprovals": 86,
+  "model": "opencode/opencode/big-pickle",
+  "rows": [
+    {
+      "id": "c01",
+      "goal": "Create t01/hello.txt containing exactly the text hello one. Do nothing else.",
+      "ms": 25278,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "c02",
+      "goal": "Create t02/data.json containing exactly {\"a\": 1}. Do nothing else.",
+      "ms": 51324,
+      "approvals": 4,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "c03",
+      "goal": "Create t03/notes.md with exactly two lines: first line '# T', second line 'body'. Do nothing else.",
+      "ms": 18297,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "c04",
+      "goal": "Create t04/app.js containing exactly: console.log(2 + 3). Do nothing else.",
+      "ms": 30331,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "c05",
+      "goal": "Create t05/empty.txt as an empty file. Do nothing else.",
+      "ms": 12289,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "e06",
+      "goal": "In t06/base.txt change the word RED to BLUE and nothing else.",
+      "ms": 27313,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "e07",
+      "goal": "Append exactly one line 'line3' to t07/list.txt (it has line1, line2).",
+      "ms": 18325,
+      "approvals": 4,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "e08",
+      "goal": "In t08/code.js replace console.log(x) with console.log(x * 2). Nothing else.",
+      "ms": 51315,
+      "approvals": 5,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "e09",
+      "goal": "Add a second key \"b\": 2 after \"a\" in t09/data.json keeping valid JSON.",
+      "ms": 42356,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "e10",
+      "goal": "Delete the line containing TODO from t10/todo.txt, keep the other two lines.",
+      "ms": 36291,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "s11",
+      "goal": "Run a shell command to write the text shell-one into t11/out.txt.",
+      "ms": 60348,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "s12",
+      "goal": "Create directory t12/sub and an empty file t12/sub/f.txt via shell.",
+      "ms": 6264,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "s13",
+      "goal": "Write numbers 1 2 3 each on its own line into t13/nums.txt via shell.",
+      "ms": 12278,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "s14",
+      "goal": "Copy t14/a.txt to t14/b.txt via shell, then append the line tail to t14/b.txt.",
+      "ms": 9274,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "s15",
+      "goal": "Delete t15/gone.txt via shell.",
+      "ms": 12280,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "m16",
+      "goal": "Create t16/a.txt with 'A' and t16/b.txt with 'B', then create t16/index.txt listing both filenames.",
+      "ms": 27308,
+      "approvals": 8,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "m17",
+      "goal": "Rename t17/old.txt to t17/new.txt keeping its content 'keepme'.",
+      "ms": 48299,
+      "approvals": 7,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "m18",
+      "goal": "Create t18/src.txt with 'v1', copy it to t18/dst.txt, then change t18/dst.txt to 'v2'.",
+      "ms": 18268,
+      "approvals": 4,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "m19",
+      "goal": "Create t19/one.txt, t19/two.txt, t19/three.txt each containing its own basename without extension.",
+      "ms": 18302,
+      "approvals": 4,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "m20",
+      "goal": "In t20/cfg.ini change port=80 to port=8080 and host=x to host=y.",
+      "ms": 12290,
+      "approvals": 4,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "i21",
+      "goal": "Create t21/out.txt containing exactly the text EXACT, with no extra whitespace or newlines beyond one trailing newline.",
+      "ms": 51300,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "i22",
+      "goal": "Write t22/nums.txt with numbers 3 1 2 sorted ascending, one per line.",
+      "ms": 6272,
+      "approvals": 1,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "i23",
+      "goal": "Create t23/five.txt with exactly 5 lines, each line the word row.",
+      "ms": 36328,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "i24",
+      "goal": "Create t24/valid.json as a JSON array [1, 2, 3] and nothing else.",
+      "ms": 24282,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "i25",
+      "goal": "Create t25/upper.txt containing the uppercase of hello world (HELLO WORLD).",
+      "ms": 12277,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "r26",
+      "goal": "Write t26/fizz.js that prints 1 2 Fizz 4 Buzz for lines 1-5 (FizzBuzz), then run it so t26/out.txt holds that output.",
+      "ms": 69318,
+      "approvals": 4,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "r27",
+      "goal": "Count the words in t27/words.txt (it has 'aa bb cc dd') and write just the number 4 into t27/count.txt.",
+      "ms": 18347,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "r28",
+      "goal": "Reverse the lines of t28/in.txt (a,b,c) into t28/out.txt (c,b,a).",
+      "ms": 27301,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "r29",
+      "goal": "Merge t29/a.txt (1,3) and t29/b.txt (2,4) sorted into t29/m.txt (1,2,3,4 one per line).",
+      "ms": 45297,
+      "approvals": 3,
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "r30",
+      "goal": "Convert t30/kv.txt lines k=v (name=ada, lang=go) into JSON t30/out.json {\"name\":\"ada\",\"lang\":\"go\"}.",
+      "ms": 21337,
+      "approvals": 2,
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

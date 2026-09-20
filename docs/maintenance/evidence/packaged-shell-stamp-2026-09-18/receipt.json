@@ -1,0 +1,41 @@
+{
+  "scope": "CARET-PLAN.md section 10 item 40 closure: one repackaged app whose check:packaged run is green, plus the durable fix for the dev shell's LaunchServices identity.",
+  "capturedAt": "2026-09-18T09:33:00+07:00",
+  "branch": "main",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "command": "cd desktop && npx gulp vscode-darwin-arm64-min ; CARET_HOST_NODE=~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun run package:mac ; bun run check:packaged",
+  "checkPackaged": {
+    "result": "OK   packaged Caret.app matches the current patch set",
+    "packagedAt": "2026-09-18T02:32:31.936Z",
+    "patchSetSha256": "f0185d43e73fdae58078adc116fd72ed1c06752b5490efa46f254a1a5eb2bc8a",
+    "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+    "patchCount": 35,
+    "sessionsShellSha256": "fa78d00cb2694e7e47ef98f93d3665838a8f3b147f7f802270aa960e43999266",
+    "workbenchShellSha256": "9a4b65fc728755c666095bb7319bb3878bee7d08d5e8bf7fd5ef3c6dbe200370",
+    "extensionSha256": "26ac41156522408a8210774ff57b85ca042157d402515480d1d397684a78f982",
+    "freshness": "both shell bundles are at or after the newest patch; the gulp rebuild rewrote them at 09:29-09:32, after every patch file"
+  },
+  "devShellIdentity": {
+    "problem": "`gulp electron` writes desktop/.build/electron/Caret.app, and desktop/scripts/code.sh launches it. The packaging task and the dev shell both read the same build/lib/electron.ts config, so both shipped com.caret.editor. LaunchServices keys an app by that identifier, so `open -a Caret`, Finder, and any re-registration pass could resolve to the incomplete dev shell -- no app payload and none of the Caret surfaces -- instead of VSCode-darwin-arm64/Caret.app.",
+    "firstAttemptRejected": "Adding the dev identifier to build/lib/electron.ts gave the packaged app the same com.caret.editor.dev, because gulp's package task spreads that config: the packaged bundle's Info.plist was byte-identical to the dev one. Reverted before it could ship.",
+    "secondAttemptRejected": "Separating only the identifier, then also renaming the shell to 'Caret (Dev)', still left two Caret bundles on disk. The user asked for one build; caught on review.",
+    "fix": "scripts/lib/app-icon.ts#removeDevBundle unregisters the dev shell with lsregister -u and deletes it. scripts/build-caret.ts calls it in the --desktop block. A desktop build now leaves exactly one Caret: VSCode-darwin-arm64/Caret.app. The dev shell is recreated on demand by desktop/scripts/code.sh, so the dev window still works when wanted.",
+    "guard": "The shell and the packaged app can share com.caret.editor, so removal is guarded by two properties a mis-resolved path cannot satisfy: the bundle must sit under the desktop/.build tree, and it must lack Contents/Resources/app/out/vs/sessions/sessions.desktop.main.js, the payload only a real Caret has.",
+    "verified": {
+      "buildLeavesOneCaret": "node build/lib/electron.ts recreates the shell (id com.caret.editor), then `bun scripts/build-caret.ts --desktop` removes it: `test -d desktop/.build/electron/Caret.app` is false afterwards, while VSCode-darwin-arm64/Caret.app stays com.caret.editor.",
+      "guardRefusesPackage": "removeDevBundle('/Users/pond/caret/VSCode-darwin-arm64/Caret.app') -> false, still exists; removeDevBundle(dev shell path) -> true, removed.",
+      "launchServices": "lsregister -dump lists one Caret entry: /Users/pond/caret/VSCode-darwin-arm64/Caret.app -> name 'Caret', id com.caret.editor.",
+      "runningApp": "The window open at the end of this session is /Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/MacOS/Caret (the packaged build that passed check:packaged); the dev shell was never launched."
+    }
+  },
+  "notCovered": [
+    "Running desktop/scripts/code.sh recreates the dev shell and re-registers it as a second Caret while that dev session is alive. That is the dev launcher doing what it is for; a plain `--desktop` build no longer leaves one behind.",
+    "The dev shell and the packaged app share the data folder (~/.caret), because desktop/argv.json is written from product.json alone. Only relevant while code.sh runs the dev window; not addressed."
+  ],
+  "checks": {
+    "bunRunCheckPackaged": "OK",
+    "bunRunTest": "867 pass / 0 fail",
+    "bunRunTypecheck": "0 errors",
+    "desktopPatchSetTest": "apps/macos/test/desktop-patch-set.test.ts applies every patch in manifest order and the tree matches the checkout (35 patches)"
+  }
+}

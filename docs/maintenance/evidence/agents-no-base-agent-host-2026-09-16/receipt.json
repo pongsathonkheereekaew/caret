@@ -1,0 +1,43 @@
+{
+  "slice": "agents-window-chrome",
+  "date": "2026-09-16",
+  "queueItem": "user report: the Agents window always shows 'The Agent Host failed to start'",
+  "question": "why does it fail - we use OMP and it worked already?",
+  "answer": "the banner is not about OMP. It is the base Agent Host utility process (the host for the Copilot/Claude/Codex harnesses) failing to boot because S1 removed the Copilot services its node-side graph still requires; the window started it at restore, so every launch produced a crash loop and the failure notification.",
+  "evidence": {
+    "log": "window1/main.log of a launch before the change",
+    "lines": [
+      "[AgentHost:stderr] [createInstance] agentHostCustomizationEnablementService depends on copilotApiService which is NOT registered.",
+      "AgentHostProcessManager: agent host terminated with code 1, giving up after 5 restarts",
+      "AgentHostStarter: cannot create window connection: Agent Host process stopped after 5 restarts."
+    ],
+    "renderer": "notifyOnFatalAgentHostStartError raises the text 'The Agent Host failed to start. Restart the application to try again.' (platform/agentHost/electron-browser/localAgentHostService.ts)",
+    "remainingRequiredInjections": ["agentBranchNameGenerator.ts (@ICopilotApiService)", "agentHostPullRequestOperationHandler.ts", "agentHostCommitOperationHandler.ts"],
+    "trigger": "workbench/services/agentHost/electron-browser/agentHostService.ts: AgentHostPrewarmContribution autoruns on agentHostEnablementService.enabled (true in the Agents window because AI features are on) and calls startAgentHost()"
+  },
+  "change": {
+    "patch": "patches/desktop/0032-caret-no-base-agent-host.patch (two base files, neither owned by an earlier patch)",
+    "source": "AgentHostPrewarmContribution no longer starts the host - the prewarmer class, the autorun, the assignment-context forwarding and their imports are removed; the contribution stays registered with a comment naming the process, the missing service and why Caret does not need it (OMP is the only execution owner)",
+    "test": "the base suite for that contribution now pins the Caret contract: does not start the agent host while enabled / when enablement changes / does not forward assignment context",
+    "bookkeeping": [
+      "patches/desktop/manifest.json: 0032 entry (sha256 82bc17be328658b8c7cdc5607718764b5bd1b572763c0e88007041a5ce65fd84)",
+      "patches/desktop/README.md: paragraph explaining why booting the process instead would mean re-adding the Copilot layer",
+      "apps/macos/test/ide-native-workbench.test.ts: needle test pinning the patch, the base-test contract and the removal of the startAgentHost() call"
+    ]
+  },
+  "verified": {
+    "gates": [
+      "bun scripts/prepare-desktop.ts: 30 patches / 18 removals",
+      "bun test apps/macos/test/desktop-patch-set.test.ts: applies in manifest order and reproduces the checkout",
+      "cd desktop && npm run typecheck-client: 0 errors (the unused prewarmer symbols had to go for this to pass)",
+      "bun run typecheck: clean; node scripts/ci-validate.mjs: CI-OK; check:cursor-parity: 340 keys, 0 mismatches",
+      "bun run test: 754 pass, 1 fail (menus-contract.test.ts needs rg on PATH; environmental)"
+    ],
+    "onScreenBefore": "main.log carried the AgentHostProcessManager / AgentHost:stderr lines and the window showed the failure notification",
+    "onScreenAfter": "packaged app launched twice on the final revision: 0 agent-host lines in main.log, and a DOM + notification scan finds nothing matching /Agent Host|failed to start/i"
+  },
+  "notVerified": [
+    "the Agent Host remains reachable if something ever asks it for work (the client and the singleton registration are untouched), so a future consumer would spawn the same crashing process; making that honest is follow-up work",
+    "the `Chat model provider uses UNKNOWN vendor caret-omp` startup line still appears in some launches; it predates this change and is the known race recorded in the S2 receipt"
+  ]
+}

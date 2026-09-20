@@ -1,0 +1,42 @@
+diff --git a/src/vs/sessions/sessions.common.main.ts b/src/vs/sessions/sessions.common.main.ts
+index 5e17a99cfb3..60c9854188c 100644
+--- a/src/vs/sessions/sessions.common.main.ts
++++ b/src/vs/sessions/sessions.common.main.ts
+@@ -470,10 +470,10 @@ import './contrib/chat/browser/btwSlashCommand.contribution.js';
+ import './contrib/chat/browser/requestOriginProvider.contribution.js';
+ import './contrib/chat/browser/sideChatProvider.contribution.js';
+ import './contrib/providers/agentHost/browser/exportDebugLogsAction.js';
+-import './contrib/providers/agentHost/browser/agentHostSessionConfigPicker.js';
+ import './contrib/providers/agentHost/browser/agentHostForkActions.js';
+ import './contrib/chat/browser/customizationsDebugLog.contribution.js';
+-import './contrib/providers/copilotChatSessions/browser/copilotChatSessions.contribution.js';
++// Cedia: no Copilot. The Agents window is fed by Cedia's own OMP-backed
++// provider, so the Copilot chat session provider is not loaded here.
+ import './contrib/sessions/browser/sessions.contribution.js';
+ import './services/sessions/browser/sessionsListModelService.js';
+ import './services/sessions/browser/sessionGroupsService.js';
+diff --git a/src/vs/sessions/sessions.web.main.ts b/src/vs/sessions/sessions.web.main.ts
+index af563f59fc7..7a0e6d1722a 100644
+--- a/src/vs/sessions/sessions.web.main.ts
++++ b/src/vs/sessions/sessions.web.main.ts
+@@ -192,19 +192,17 @@ import './contrib/providers/remoteAgentHost/browser/hostFilter.contribution.js';
+ // build. The desktop mode + model pickers are gated off on phone via
+ // `when: IsPhoneLayoutContext.negate()`, so the two registrations are
+ // mutually exclusive at the action-menu level.
+-import './contrib/providers/agentHost/browser/mobile/mobileChatInputConfigPicker.js';
+ 
+ // Phone-only presenter for the workbench `ChatInputPart`'s Mode + Model
+ // pickers. Replaces the desktop popups with the same bottom-sheet
+ // experience used by the empty new-chat input, applied to the
+ // already-opened chat input. Web-only for the same reason as above.
+-import './contrib/providers/agentHost/browser/mobile/mobileChatPhoneInputPresenter.js';
+ 
+ // Mobile-aware Copilot permission picker. Replaces the desktop
+ // permission picker registration (which the shared contribution
+ // skips when `isWeb`), so we get the bottom-sheet sheet on phone
+ // without duplicate-registration conflicts.
+-import './contrib/providers/copilotChatSessions/browser/mobilePermissionPicker.contribution.js';
++// Cedia: no Copilot. See sessions.common.main.ts.
+ 
+ // TODO: support agent feedback in web
+ import './contrib/agentFeedback/browser/nullAgentFeedbackService.contribution.js';

@@ -1,0 +1,217 @@
+{
+  "scope": "IDE-native shell review + fix: why the packaged Caret app did not behave like Cursor on a rebuilt bundle, and what now makes it work.",
+  "capturedAt": "2026-09-14T02:31:00+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "question": "The user asked why Caret does not yet feel ide-native like Cursor, to read the latest handoff, and to continue the UI/UX shell with real functionality rather than mockups.",
+  "method": {
+    "launch": "packaged VSCode-darwin-arm64/Caret.app launched directly with a private --user-data-dir and a private caret.hostStateDir; no paid model calls",
+    "observation": "No Chrome DevTools endpoint answered HTTP, and CUA timed out on the workbench accessibility tree, so the window was read three ways instead: (1) the extension's own LogOutputChannel written by the extension host, (2) the app's workspace/global storage databases, (3) a full-screen and per-window screencapture OCR'd locally with Apple Vision (swift).",
+    "vision": "the vision model was rate limited for this session, so screenshots were read as OCR text runs with coordinates rather than as images"
+  },
+  "rootCause": {
+    "symptom": "On a freshly re-signed bundle the window opened, the agent dock was revealed, and the process stayed alive, but every persisted side effect silently stopped: no extension globalStorage directory, no mode-switch proof file, no workspace settings write.",
+    "mechanism": "Chromium stores its own 'Caret Safe Storage' item in the login keychain. The personal build is ad-hoc re-signed by every --package, which changes the code identity the keychain item's ACL is bound to. macOS therefore denies the read and raises a modal password prompt; while that prompt is up the main process is blocked and file/config writes never settle.",
+    "evidence": [
+      "screen OCR: 'Caret wants to use your confidential information stored in \"Caret Safe Storage\" in your keychain. To allow this, enter the \"login\" keychain password.' with Always Allow / Deny / Allow",
+      "extension host log: caret.caret activated with activationEvent onStartupFinished and no error, yet globalStorage/caret.caret was never created",
+      "workspace storage: no Caret viewlet state was ever written",
+      "Caret output channel after the fix: 'startup view=ide mode=ide revealDock=true' plus a written mode-switch proof path"
+    ],
+    "control": "Replaying the identical extension against a stubbed vscode module showed activate() completing and writing modeSwitchProof, so the failure was environmental, not in the startup logic."
+  },
+  "beforeAfter": {
+    "blocked": {
+      "modeSwitchProofFile": false,
+      "workspaceSettingsWritten": false,
+      "caretGlobalStorageDir": false,
+      "keychainPromptVisible": true
+    },
+    "afterClearingStaleItem": {
+      "modeSwitchProofFile": true,
+      "workspaceSettingsWritten": true,
+      "caretGlobalStorageDir": true,
+      "keychainPromptVisible": false,
+      "proof": "docs/maintenance/evidence/ide-native-shell-2026-09-14/mode-switch-proof.json",
+      "workspaceSettings": {
+        "window.title": "Caret",
+        "workbench.editor.showTabs": "multiple",
+        "workbench.statusBar.visible": true,
+        "workbench.activityBar.location": "default",
+        "window.commandCenter": true,
+        "breadcrumbs.enabled": true
+      }
+    }
+  },
+  "observedShell": {
+    "method": "OCR text runs with pixel coordinates from a screencapture of the Caret window only (2880x1800)",
+    "shape": [
+      "native menu bar: Caret / File / Edit / Selection / View / Go / Run / Terminal / Window / Help",
+      "left sidebar: EXPLORER, WORKSPACE, vscode, src, README.md  (native Explorer, not a webview substitute)",
+      "bottom: OUTLINE / TIMELINE panel with branch 'main*' and a left status bar item reading 'Caret ready'",
+      "right secondary sidebar titled CARET with view-title actions 'New Task' and 'Show IDE'",
+      "dock content: 'Ready' state dot, a context row 'Folder v Folder v This Mac v', a composer hint row 'Plan, Build, / for skills, @ for context', 'Model' and 'Thinking' controls, and idea rows (Start with a plan, Debug an issue, Build from a design, Deploy my prototype, Run in Cloud)"
+    ],
+    "conclusion": "The agent surface is already a workbench citizen in the intended shape (dock beside native chrome, status bar item, view title actions, commands/keybindings/menus). The blocker was the Keychain stall, not missing shell work."
+  },
+  "honestLimits": [
+    "'Run in Cloud' is an intentionally disabled affordance with reason 'Cloud is not a Caret runtime.'; it is not a working destination.",
+    "The dock reveal, status bar item, and menus are verified structurally (extension log, storage, manifest tests, pinned Code-OSS resolution tests) and by window OCR, not by pixel-level visual review, because the vision model was rate limited.",
+    "Mobile relay/iPhone gates are untouched by this slice."
+  ],
+  "changes": [
+    "apps/macos/src/extension.ts: added a 'Caret' LogOutputChannel and report startup failures and swallowed appearance failures through it, so a stalled or failed surface is recoverable after the fact instead of vanishing",
+    "apps/macos/src/extension.ts: the mode-switch proof write is now a fully catchable chain (Thenable wrapped) and reports a failed write instead of leaving an unhandled rejection",
+    "apps/macos/src/extension.ts: appendActiveEditorContext now selects the editor by the selection/file intent instead of by whether a uri was passed, so 'Add selection to task' and the composer selection mention quote the highlighted range instead of the whole file",
+    "apps/macos/src/extension.ts: the native diff now asks Git directly whether a path is binary (git diff HEAD --numstat) instead of trusting an extension hint on a review snapshot the direct command path never populated, and the review panel reports the binary reason instead of 'no unstaged hunks'",
+    "scripts/lib/personal-argv.ts: personal argv now sets use-inmemory-secretstorage in addition to password-store=basic",
+    "scripts/launch-caret-personal.ts: clears a stale Chromium 'Caret Safe Storage' item before launching a re-signed bundle",
+    "scripts/verify-packaged-caret.ts + scripts/lib/personal-argv.test.ts: assert the new invariant",
+    "apps/macos/test/extension-honesty.test.ts: updated the appearance-guard assertion to the logging guard",
+    "apps/macos/test/ide-native-workbench.test.ts + apps/macos/test/helpers/vscode-stub.ts: new behavioral suite that activates the real extension against a shared recorded vscode API and drives the editor/selection/review/status-bar/terminal commands plus the Agents-to-IDE draft retention promise",
+    "apps/macos/test/terminal.test.ts: moved onto the shared vscode stub because mock.module is process-wide and two mocks overwrite each other",
+    "apps/macos/src/extension.ts: requestOmp no longer discards a failure silently (it logs it), and the two mutating call sites - the composer Thinking control and Fork task - check ompCommandConfirmed and tell the user when OMP did not confirm the change instead of snapping back with no explanation",
+    "apps/macos/src/omp-result.ts + apps/macos/test/omp-result.test.ts: the shared 'was this OMP command confirmed' rule and its honest reasons",
+    "apps/macos/test/omp-owner.test.ts: pins the single-execution-owner boundary (the client starts only the host helper; the host package resolves and starts the agent through the OMP adapter)",
+    "apps/macos/src/extension.ts: focusDock now focuses the docked view with `<viewId>.focus` (caretComposerDock) and falls back to the activity-bar view, and says so on the Caret log when neither works",
+    "apps/macos/test/ide-native-command-ids.test.ts: contract sweep - every command id the client executes must be a declared Caret command, a declared Caret view's focus command, or a declared Caret container reveal; no container may be focused; and every message type the webview posts must be parsed and handled",
+    "AGENTS.md: corrected the personal-build Keychain instruction, which was incomplete and caused this stall"
+  ],
+  "defectsFound": [
+    {
+      "id": "selection-citation",
+      "severity": "user-visible correctness",
+      "symptom": "'Add selection to task' (editor context menu, Cmd+Alt+K, and the composer's selection mention) demanded a selection but then cited the entire file, because the editor was only used when an explicit uri was passed.",
+      "found": "by the new behavioral test asserting the citation for a two-line selection; it observed src/greet.ts#L1-L4 instead of #L1-L2",
+      "fix": "the editor is now chosen from requireSelection (the selection/file distinction the call sites already make) plus a target match",
+      "firstRunLatent": true
+    },
+    {
+      "id": "binary-diff-bypass",
+      "severity": "honesty",
+      "symptom": "caret.reviewInDiff reached from the command palette, a keybinding, or the Explorer opened a text diff of a binary file. The guard read binaryHint off the review snapshot, which only refreshReview populates; the direct command path never did, so the guard silently did nothing.",
+      "found": "by the new behavioral test that modifies a committed .png and asserts no diff editor opens",
+      "fix": "gitPathIsBinary(cwd, path) asks Git for the path's numstat and treats a '-' pair as binary; openNativeDiff consults it on every entry point",
+      "firstRunLatent": true
+    },
+    {
+      "id": "silent-omp-mutation",
+      "severity": "honesty",
+      "symptom": "A failed mutating OMP request was indistinguishable from success. requestOmp swallowed every error and returned undefined, and the Thinking control and Fork task treated that as done, so picking a thinking level or forking could silently do nothing.",
+      "found": "by auditing the remaining silent catch blocks after two earlier defects were hidden by the same pattern",
+      "fix": "requestOmp logs the failure; ompCommandConfirmed() is the single 'did OMP confirm it' rule, and both mutation call sites report the honest reason",
+      "evidenceType": "code audit plus unit tests of the rule and source assertions at both call sites; the end-to-end no-op needs a live host and was not reproduced in this harness",
+      "firstRunLatent": true
+    },
+    {
+      "id": "dead-dock-focus",
+      "severity": "user-visible behaviour",
+      "symptom": "After 'Add selection to task' or 'Inline edit' the agent dock was never brought forward. focusDock executed `caretDock.focus`, but caretDock is the view *container*; Code-OSS registers a focus command per view as `<viewId>.focus` (viewsService.ts:562), so the id never existed, the rejection landed in a silent catch, and the user never saw where the cited text went.",
+      "found": "by checking every command id the extension executes against the pinned Code-OSS source",
+      "fix": "focusDock focuses caretComposerDock.focus with caretComposer.focus as fallback, and logs when neither view can be focused",
+      "test": "apps/macos/test/ide-native-workbench.test.ts asserts the real view focus command is used and that the dead `caretDock.focus` id is gone; the test was confirmed to fail on the pre-fix code (it printed exactly ['caretDock.focus'])",
+      "firstRunLatent": true
+    }
+  ],
+  "ideNativeSurface2026_09_14": {
+    "scope": "Continue the ide-native shell with the two native workbench integration points that were still missing, both working rather than declared: terminal output as cited task context, and the Code Action (lightbulb / Quick Fix) surface for reaching Caret from the keyboard.",
+    "added": {
+      "terminalCitation": "caret.addTerminalSelectionToTask reads the active terminal's real selection and appends a fenced `terminal:<name>` block to the composer draft. Menus: terminal/context and terminal/title/context, gated on terminalTextSelected + caret.taskAvailable. A blank selection is refused instead of quoting the whole scrollback, and CRLF is normalized so the citation reads the same on any terminal.",
+      "codeActions": "vscode.languages.registerCodeActionsProvider('*') offers Caret: Edit Selection, Caret: Add Selection to Task, and Caret: Review File in Diff - and offers nothing while no real task surface exists, so the lightbulb never advertises a command that would fail on invoke. Only real file documents are served; the read-only caret-review original is excluded.",
+      "sharedRule": "hasTaskSurface() is now the single rule behind both the caret.taskAvailable context key and the Code Action provider, so the context menu and the lightbulb cannot disagree.",
+      "refactor": "the draft merge, persistence, and status message the editor-selection path already had moved into appendContextBlock(); the editor, file, and terminal citation paths all end there."
+    },
+    "verification2026_09_14": {
+      "rootTests": "560 pass / 0 fail, 2994 expect() calls. 14 new: 6 terminal-citation unit, 4 code-action unit, 3 behavioral in the unreachable-host workbench harness, 1 behavioral against the live host.",
+      "declarationCheck": "registerCodeActionsProvider, CodeAction.command, CodeActionKind.QuickFix, the terminal/context and terminal/title/context contribution points, and the terminalTextSelected / terminalFocus context keys were each checked against the pinned Code-OSS checkout before being used. Terminal.selection is implemented by the engine (extHostTerminalService.ts:133, fed by $acceptTerminalSelection) even though this checkout's vscode.d.ts omits the declaration, so it is read through a documented structural cast rather than a second, invented source.",
+      "runtime": "packaged app rebuilt from this revision (CARET_HOST_NODE = pinned Node 24, ad-hoc re-signed). Launched against a private profile and a private caret.hostStateDir, with workspace trust disabled for that profile only. exthost log: caret.caret activated via onStartupFinished with no error line after it. The Caret channel logged 'startup view=ide mode=ide revealDock=true'. globalStorage/caret.caret/mode-switch-proof.json was written (agents -> ide, sameWindow, draft/scroll/attachments retained, ownerUnchanged). Window OCR of the running window shows the native menu bar, the native Explorer with its file tree, OUTLINE/TIMELINE, the CARET secondary-sidebar dock with New Task / Show IDE view-title actions, and the 'Caret ready' status bar item.",
+      "notVerified": "The terminal context-menu entry and the lightbulb were not exercised by a real click or keystroke: that needs GUI automation, which timed out on this workbench in the earlier session. Their registration is proven by the clean activation above plus the pinned-engine declaration and contribution-point checks, not by a screenshot of the open menu.",
+      "restrictedModeNote": "A first launch into an untrusted folder activated caret.caret but correctly took the Restricted shell path and wrote no globalStorage, so the ide-native surface appears only after the folder is trusted. That is the designed behaviour; it is why a trust-disabled private profile was needed to observe the full surface."
+    }
+  },
+  "ideNativeSelectionActions2026_09_14": {
+    "scope": "Add the Cursor-class one-shot selection actions that were still missing (Explain, Fix), prove the command, menu, keybinding, code-action, and status-bar surfaces by actually opening them in the packaged app, and lock two manifest invariants that nothing covered before.",
+    "added": {
+      "selectionActions": "caret.explainSelection and caret.fixSelection cite the real editor range and send one instruction through the same guarded turn as inline edit. The turn is staged in the composer first, so a refused send never drops it. Fix tells the agent to say so instead of changing code when it finds no defect. Wired into the editor context menu, the line-number gutter menu, and the Code Action provider.",
+      "invariants": "apps/macos/test/menus-contract.test.ts resolves every key-position identifier in every menu and keybinding `when` against the pinned Code-OSS checkout, so a typo'd context key cannot silently hide a menu forever. It was confirmed to fail on a planted `caret.taskAvaliable` typo. A new behavioral test asserts that every command the manifest declares is registered by activate(), and that every menu entry points at a registered command."
+    },
+    "verifiedOnThisRevision": {
+      "rootTests": "571 pass / 0 fail, 3034 expect() calls; typecheck clean; repo validator CI-OK parents=198 ui=75 children=129 lock-shas=10.",
+      "commandPalette": "In the packaged app the Command Palette showed 'Caret: Explain Selection with Caret' with the exact manifest title. Running it with no editor open produced the extension's own notification: 'Info: Open a workspace file before using Caret on a selection., source: Caret Mac task extension'.",
+      "endToEnd": "Opened src/greet.ts from the native Explorer, selected the code, and ran Caret: Explain Selection. The real composer's text entry then held 'Explain what this selected code does, and call out anything surprising or risky. (src/greet.ts#L1-L4)' - the real instruction plus a real relative path and line range. The window then showed the honest refusal 'Choose a model before sending. Caret does not pick a billed fallback.', so a refused send reports its reason instead of failing silently.",
+      "codeActions": "Cmd+. in the editor listed exactly: Caret: Explain Selection, Caret: Fix Selection, Caret: Edit Selection, Caret: Add Selection to Task, Caret: Review File in Diff - all marked Quick Fix, in that order, with a live host connected.",
+      "contextMenu": "Right-click in the editor showed Add Selection to Caret Task (with its Option+Command+K keybinding rendered), Edit Selection with Caret (Command+K), Explain Selection with Caret, and Fix Selection with Caret, plus the editor-title buttons Edit Selection with Caret (Command+K) and Review Active File in Diff (Option+Command+R). The keybinding labels are the engine's own resolution, not text Caret drew.",
+      "statusBar": "The real status bar item read 'Caret ready' with the tooltip 'Caret is connected to the Mac host. Click to open the task.' while connected.",
+      "nativeDiffReview": "With a real git fixture (committed baseline plus an unstaged edit) the palette item 'Caret: Review Active File in Diff, Option+Command+R' opened a real Code-OSS diff editor tab titled 'src/greet.ts (HEAD <-> Working Tree)' with the diff editor's own toolbar, i.e. the engine's diff against the Git original rather than a Caret-drawn view.",
+      "terminalCommand": "The palette item 'Caret: Add Terminal Selection to Caret Task' ran in the packaged app and produced the extension's own notification 'Info: Select terminal output first. Caret cites the real selection; it will not send the whole scrollback., source: Caret Mac task extension' - the handler's honest refusal path executing for real. The same capture recorded the live shell: the CARET panel with view-title actions 'New Task Option+Command+N' and 'Show IDE Option+Command+I', the status bar reading 'main* | Caret ready | 10 | 0 | TypeScript | LF | UTF-8 | Spaces: 2', and the dock's idea rows with their descriptions.",
+      "windowTitle": "The window title read 'greet.ts - workspace - Caret', so the task-aware title is applied on the real window while a file is open.",
+      "harness": "Private user-data-dir, workspace trust disabled for that profile only, private caret.hostStateDir, and a host started for that fixture. No default user host or profile was touched. Transcripts and a screenshot are in this folder."
+    },
+    "notVerified": {
+      "terminalMenuAppearance": "The terminal/context and terminal/title/context entries are gated on terminalTextSelected, and the terminal canvas is not exposed as an accessibility element, so neither entry could be opened by a real click in this harness: Shift+F10 does not open the menu; the only 'Terminal' node is the macOS menu-bar item (a different menu); right-clicking the terminal tab opened nothing; the panel's own 'Focus Terminal' button and a click on the terminal container did not move focus (the editor kept 'Ln 5, Col 1 (112 selected)' and swallowed the typed text), so Cmd+A selected editor text and terminalTextSelected stayed false. The command behind those entries IS verified running in the app (see terminalCommand above), and the contributions are engine-validated, but the appearance of the menu entry itself is not proven by a screenshot. Incidental confirmation: the status bar context menu listed 'Caret Mac task extension (Extension)' among its sources."
+    },
+    "evidenceFiles": [
+      "runtime-cua-code-actions-2026-09-14.txt",
+      "runtime-cua-editor-context-menu-2026-09-14.txt",
+      "runtime-cua-ax-2026-09-14.txt",
+      "runtime-window-2026-09-14.jpeg",
+      "runtime-window-2026-09-14.ocr.txt"
+    ]
+  },
+  "stockCommandContract2026_09_14": {
+    "scope": "Close the last silent-failure gap on the surface this objective adds: the stock Code-OSS command ids the extension executes were only ever checked by hand.",
+    "gap": "`ide-native-command-ids.test.ts` verifies the ids Caret owns. The `workbench.*` / `vscode.*` / `git.*` ids were verified once in a hand sweep recorded in prose. A wrong one does not throw in a way anyone notices: the rejection lands in a catch and the feature does nothing. That is exactly how `caretDock.focus` shipped dead.",
+    "added": "apps/macos/test/command-contract.test.ts scans every extension source for `executeCommand(\"<id>\")` literals, the `for (const command of [...])` list form, and the two chrome command lists in workbench-mode.ts, then resolves each stock id against the pinned checkout. Ids the engine generates are checked structurally instead: `<declared view id>.focus` against the manifest's views, and `workbench.view.extension.<declared container id>` against its viewsContainers. `git.*` ids resolve against the bundled git extension; everything else against desktop/src/vs.",
+    "verified": {
+      "passes": "574 pass / 0 fail / 3041 expect() calls; typecheck clean; repo validator CI-OK parents=198 ui=75 children=129 lock-shas=10. The new file runs in ~330ms.",
+      "hasTeeth": "Confirmed by planting a typo: `workbench.view.explorer` -> `workbench.view.exploreer` made the test fail and name exactly that id, and the revert restored a clean run. The plant and its revert are the only edits to extension.ts in this step.",
+      "currentlyChecked": "21 ids are collected and all resolve: 17 against desktop/src/vs (vscode.diff/open/openFolder/openWith, workbench.view.explorer, workbench.trust.manage, setContext, and workbench.action.{newWindow,openSettings,openGlobalKeybindings,selectTheme,closeSidebar,closeAuxiliaryBar,closePanel,activityBarLocation.hide,focusAuxiliaryBar,focusPanel}), 1 against the bundled git extension (git.openMergeEditor, registered by its @command decorator), and 3 generated against the manifest (caretComposerDock.focus and caretComposer.focus as declared views, workbench.view.extension.caretDock as the declared caretDock container)."
+    }
+  },
+  "interactiveModeSwitch2026_09_14": {
+    "scope": "Close the interactive Agent<->IDE switch on the packaged app, which the earlier receipt recorded as still open (COV-S02-01: Agent->IDE->Agent on the app with the owner unchanged), and which only the *startup* path had ever proven.",
+    "method": "Packaged app from this revision, private user-data-dir with trust disabled for that profile only, private caret.hostStateDir, host started for the fixture. Driven through Computer Use against the real accessibility tree of the running window; no coordinates were used, only real AX elements.",
+    "observed": {
+      "ideToAgents": "Clicking the Caret status bar item ('Caret ready') in IDE mode hid the chrome for real: the primary-side-bar, panel, and secondary-side-bar toggles all read Value: 0 and the window title became 'New task - Caret'. The Caret webview then filled the window with the real Agents surface: New task / Open folder actions, a task row 'New task | Draft 19m | This Mac | OMP | PR Unknown', an IDE toggle, and the composer.",
+      "agentsToIde": "Clicking the in-app IDE toggle restored the chrome: primary sidebar and panel toggles back to Value: 1 with the Explorer and its file tree visible again, i.e. the remembered ideLayout snapshot was re-applied rather than a blank workbench.",
+      "roundTripRetention": "A draft typed into the real composer ('caret retention probe') survived the full IDE -> Agents -> IDE -> Agents round trip; after the last switch the composer still held it.",
+      "proofFile": "The extension rewrote mode-switch-proof.json on the interactive switch, not on startup: capturedAt 03:55 local (startup was 03:53), sameWindow true, sessionUnchanged true, draftRetained true, scrollRetained true, attachmentsRetained true, ownerUnchanged true, from 'ide' to 'agents'.",
+      "cleanRun": "Zero error, unhandled-rejection, or activation-failure lines in the extension host log for this session; the Caret channel logged only the startup line.",
+      "harnessNote": "One earlier attempt in this session landed focus in the editor rather than the terminal (Cmd+A selected 112 characters of editor text), which is recorded as the terminal-selection limitation in ideNativeSelectionActions2026_09_14.notVerified, not as a Caret defect."
+    },
+    "evidenceFiles": [
+      "runtime-cua-agents-mode-2026-09-14.txt",
+      "runtime-window-agents-mode-2026-09-14.jpeg",
+      "runtime-cua-agents-roundtrip-2026-09-14.txt",
+      "runtime-window-agents-mode-2-2026-09-14.jpeg"
+    ]
+  },
+  "agentEditMarks2026_09_14": {
+    "scope": "Give Caret's own edits a first-class place in the editor: mark the regions an applied edit produced, with one action to keep them and one to take them back. This is the Cursor-class affordance the objective's 'editor/selection actions' and 'native diff review' still lacked.",
+    "implemented": {
+      "seam": "CaretEditorService gained an optional afterApply(summary) report, fired only after a guarded apply passes its postcondition. It carries the path, uri, produced version, the pre-edit text, and the applied edits with their ranges. The apply decision itself is untouched, and a failure in the report cannot turn a successful apply into an error response.",
+      "geometry": "apps/macos/src/agent-edit-marks.ts computes where each edit's replacement text landed in the new buffer (an edit never moves its own start, and the bridge rejects overlaps), merges touching or overlapping regions, widens a pure deletion to the whole line so it is visible, and counts the distinct lines for the label.",
+      "ui": "A single decoration type paints the regions on every visible editor that has a pending Caret edit, with a hover naming the file and both actions. Commands caret.keepAgentEdit (saves the buffer, which is what 'kept' means for an unsaved change) and caret.revertAgentEdit (restores the exact pre-edit text) are offered from the editor title and the editor context menu, gated on the new caret.agentEditPending context key. A saved or closed document drops its pending record, so the buttons stay honest.",
+      "takeBackRule": "revertDecision restores the pre-edit text only while the buffer still holds the version Caret produced. Once anything else has touched the buffer, the user's own work is in there too, so Caret declines with a reason and points at Undo instead of discarding it. Taking an edit back rewrites the buffer and never saves."
+    },
+    "verified": {
+      "tests": "595 pass / 0 fail / 3085 expect() calls; typecheck clean; repo validator CI-OK parents=198 ui=75 children=129 lock-shas=10.",
+      "coverage": "21 new: 15 unit (geometry, merging, line counting, the label, the take-back rule, the painted range and hover), 4 behavioral against the real activated extension (a mark is painted on the editor holding the edited buffer and the context key flips on; keep saves and clears; take-back replaces the buffer with the exact pre-edit text and does not save; a buffer that moved on is refused; both commands refuse when nothing is pending), and 2 against the real editor bridge (the report carries the real range, the produced version, and the pre-edit text and does not save; a rejected apply reports nothing).",
+      "realAppCommands": "The packaged app was rebuilt from this revision and both commands were run from the real Command Palette: 'Caret: Keep the Caret Edit' and 'Caret: Take Back the Caret Edit' each appeared with their manifest titles and each produced the handler's own notification 'Info: This file has no Caret edit waiting. Caret only marks edits it applied through the editor bridge.', so they are registered, discoverable, invocable, and wired to a real handler rather than a dead id. Evidence: runtime-cua-agent-edit-commands-2026-09-14.txt.",
+      "notVerified": "The painted mark has not been seen on a running editor from a real agent edit. Painting needs an applied edit, and the only thing that creates an editor request is OMP's `caret_editor` tool inside a live session with a chosen model: the host exposes no other driver (its CLI is serve/ensure/status, and the router has only the client-side register/poll/respond routes), and the fixture has no model chosen, so the send path itself honestly refuses there. The claim here is that the bridge reports the right change, the provider paints it, and the two commands act on it - each proven directly, with the commands additionally run in the real app - not that a screenshot of a painted mark exists."
+    }
+  },
+  "verification": {
+    "rootTests": "541 pass / 0 fail, 2935 expect() calls (21 behavioral, 4 contract, 3 ownership, 4 OMP-result tests are new in this slice)",
+    "contractSweep": "All ids the client executes were checked against the pinned Code-OSS checkout: git.openMergeEditor (extensions/git commands.ts), vscode.diff/open/openFolder/openWith, workbench.action.{newWindow,openSettings,openGlobalKeybindings,selectTheme,focusPanel,focusAuxiliaryBar,closeSidebar,closeAuxiliaryBar,closePanel,activityBarLocation.hide}, workbench.view.explorer and workbench.view.extension.caretDock all exist. Context keys editorHasSelection, editorTextFocus, isInDiffEditor and resourceScheme also exist. The only dead id was caretDock.focus, fixed this slice. All 73 webview message types are parsed and handled.",
+    "typecheck": "tsc --noEmit clean",
+    "repoValidator": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "packagedVerifier": "bun scripts/verify-packaged-caret.ts passes with argv-inmemory-secretstorage",
+    "runtime": "packaged app rebuilt from this revision, private profile and private host state dir, launched as the personal launcher would: clean Keychain-free startup, agent dock revealed, mode proof and workspace appearance written, no Keychain prompt on screen (window OCR)"
+  },
+  "followUp2026_09_14b": {
+    "closed": "agentEditMarks2026_09_14.verified.notVerified",
+    "how": "scripts/ide-native-agent-mark-smoke.ts drove a zero-cost scripted model into the packaged app's own editor and asserted the buffer and disk: the guarded edit landed in the app's buffer (not disk) and the real Take Back restored the exact pre-edit buffer without saving. The editor-title Keep/Take Back actions appeared during the mark and disappeared after it.",
+    "evidence": "docs/maintenance/evidence/ide-native-agent-mark-2026-09-14/receipt.json",
+    "stillOpen": "The painted decoration is not an accessibility element; this proves the pending record, the gated actions, and their effects, with a screenshot left for human pixel confirmation (the vision model was rate-limited this session)."
+  }
+}

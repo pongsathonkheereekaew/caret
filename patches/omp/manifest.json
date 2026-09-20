@@ -1,0 +1,9 @@
+{
+  "revision": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "patches": [
+    {
+      "file": "0001-cedia-rpc-bridges.patch",
+      "sha256": "c7286164c78b543501e23519769cd275764e463e8645157093846cdedc508b6e"
+    }
+  ]
+}

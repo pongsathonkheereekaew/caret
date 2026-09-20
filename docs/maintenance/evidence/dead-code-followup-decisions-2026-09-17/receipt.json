@@ -1,0 +1,81 @@
+{
+  "slice": "The decision pass: measured reference facts, the Agent Host null client, the .omp/.agents split, and the AX comparison tool",
+  "capturedAt": "2026-09-17T14:40:00+07:00",
+  "branch": "main",
+  "method": "grep of the installed Cursor 3.20.21 bundle and its bundled composer; the captured reference AX tree; the OMP checkout's own docs; desktop patch recut + prepare-desktop.ts; desktop-patch-set.test.ts; npm run compile-client; bun test; bun run typecheck; fork tsc; check:repo; check:cursor-parity",
+  "reference": {
+    "installed": "Cursor 3.20.21 at /Applications/Cursor.app. The plan's measured reference is 3.20.17; the strings below come from the newer install and were cross-checked against the 3.20.17 AX capture.",
+    "ideWindowHasAChatSurface": "workbench.panel.aichat (view container), workbench.panel.aichat.view, aichat-container, and a command id 'aichat.close-sidebar' titled 'Hide Chat' - so the IDE window keeps a live chat surface beside the buttons that open the Agents window",
+    "agentsWindowEntryPoints": "workbench.agentsWindowButton.enabled (default true) plus agentsWindowOpenSource values: ide_title_bar_button, ide_agents_sidebar, ide_empty_editor_parallel_agents_button, ide_settings_agents_window_banner, ide_usage_credit_banner_agents_window_button, ide_in_app_ad. The Agents window is internally the Glass window (cursor.openOrFocusGlassWindow).",
+    "agentsWindowChrome": "the 3.20.17 AX tree has exactly one sidebar control (Hide Sidebar) and, in the Apps panel header, Enter Full Screen and Hide Apps. 'Show Panel' and 'Toggle Side Panel' appear in neither bundle.",
+    "composerModes": "real mode state: composerMode.multitask, cycleMode, changeToAsk / changeToDebug / changeToMultitask; per-mode placeholder and description ('Coordinate tasks' / 'Orchestrate multiple subagents in parallel', 'Ask questions' / 'Answer questions without making edits'); CTAs pushed conditionally (Plan New Idea only while the mode is not 'plan'; Multitask while multitask is selected). The window placeholder is 'Plan, Build, / for skills, @ for context'.",
+    "notMeasured": "Cursor's IDE window was read from its bundle, not captured with AX: whether the aichat surface renders in the panel, the secondary sidebar or the right side on 3.20.21 is not established here."
+  },
+  "change": {
+    "agentHost": {
+      "patch": "0032-caret-no-base-agent-host.patch, re-cut and re-digested (02aef29c7e1242c0ecb40cd43f995afc12ffb201ff16afe0a48ad77971b24062)",
+      "what": "the desktop DI shim's local branch now returns the base's NullAgentHostService with a Caret reason instead of constructing LocalAgentHostServiceClient; NullAgentHostService gains an optional constructor reason and its module-private notSupported const becomes a protected method",
+      "why": "any surface that asked the base agent host for work still started a utility process whose node graph requires Copilot services this fork removed - it dies on boot and AgentHostProcessManager restarts it five times",
+      "kept": "the 25 IAgentHostService injection sites and the remote (remoteAuthority) branch; nothing enables agent-host features in this build"
+    },
+    "unreachableAgentsWindowPath": {
+      "removed": "openCaretAgentsWindow, writeCaretAgentsWorkspace, serializeCaretAgentsWorkspace and CARET_AGENTS_WINDOW_SETTINGS",
+      "kept": "CARET_AGENTS_WORKSPACE + isCaretAgentsWindow as a recognised identity",
+      "why": "no caller: setWorkbenchMode(\"agents\", {newWindow:true}) is never invoked, and caret.showAgents already opens the window through the base command"
+    },
+    "dotOmp": {
+      "removed": ".omp/agent/config.yml and .omp/agent/models.yml from the repository",
+      "why": "config.yml was byte-identical to ~/.omp/agent/config.yml (shasum beda0fee4c6e) and holds provider credentials; neither Caret nor OMP reads a project .omp/agent/ - OMP's project config is .omp/config.yml",
+      "gitignore": ".omp/ ignored with !.omp/config.yml excepted; .agents/skills-enabled.json and .agents/skills.lock ignored as installer state. .agents/AGENTS.md is committed because ~/.agents/AGENTS.md symlinks to it."
+    },
+    "axTool": {
+      "added": "scripts/lib/agents-chrome-inventory.ts (pure parse + diff), scripts/agents-chrome-inventory.ts (reference | compare <file> | capture <debugPort> --write <file>), apps/macos/test/agents-chrome-inventory.test.ts",
+      "referenceInventory": "45 controls parsed from evidence/cursor-agents-ax-2026-09-14/cursor-agents-ax-tree.txt",
+      "exitCode": "non-zero while any reference control is missing from Caret"
+    },
+    "dockDelete": {
+      "what": "the dock's session row menu in apps/macos/src/webview.ts now offers Delete, posting a new delete_session message; apps/macos/src/messages.ts parses it; apps/macos/src/extension.ts confirms (\"Delete \\\"<title>\\\"? This action cannot be undone.\") and then runs the same deleteChatSessions path the Agents window's list uses",
+      "why": "plan section 10 item 24: delete was Agents-window-only, so the dock offered Archive and no Delete even though the host route existed since patch 0010",
+      "pinned": "apps/macos/test/ide-native-workbench.test.ts, 'offers the same Delete in the dock's session menu'"
+    },
+    "decisionsRecorded": [
+      "section 5: the Agents-window panel controls stay as they are (the user chose to keep the current panel); the workbench keeps xterm.js",
+      "section 10 item 11: the composer mode chips are measured and stay unrendered until a real mode exists",
+      "section 10 item 14: closed as the kept-panel deviation",
+      "section 10 item 22: closed by the null client",
+      "section 10 item 26: the Copilot-named files are referenced (35/18/12 importers), only two are unreferenced; kept",
+      "section 10 item 30: split - the workbench keeps xterm.js, the iOS WebView terminal is still open",
+      "section 10 item 31: the union-alpha row stays visible; Caret invents no catalog policy"
+    ]
+  },
+  "verified": {
+    "macTests": "cd apps/macos && bun test test -> 617 pass / 0 fail",
+    "rootTests": "bun run test -> 770 pass / 0 fail",
+    "typecheck": "bun run typecheck -> 0 errors",
+    "forkTypecheck": "cd desktop && npx tsc --project src/tsconfig.json --noEmit --skipLibCheck -> 0 errors",
+    "prepareDesktop": "bun scripts/prepare-desktop.ts -> 32 patches, 19 removals",
+    "patchSet": "desktop-patch-set.test.ts rebuilds from the pinned base and finds no drift",
+    "forkBuild": "cd desktop && npm run compile-client -> exit 0; out/vs/workbench/services/agentHost/electron-browser/agentHostService.js now imports NullAgentHostService and no longer references LocalAgentHostServiceClient",
+    "axToolRuns": "bun scripts/agents-chrome-inventory.ts reference -> 45 controls; compare against that same inventory -> 0 missing, exit 0; compare against a copy with 'Multitask' removed -> 1 missing, exit 1",
+    "axLiveCapture": "Caret.app packaged 2026-09-16 23:43 launched with --agents --remote-debugging-port=9333 and captured over CDP: reference 45 controls, Caret 30. After the normalisation pass the report reads shared 11, renamed 3, absent by decision 3, missing 28 (chrome-report-empty-draft.txt, chrome-report-open-session.txt, dumps in this directory). Of the 28 misses, 24 are the empty-draft state the reference was captured in and 4 are real: Hide Sidebar vs Toggle Side Bar, the two unnamed splitters, the unnamed tab group, and one duplicate in the reference tree. first-live-capture.md carries the classification, the two capture artefacts that had to be normalised, and the CDP probe that explains the state mismatch (New Chat is Caret's own Agent Home nav row; the window had adopted a read-only host session).",
+    "appCleanup": "the launched app, its host (cli.js serve) and its OMP session all exited after the quit: 0 Caret processes, 0 OMP processes, debug port closed",
+    "newChatIsInert": "superseded the same day by draftSession: the button is no longer inert",
+    "repoChecks": "node scripts/ci-validate.mjs and bun scripts/cursor-parity-check.ts green",
+    "desktopRebuild": "npx gulp vscode-darwin-arm64-min -> exit 0 in 3.1 min, rebuilt the workbench bundle and the app bundle; CARET_HOST_NODE=~/.caret-tools/node-v24.18.0-darwin-arm64/bin/node bun run package:mac -> exit 0 (runtime prepared, identity stamped, 10 checksums refreshed, ad-hoc signed); bun scripts/verify-packaged-caret.ts -> structural checks pass; re-capture of the running window: shared 13, renamed 1, absent by decision 3, with Go Back / Go Forward matching the reference exactly (chrome-report-after-nav-copy.txt)",
+    "toolchainTraps": "upstream/omp was a git worktree whose parent lived in /private/tmp and had been cleaned, so git rev-parse HEAD failed and the packaging step could not start; the checkout was moved aside as upstream/omp.stale-20260917 (4.2 GB, still on disk) and re-cloned by prepare-omp-runtime.ts, which then rebuilt the Rust native once (cargo build -p pi-natives, ~10 min) before reusing it. The packaging step also requires CARET_HOST_NODE to point at Node 24.",
+    "staleCheckoutRemoved": "upstream/omp.stale-20260917 (4.2 GB) was deleted with `find \u2026 -depth -delete`; `upstream/` now holds only the pinned re-clone at 00085d4e7d",
+    "dockDelete": "bun test apps/macos/test -> 621 pass / 0 fail (the new case included); bun run typecheck 0 errors; bun run build -> dist/mac-extension/out/extension.js contains delete_session four times, the confirmation sentence, and the menu item",
+    "sashAriaLabel": "patch 0036 adds ISashOptions.ariaLabel (a labelled sash becomes role=separator + aria-orientation + aria-label; unlabelled sashes are unchanged). Verified by the loop: fork tsc 0 errors, npx gulp vscode-darwin-arm64-min exit 0 (2.98 min), package:mac exit 0, and a capture on the running window matches the pre-change inventory (shared 13, renamed 1, absent by decision 3, 25 caret controls); the one differing line is the model picker reading 'Claude Sonnet 4' instead of 'No models available' because the rebuilt runtime now answers with the operator's catalogue.",
+    "partsSplitterNames": "patch 0037 names the two boundaries the reference names, at their real owners: the IDE window's layout.ts (sidebar + auxiliary bar) and the Agents window's own layout implementation in src/vs/sessions/browser/workbench.ts (sidebar boundary + the editor part's left edge, because this window's Apps panel is the editor part's group). Verified in the rebuilt app: capture reads 'splitter Resize sidebar' and 'splitter Resize panel', comparison shared 15 / renamed 1 / absent by decision 3 / missing 26 (chrome-report-after-splitter-names.txt). Three attempts were needed: the first named nothing because it ran before any layout pass (parts have no boxes yet), the second targeted the IDE window's layout only because the Agents window has its own, and the committed source differs from the captured build by one blank line removed while re-cutting patch 0037.",
+    "tabGroupIsADecision": "the reference's last non-state entry, 'tab group Tabs', was probed in the running window: the native editor tab group exists (.tabs-container role=tablist with role=tab children named Changes and Apps) but is display:none, because patch 0017 draws the panel's own launcher strip (caret-apps-strip + caret-apps-launcher) instead. Recorded as a deviation in the plan's section 5 and in the tool's RECORDED_DEVIATIONS, so the report now reads shared 15, renamed 1, absent by decision 4, missing 25 - leaving the empty-draft state (D1) and the AX capture's own merge artifact.",
+    "draftSession": "D1 piece 1, verified in a rebuilt app: patch 0010's provider now returns an ExtensionSession over getNewChatSessionResource('caret.omp') with the asked-for workspace, and resolveWorkspace answers for a folder it is handed. Evidence: the window log printed [ChatModelSelection] sessionKey=\"caret.omp:/untitled-<uuid>\" immediately after clicking New Chat (twice, two distinct uuids); caret-agents-draft-state.png shows the empty 'New task' composer; and a capture in that state is the first fair-state comparison (chrome-report-draft-state.txt). New finding from that capture: the draft's Apps panel offers only Changes where the reference offers Changes/Browser/Terminal/File."
+  },
+  "notVerified": [
+    "The AX/DOM comparison is run and normalised but still not a verdict: the two sides were in different states. The reference capture is an empty draft while Caret's window had adopted a read-only session, and the control that would open a fresh draft is inert (above), so Caret's empty-draft inventory was never captured. 24 of the 28 remaining misses are that state difference.",
+    "The New Chat fix is not implemented: the chain is read from the pinned fork and the inert click is measured, but no code changed. Landing it needs a packaged rebuild and a second capture to confirm the draft appears.",
+    "The capture is of the packaged app built 2026-09-16 23:43, which predates this pass. Nothing changed today is chrome-visible, so the dump describes the same chrome the current source produces, but a re-capture belongs in the next packaging run.",
+    "The four copy/a11y gaps and the two label differences are findings, not fixes: no code changed for them in this pass.",
+    "The Agent Host change is verified by types, the compiled module and the patch set, not by booting a window: nobody has watched the Agents window come up after it to confirm that no surface resolves the client eagerly and reports the null reason.",
+    "The null client's sentence would appear only if an agent-host surface ever became enabled; nothing enables it, so it is unobserved."
+  ]
+}

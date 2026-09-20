@@ -1,0 +1,37 @@
+diff --git a/src/vs/code/electron-main/app.ts b/src/vs/code/electron-main/app.ts
+--- a/src/vs/code/electron-main/app.ts
++++ b/src/vs/code/electron-main/app.ts
+@@ -205,6 +205,7 @@
+ };
+ 
+ type CediaAgentWindowModule = {
++	isCediaAgentBrowserWebContents(contents: unknown): boolean;
+ 	registerCediaAgentWindowBridge(options: {
+ 		readonly ipcMain: typeof validatedIpcMain;
+ 		readonly appRoot: string;
+@@ -590,7 +591,7 @@
+ 
+ 			// Handle any in-page navigation
+ 			contents.on('will-navigate', event => {
+-				if (BrowserViewMainService.isBrowserViewWebContents(contents)) {
++				if (BrowserViewMainService.isBrowserViewWebContents(contents) || this.isCediaAgentBrowserWebContents?.(contents)) {
+ 					return; // Allow navigation in integrated browser views
+ 				}
+ 
+@@ -720,6 +721,8 @@
+ 	 * registry exists. The bridge is bundled by Cedia and loaded at runtime so
+ 	 * the desktop mirror does not acquire a second host or provider dependency.
+ 	 */
++	private isCediaAgentBrowserWebContents: ((contents: unknown) => boolean) | undefined;
++
+ 	private async registerCediaAgentWindowBridge(accessor: ServicesAccessor): Promise<void> {
+ 		// Resolving the service here (rather than waiting for openFirstWindow) keeps
+ 		// the bridge installed before the renderer can issue its first invoke.
+@@ -730,6 +733,7 @@
+ 		try {
+ 			const loadNativeModule = createRequire(import.meta.url);
+ 			const module = loadNativeModule(modulePath) as CediaAgentWindowModule;
++			this.isCediaAgentBrowserWebContents = module.isCediaAgentBrowserWebContents;
+ 			const dialogMainService = accessor.get(IDialogMainService);
+ 			const configurationService = accessor.get(IConfigurationService);
+ 

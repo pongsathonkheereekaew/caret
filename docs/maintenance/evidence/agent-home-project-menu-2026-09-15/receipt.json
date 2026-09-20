@@ -1,0 +1,30 @@
+{
+  "slice": "Agent Home project row menu - the reference right-click menu on project rows",
+  "capturedAt": "2026-09-15T15:00:00+07:00",
+  "branch": "main",
+  "method": "desktop patch 0022 (regenerated) + apps/macos/src/extension.ts commands + CDP right-click on the running Agents window + bun test + bun run typecheck + node scripts/ci-validate.mjs",
+  "reference": {
+    "menu": "docs/caret-ui-reference-baseline.json",
+    "order": ["Pin Project", "Edit Project...", "Reveal in Finder", "Create Permanent Worktree", "Archive Chats", "Remove Project"]
+  },
+  "change": {
+    "desktop": "agentHomeNav.ts attaches a context menu to the navigation's project rows and, through attachSessionsListMenu, to the sessions list's own project groups (delegated from the sidebar so recycled rows keep working). Every entry dispatches the folder path to a Caret extension command.",
+    "extension": "apps/macos/src/extension.ts gains the six project operations: pin/unpin, rename (host project record, the folder is never touched), reveal (the workbench's revealFileInOS), create a worktree task, archive the project's chats (reversible: transcripts stay on disk), and remove (archives the project record - the host has no delete, and inventing one would discard transcripts the host owns). resolveHostProject matches by path first and by a unique name second, and refuses to guess when two projects share a name.",
+    "manifest": "the six caret.project.* commands are declared in apps/macos/package.json contributes.commands, like every other Caret command.",
+    "failurePath": "an action whose command cannot run reports a warning naming the command and the reason instead of resolving into a menu item that does nothing."
+  },
+  "verified": {
+    "liveMenu": "CDP right-click on the project group row in the running Agents window: .monaco-menu-container display=block with exactly the six entries above, in that order (Pin Project at 228,395 through Remove Project at 228,515).",
+    "liveDispatch": "clicking Pin Project closes the menu and dispatches command 'caret.project.setPinned' with the row label; in this dev window the Caret extension is not installed, so the new failure path reported it: \"Caret could not run 'Pin Project': command 'caret.project.setPinned' not found\". Before this slice the same click was silent.",
+    "contractTest": "apps/macos/test/agent-home-project-menu.test.ts: 4 tests, 21 expects - the entries and their order match the reference, every id is a command the extension registers, right-click is bound on both project-row sources with preventDefault, and the failure path warns. Negative controls: reordering an entry, dropping a registerCommand, removing a preventDefault and removing the warning each make it fail.",
+    "patchAgreement": "patches/desktop/0022-caret-agent-home-chrome-navigation.patch regenerated (5 files, sha256 b44c977906ffa4b94966a682887be0cf71acba5e1f993987dcf3ec763d44ede9), manifest digest updated, and 'git apply --reverse --check' passes against the desktop checkout, so the mirror matches the applied tree. The previous regeneration had dropped the agentHomeNav.css section and carried the pre-menu nav source; apps/macos/test/ide-native-workbench.test.ts pins the menu needles now.",
+    "typecheck": "bun run typecheck - clean",
+    "suites": "bun test apps/macos/test -> 574 pass / 0 fail, 3042 expect() calls; bun test packages/omp-adapter packages/relay apps/host apps/macos/test -> 710 pass / 0 fail, 3769 expect() calls, 89 files",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10 doc-links=69 md=83"
+  },
+  "notVerified": [
+    "The packaged Caret macOS app: the dev Agents window used for the CDP evidence is launched from the desktop checkout and does not host the Caret extension, so the click ends at the new warning instead of the real operation. The operations themselves are exercised only through the contract test and the extension's own suite.",
+    "The navigation's own Projects rows were not clickable in this window: the dev window opened with no workspace folder (the section showed New Project and 'No project open'), so the rows exercised were the sessions list's project groups. The row listener is separate code from the delegated one.",
+    "A live worktree/reveal/archive/remove run against the host with a configured provider."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-09-20T10:07:45.021Z",
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Cedia.app",
+  "binary": "/Users/pond/caret/VSCode-darwin-arm64/Cedia.app/Contents/MacOS/Cedia",
+  "passwordStore": "basic",
+  "inmemorySecretStorage": true,
+  "ompSha256": "2067fd9148b9cf4dce6a0c8250a347d5c9884bfa19b3c1bd39bfd4e793b63072",
+  "hostSha256": "76f03280e16f84b0b958ba20f9de6c46951810afade96bcf6b2f7bf87fed17bd",
+  "checks": [
+    "cedia-binary-present",
+    "adhoc-codesign-verify",
+    "argv-password-store-basic",
+    "argv-inmemory-secretstorage",
+    "bundled-standalone-omp",
+    "bundled-host"
+  ],
+  "uiVerified": false,
+  "ios": "deferred"
+}

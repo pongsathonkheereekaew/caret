@@ -1,0 +1,397 @@
+{
+  "binary": "/Users/pond/.local/bin/omp",
+  "binaryVersion": "omp/18.1.18",
+  "binarySha256": "035a35dcb249edb939fa02b74fc7c0df9b2eb659079349fbffb188e1b558957a",
+  "sourceReference": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+  "mode": "rpc",
+  "runDir": "/tmp/caret-omp-rpc-7zbqgmo9",
+  "exitCode": 0,
+  "frameCount": 34,
+  "ready": {
+    "type": "ready",
+    "protocolVersion": 1,
+    "supportedProtocolVersions": [
+      1,
+      2
+    ],
+    "maxFrameBytes": 1048576,
+    "maxReassembledFrameBytes": 67108864
+  },
+  "eventTypes": [
+    "available_commands_update",
+    "extension_ui_request",
+    "notice",
+    "ready",
+    "thinking_level_changed"
+  ],
+  "responses": [
+    {
+      "id": "negotiate-1",
+      "command": "negotiate_protocol",
+      "success": true,
+      "data": {
+        "protocolVersion": 2
+      }
+    },
+    {
+      "id": "state-1",
+      "command": "get_state",
+      "success": true,
+      "state": {
+        "sessionId": "01a095c2-c40e-764a-8768-de010d4958b4",
+        "sessionFile": null,
+        "sessionName": null,
+        "isStreaming": false,
+        "isCompacting": false,
+        "steeringMode": "one-at-a-time",
+        "followUpMode": "one-at-a-time",
+        "interruptMode": "immediate",
+        "autoCompactionEnabled": true,
+        "fastModeEnabled": false,
+        "fastModeActive": false,
+        "messageCount": 0,
+        "queuedMessageCount": 0,
+        "todoPhases": []
+      },
+      "toolNames": [
+        "read",
+        "bash",
+        "edit",
+        "eval",
+        "glob",
+        "grep",
+        "task",
+        "hub",
+        "todo",
+        "web_search",
+        "write"
+      ],
+      "systemPromptCount": 2
+    },
+    {
+      "id": "commands-1",
+      "command": "get_available_commands",
+      "success": true,
+      "commandCount": 43,
+      "commandNames": [
+        "security",
+        "model",
+        "switch",
+        "fast",
+        "skillful",
+        "extended-context",
+        "computer",
+        "prewalk",
+        "advisor",
+        "export",
+        "trace",
+        "dump",
+        "share",
+        "browser",
+        "todo",
+        "session",
+        "jobs",
+        "usage",
+        "stats",
+        "changelog",
+        "tools",
+        "context",
+        "mcp",
+        "ssh",
+        "fresh",
+        "compact",
+        "shake",
+        "handoff",
+        "pin",
+        "retry",
+        "memory",
+        "rename",
+        "move",
+        "wt",
+        "add-dir",
+        "remove-dir",
+        "dirs",
+        "marketplace",
+        "plugins",
+        "reload-plugins",
+        "force",
+        "autoresearch",
+        "init"
+      ]
+    },
+    {
+      "id": "models-1",
+      "command": "get_available_models",
+      "success": true,
+      "models": [
+        "probe/probe-model"
+      ]
+    },
+    {
+      "id": "messages-1",
+      "command": "get_messages",
+      "success": true,
+      "messageCount": 0,
+      "totalMessages": null,
+      "hasNextCursor": false
+    },
+    {
+      "id": "page-1",
+      "command": "get_messages_page",
+      "success": true,
+      "messageCount": 0,
+      "totalMessages": 0,
+      "hasNextCursor": false
+    },
+    {
+      "id": "stats-1",
+      "command": "get_session_stats",
+      "success": true,
+      "stats": {
+        "sessionId": "01a095c2-c40e-764a-8768-de010d4958b4",
+        "userMessages": 0,
+        "assistantMessages": 0,
+        "toolCalls": 0,
+        "toolResults": 0,
+        "totalMessages": 0,
+        "cost": 0
+      }
+    },
+    {
+      "id": "todos-1",
+      "command": "set_todos",
+      "success": true,
+      "data": {
+        "todoPhases": [
+          {
+            "name": "probe",
+            "tasks": [
+              {
+                "content": "check RPC",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "steering-1",
+      "command": "set_steering_mode",
+      "success": true
+    },
+    {
+      "id": "follow-up-1",
+      "command": "set_follow_up_mode",
+      "success": true
+    },
+    {
+      "id": "interrupt-1",
+      "command": "set_interrupt_mode",
+      "success": true
+    },
+    {
+      "id": "compact-1",
+      "command": "set_auto_compaction",
+      "success": true
+    },
+    {
+      "id": "retry-1",
+      "command": "set_auto_retry",
+      "success": true
+    },
+    {
+      "id": "thinking-1",
+      "command": "set_thinking_level",
+      "success": true
+    },
+    {
+      "id": "host-tools-1",
+      "command": "set_host_tools",
+      "success": true,
+      "data": {
+        "toolNames": [
+          "probe_echo"
+        ]
+      }
+    },
+    {
+      "id": "host-uri-1",
+      "command": "set_host_uri_schemes",
+      "success": true,
+      "data": {
+        "schemes": [
+          "probe"
+        ]
+      }
+    },
+    {
+      "id": "fast-1",
+      "command": "set_fast_mode",
+      "success": false,
+      "error": "Fast mode is unavailable for the current model.",
+      "code": null
+    },
+    {
+      "id": "state-2",
+      "command": "get_state",
+      "success": true,
+      "state": {
+        "sessionId": "01a095c2-c40e-764a-8768-de010d4958b4",
+        "sessionFile": null,
+        "sessionName": null,
+        "isStreaming": false,
+        "isCompacting": false,
+        "steeringMode": "all",
+        "followUpMode": "all",
+        "interruptMode": "wait",
+        "autoCompactionEnabled": false,
+        "fastModeEnabled": false,
+        "fastModeActive": false,
+        "messageCount": 0,
+        "queuedMessageCount": 0,
+        "todoPhases": [
+          {
+            "name": "probe",
+            "tasks": [
+              {
+                "content": "check RPC",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      },
+      "toolNames": [
+        "read",
+        "bash",
+        "edit",
+        "eval",
+        "glob",
+        "grep",
+        "task",
+        "hub",
+        "todo",
+        "web_search",
+        "write"
+      ],
+      "systemPromptCount": 2
+    },
+    {
+      "id": "bash-1",
+      "command": "bash",
+      "success": true,
+      "data": {
+        "exitCode": 0,
+        "cancelled": false,
+        "workingDir": "/tmp/caret-omp-rpc-7zbqgmo9",
+        "output": "OMP_RPC_BASH_OK",
+        "truncated": false,
+        "totalLines": 1,
+        "totalBytes": 15,
+        "outputLines": 1,
+        "outputBytes": 15
+      }
+    },
+    {
+      "id": "last-text-1",
+      "command": "get_last_assistant_text",
+      "success": true,
+      "data": {}
+    },
+    {
+      "id": "branch-1",
+      "command": "get_branch_messages",
+      "success": true,
+      "data": {
+        "messages": []
+      }
+    },
+    {
+      "id": "messages-2",
+      "command": "get_messages",
+      "success": true,
+      "messageCount": 1,
+      "totalMessages": null,
+      "hasNextCursor": false
+    },
+    {
+      "id": "name-1",
+      "command": "set_session_name",
+      "success": true
+    },
+    {
+      "id": "name-empty-1",
+      "command": "set_session_name",
+      "success": false,
+      "error": "Session name cannot be empty",
+      "code": null
+    },
+    {
+      "id": "login-providers-1",
+      "command": "get_login_providers",
+      "success": true,
+      "providerCount": 72,
+      "authenticatedProviders": []
+    },
+    {
+      "id": null,
+      "command": "not_a_real_command",
+      "success": false,
+      "error": "Unknown command: not_a_real_command",
+      "code": null
+    },
+    {
+      "id": null,
+      "command": "parse",
+      "success": false,
+      "error": "Failed to parse command: JSON Parse error: Expected '}'",
+      "code": null
+    },
+    {
+      "id": "state-after-parse",
+      "command": "get_state",
+      "success": true,
+      "state": {
+        "sessionId": "01a095c2-c40e-764a-8768-de010d4958b4",
+        "sessionFile": null,
+        "sessionName": "Caret RPC probe",
+        "isStreaming": false,
+        "isCompacting": false,
+        "steeringMode": "all",
+        "followUpMode": "all",
+        "interruptMode": "wait",
+        "autoCompactionEnabled": false,
+        "fastModeEnabled": false,
+        "fastModeActive": false,
+        "messageCount": 1,
+        "queuedMessageCount": 0,
+        "todoPhases": [
+          {
+            "name": "probe",
+            "tasks": [
+              {
+                "content": "check RPC",
+                "status": "pending"
+              }
+            ]
+          }
+        ]
+      },
+      "toolNames": [
+        "read",
+        "bash",
+        "edit",
+        "eval",
+        "glob",
+        "grep",
+        "task",
+        "hub",
+        "todo",
+        "web_search",
+        "write"
+      ],
+      "systemPromptCount": 2
+    }
+  ]
+}

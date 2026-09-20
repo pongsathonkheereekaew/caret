@@ -1,0 +1,32 @@
+{
+  "scope": "S2 runtime verify: composer prompt path + OMP model picker binding in the native Agents window",
+  "capturedAt": "2026-09-14T17:10:00+07:00",
+  "branch": "main",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "change": {
+    "commits": [
+      "cf6d066d0eb S2 composer to OMP: fix prompt payload, wire OMP model picker with rollback"
+    ],
+    "desktopPatch": "patches/desktop/0010 (new setModel/getModelsSnapshot/getModelPickerOptions, sha cb7c7ad9)",
+    "extension": "chat-sessions-map.ts ({message} payload, OMP catalog projection), chat-sessions.ts (fetchOmpModelSnapshot/setOmpModel/getChatSessionInputState)"
+  },
+  "method": "dev build from desktop/ checkout + --agents + CDP DOM",
+  "harnessNote": "/codex-computer-use (Codex desktop skill) is not available in this environment. Used the repo-equivalent harness: prepare-desktop (8 patches + 18 removals), build-caret --runtime --desktop, gulp compile 0 errors, launched with --agents on fresh profile /tmp/caret-s2-profile + --remote-debugging-port=9333, inspected via CDP Runtime.evaluate (DOM). Screenshots never substituted for DOM assertions. Window left running for inspection.",
+  "checks": "bun test 58 pass (chat-sessions-map + composer-runtime); tsc clean; ci-validate CI-OK; desktop gulp compile 0 errors",
+  "verified": {
+    "windowMounts": "PASS: Agents window mounts from dev build with S2 code (bridge contribution compiled: setModelSelection x6 in desktop/out bundle).",
+    "sidebarRow": "PASS: title Agents; treeitems Automations / caret-ui-acceptance, 1 / New task, updated 2 days ago, State: Completed.",
+    "chatOpen": "PASS: clicking the session row opens its chat view (composer textarea present, welcome content, no exthost errors for caret.caret, no read-only banner).",
+    "extensionReadsHost": "PASS: Caret.log: Caret chat sessions: 1 session(s) in 1 project(s) from the host (x3).",
+    "noCopilotGate": "PASS (initial): window innerText has no Copilot and no Sign in to use before interacting.",
+    "ompCatalogAtApi": "PASS: POST /v1/sessions/<id>/commands get_available_models returns completed with real catalog (cursor-grok-4.6 + others).",
+    "pickerOpensOmpCatalog": "FAIL: clicking Models (span.chat-input-picker-label; pointerdown/mousedown/mouseup/click on parent A.model-picker-section) opens no option list ([role=option] 0, no listbox); DOM gains Sign in to use Copilot x2. The composer model control is bound to the base Copilot-family picker, not the bridge.",
+    "promptRoundTrip": "BLOCKED: no selectable model in the window (see picker FAIL); live inference would need provider auth, not attempted (auth boundary)."
+  },
+  "stillOpen": [
+    "Picker binding: opened chat composer queries the base picker, not bridge getModelsSnapshot. Next: bind opened IChat to the extensionSessions provider so composer reads the OMP snapshot; re-probe click Models.",
+    "Prompt round-trip blocked until a model is selectable without paid/remote auth.",
+    "S3: window.caret-shell still present in Agents window (expected, not started).",
+    "S4: composer copy still Pitch your idea; sidebar/header gaps unchanged."
+  ]
+}

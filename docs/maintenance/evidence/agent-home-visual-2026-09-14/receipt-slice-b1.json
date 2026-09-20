@@ -1,0 +1,91 @@
+{
+  "scope": "Slice B1: Agents Window title bar cleanup, the reference sidebar navigation, right utility-pane calibration, and the reference three-column proportions.",
+  "capturedAt": "2026-09-15T00:45:00+07:00",
+  "branch": "main",
+  "revision": "caret working tree on top of 7a07935cab4 (S3 slice); desktop/ checkout at the pinned Code-OSS base ea1912fd6a05b80a56b2ad9b955075211deea521 with patches 0001-0022 applied",
+
+  "referenceScreenshot": "SUPPLIED this turn as two native PNGs and saved here: reference-cursor-agents-1710x1112.png (the reference Agents window) and reference-cursor-ide-1710x1112.png (the reference IDE window, welcome state). Both are 3420x2224, i.e. 1710x1112 CSS at DPR 2. OCR of the first reads the macOS menu bar as 'Cursor File Edit View Window Help' with New Chat / Search / Automations / Customize, Projects +, New Project, Repositories, three repository rows, the composer row 'caret v Select branch v This Mac v', the four launch cards and four suggestion rows, so it is the parity reference the earlier requests described. The 2048x1331 screenshots named before were this same window resized to 2048 wide.",
+  "previousScreenshot": "Screenshot 2569-09-14 at 23.59.22.png - not supplied; the earlier Caret capture (caret-agent-home-after.png) and this slice's own before/after measurements stand in for it.",
+  "newScreenshot": [
+    "docs/maintenance/evidence/agent-home-visual-2026-09-14/caret-agent-home-slice-b1.png (2048x1332, reference-size capture: 1024x666 CSS at DPR 2)",
+    "docs/maintenance/evidence/agent-home-visual-2026-09-14/caret-agent-home-slice-b1-1440.png (2880x1800, the dev build's own 1440x900 CSS window at DPR 2)"
+  ],
+  "visionCheck": "NOT PERFORMED - the image-reading tool answered HTTP 429 on both new reference screenshots and on the new Caret captures. Instead of guessing, both reference images were measured deterministically: scripts/image-ocr.swift (on-device macOS Vision OCR) returned text with bounding boxes, and scripts/png-pixel-probe.py plus /tmp/geom-probe.py returned the border positions of the dividers and the card rectangles. No claim here rests on a description of a picture.",
+
+  "change": {
+    "desktopPatch": "patches/desktop/0022-caret-agent-home-chrome-navigation.patch - 5 files: 3 new (contrib/home/browser/agentHomeNav.ts, contrib/home/browser/agentHomeNav.contribution.ts, contrib/home/browser/media/agentHomeNav.css) and 2 modified (contrib/sessions/browser/sessions.contribution.ts, sessions.desktop.main.ts). Nothing under src/vs/workbench/**. Rebuilt twice this turn: first for the corrected card calibration, then to drop the two sidebar blocks the reference does not have; digest d834a9d1b7b480bb6964db907b39473514826badae4dd5260c50a9ff76f2fb25.",
+    "titlebar": "SessionsTitleBarContribution is no longer mounted in the Sessions workbench, so the 448x24 'Show Sessions' control it registered into Menus.CommandCenter is gone: the Agents Window command centre now measures 0px wide. Back/Forward, IDE/open-in-VS-Code, the overflow menu, New Task and the window controls are base title-bar actions that this patch does not touch and are still real commands.",
+    "sidebar": "New AgentHomeNav renders full-width New Chat / Search / Automations / Customize rows in that order (New Chat selected and aria-current=page), then a Projects section with a real New Project row plus header +, then a Repositories section built from the open workspace folders with a filter toggle that reveals an input narrowing those rows and an add button - and nothing below that, because the reference sidebar ends there. Commands used: workbench.action.sessions.newChat, sessionsViewPane.find, sessions.customView.automations (via ICustomViewService.showCustomView), sessions.customization.overview, workbench.action.files.openFolder.",
+    "removals": "The base sidebar header row (the small New Chat pill plus the filter/find icons) and the detached Customizations footer are removed from the DOM, so their focus targets and accessibility nodes go with them. Verified: both selectors resolve to null.",
+    "utilityPane": "The utility editor group's whole title strip is suppressed for this window, so the 'Apps' tab label, its toolbar, the layout/full-screen actions and the header divider paint nothing (display:none, 0x0 rect). The 2x2 launcher grid is now 255x205 CSS with 121x96 cards and a 13px gap, centred in the utility pane, and keeps the four real commands. The card size is the correction described under fixedVisibleDifferences.",
+    "proportions": "Sidebar 15.625% and right utility 22.51% of the window width, applied through the layout service, so the dividers track the reference shares at any width where the base part minimums do not bind."
+  },
+
+  "beforeAfter": {
+    "beforeSidebarWidthCss": 255,
+    "afterSidebarWidthCss": 225,
+    "beforeUtilityWidthCss": 324,
+    "afterUtilityWidthCss": 324,
+    "beforeCardSizeCss": [141, 141],
+    "afterCardSizeCss": [75, 60],
+    "beforeComposer": [378, 424, 608, 86],
+    "afterComposer": [363, 424, 608, 86],
+    "beforeTitleBarControl": "Show Sessions pill, 448x24, in the middle of the Agents Window title bar",
+    "afterTitleBarControl": "none - command centre measures 0px wide",
+    "beforeSidebarContent": "small New Chat pill + filter/find icons, session tree, detached Customizations footer",
+    "afterSidebarContent": "New Chat / Search / Automations / Customize rows, Projects (with New Project), Repositories (with filter + add), Getting Started card, profile + Settings",
+    "beforeUtilityChrome": "editor title strip with 'Apps' label, toolbar, layout and full-screen actions, header divider",
+    "afterUtilityChrome": "none painted - title strip display:none"
+  },
+
+  "fixedVisibleDifferences": [
+    "The wide title-bar control in the middle of the Agents Window is gone.",
+    "The sidebar leads with the reference's four navigation rows instead of a small New Chat pill and icon-only filter/search controls.",
+    "Projects and Repositories sections exist, with a real New Project row and a repository filter whose toggle reveals an input that narrows the visible repository rows.",
+    "The sidebar ends where the reference ends: the Getting Started card and the profile/settings row that the brief's sections 5.4 and 5.5 asked for were removed once the real reference screenshot showed neither, on the user's decision to follow Cursor. The Open Folder capability stays reachable from the New Project row, the Projects header + and the Repositories add button.",
+    "The detached Customizations footer heading is removed from the DOM, and Customize remains reachable from the new top navigation row.",
+    "Utility cards are the reference's own size: 121x96 CSS with a 13px gap, measured off the native reference capture (borders on x 2780/3022 and 3048/3290, y 984/1177 and 1203/1396). The first pass of this slice shipped 75x60 because the brief's 148x120 was read as device pixels of a 2x capture instead of as the 3420-to-2048 resized copy it is; with the real screenshots in hand that is corrected and verified.",
+    "The sidebar and utility dividers land on the reference at the reference's own window size: sidebar 267 CSS against 267, utility left 1321 against 1325 (4 CSS from the workbench's right-hand gutter).",
+    "The utility pane paints no header, toolbar or divider in the empty Agent Home state.",
+    "Sidebar and utility dividers are now reference shares: measured 15.669% / 22.563% against the reference's 15.625% / 22.510%, which converts to 321 and 1586 captured px against the reference's 320 and 1587."
+  ],
+
+  "remainingVisibleDifferences": [
+    "The brief's sections 5.4 and 5.5 (a Getting Started card and a profile/settings row) are deliberately NOT implemented: the reference sidebar has neither, and the user chose the reference over the brief. The test now pins their absence.",
+    "The four launch cards and both dividers match the reference, but the whole layout sits 4 CSS px left of it because the workbench reserves a 4px gutter at the right of the window (titlebar 1706 of 1710).",
+    "Repositories and Projects render their empty-state rows in the tested profile because no workspace folder was open in the Agents window - the reference capture has three repository rows - and the Agents window cannot be given a folder from the command line (openAgentsWindow only forwards a folder from a protocol link), while `--folder-uri` opened a plain IDE window instead. The rows and the filter's narrowing are wired to real workspace folders but were not exercised with one open.",
+    "Below roughly 1330 CSS of window width the reference column shares fall under the base part minimums (sidebar 170px, editor 300px, both in src/vs/workbench/**) and are clamped; at the reference's own 1710 CSS width the sidebar is exact and only the 4px gutter remains.",
+    "The title bar is 35 CSS px tall in both windows, so the brief's `titlebarBottomY 47` is the resized-capture reading of the same strip rather than a different one; no titlebar height work is outstanding.",
+    "Search opens the sessions list find (sessionsViewPane.find) rather than a full-text search surface; transcript indexing is deferred as the request allows.",
+    "The composer row is still Caret's `Workspace` picker where the reference shows `caret v Select branch v This Mac v` plus the Plan/Build chips, `High` and four suggestion rows - that is the next slice, and the reference now gives its exact copy and placement.",
+    "The base session list still renders below the new navigation; the reference's empty home has no task rows."
+  ],
+
+  "ideUnaffected": "Patch 0022 touches only src/vs/sessions/**: three new files under contrib/home/browser, the sessions sidebar registration in contrib/sessions/browser/sessions.contribution.ts (imported only by the Sessions entry), and the Sessions desktop entry import. The repo test asserts the patch contains a/src/vs/sessions/ and does not contain src/vs/workbench/. desktop/npm run typecheck-client passed after the change.",
+
+  "commandsRun": [
+    "bun scripts/prepare-desktop.ts -> 'Caret desktop patches applied (20 patches, 18 removals)'",
+    "bun test apps/macos/test/ide-native-workbench.test.ts -> 52 pass, 0 fail, 289 expect() calls",
+    "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "bun run check:cursor-parity -> OK (340 keys checked, 32 authored by Caret, 0 mismatches)",
+    "bun test -> 1018 pass, 1 fail, and the process still exits 0. The one failure is pre-existing and outside this slice: upstream/omp/scripts/ci-release-publish.test.ts > 'published legal payloads > lists every legal file explicitly in the native core package' expects a fixed manifest.files list and now receives 2 extra entries (native/vcs.d.ts, native/embedded-addon.js); it exercises upstream/omp/scripts/ci-release-publish.ts, which this slice does not touch (`git status --porcelain -- upstream` is empty), so the module/test pair is simply out of step in the pinned checkout. Confirmed by running that file alone: 5 pass, 1 fail. This receipt first recorded 'no failures' from a tail-only reading of the run; corrected here.",
+    "bun run typecheck -> tsc --noEmit, clean",
+    "cd desktop && npx tsc --project ./src/tsconfig.json --noEmit --skipLibCheck -> clean",
+    "cd desktop && npm run typecheck-client -> clean",
+    "cd desktop && node build/next/index.ts transpile -> ✓ Total: 3394ms",
+    "launch .build/electron/Caret.app with VSCODE_DEV=1, --agents, --remote-debugging-port=9341 on fresh profiles",
+    "CDP Runtime.evaluate for every number in geometry-slice-b1.json",
+    "CDP Emulation.setDeviceMetricsOverride(1024x666, dsf 2) + Page.reload + Page.captureScreenshot -> caret-agent-home-slice-b1.png",
+    "CDP Page.captureScreenshot of the native 1440x900 window -> caret-agent-home-slice-b1-1440.png",
+    "CDP emulated 1710x1112 at DPR 2 + captureScreenshot -> caret-agent-home-1710x1112.png, the same window size as the reference screenshots (taken again after the sidebar trim: sidebar 267, utility 1321, cards 121x96 at a 13px gap, Getting Started and profile both absent)",
+    "swift scripts/image-ocr.swift on both reference screenshots and on the new Caret capture (text + bounding boxes; 32 runs, 22 runs, 28 runs)",
+    "python3 /tmp/geom-probe.py on the reference capture: dividers mode, rows/cols profiles per region, histogram of the utility region, and the card interior bands",
+    "cd desktop && git apply --reverse --check ../../patches/desktop/0022-caret-agent-home-chrome-navigation.patch -> OK against the working tree"
+  ],
+
+  "notes": [
+    "The patch file was rebuilt from a scratch git baseline this turn: the version on disk when this slice resumed had been mangled by a shell loop that emitted literal '+++ b/$f' headers, and prepare-desktop failed on it with 'bad git-diff - inconsistent new filename'. The rebuilt patch reverse-checks clean and prepare-desktop is idempotent again.",
+    "The manifest digest for 0022 is 2802c6d701b471241a2cb514ad8f160b596aa3df9e747140466da7d0adb38900 and apps/macos/test/ide-native-workbench.test.ts pins it.",
+    "Two correction passes were made against the first capture of this slice: the Projects section gained a real New Project row, and the Repositories header gained the working filter control, then the capture and every measurement above were re-taken."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "scope": "S4 fourth slice: place the customization entry points in the Agents Window sidebar, which is where the parity contract section 3 lists `Customize`, instead of the new-session composer.",
+  "capturedAt": "2026-09-14T23:40:00+07:00",
+  "branch": "main",
+  "revision": "working tree on top of 7a07935cab4 (S3 slice)",
+  "method": "dev build from the desktop/ checkout (patches 0001-0019 applied, `node build/next/index.ts transpile`) launched with `--agents --remote-debugging-port=9333` on a fresh profile, then CDP Runtime.evaluate against the live DOM.",
+  "change": {
+    "desktopPatch": "patches/desktop/0019-caret-customize-in-sidebar.patch - one hunk in src/vs/workbench/contrib/chat/browser/chat.shared.contribution.ts",
+    "what": "`chat.agentSessions.customizationEntryPoints` default changes from `product.quality !== 'stable'` to `false`.",
+    "why": "The setting's own description is the choice: 'Controls whether customization entry points appear in the new-session composer and active session headers instead of the Agents Window sidebar.' `true` is the composer placement, `false` is the sidebar placement. Section 3 of the plan lists `Customize` in the sidebar, so Caret ships the sidebar placement. This adds no second entry point and invents no new surface - it selects the one the base already implements.",
+    "isolation": "This is the only Caret desktop patch that touches src/vs/workbench/**, so it needs its own justification. Every consumer of the setting lives under src/vs/sessions/** (views/sessionsView.ts builds or tears down the sidebar customizations pane, newChatWidget.ts hides the composer chip, customizationsToolbar.contribution.ts gates its menus on `config.chat.agentSessions.customizationEntryPoints`), and all of those surfaces are Agents-window-only. Nothing reads the setting in the IDE window's own contributions."
+  },
+  "verified": {
+    "composerChip": "PASS. `.sessions-customize-trigger` still exists in the DOM but measures 0x0 inside a `display:none` slot, so the composer no longer offers Customize. Before this patch the same element was visible at 114x24 next to the workspace chip.",
+    "sidebarSurface": "PASS. `.agent-sessions-customizations-section` is present in `.part.sidebar` and renders 129px tall with the header text `Customizations`. With the setting at its previous default the section is removed from the sidebar entirely (views/sessionsView.ts `updateCustomizationsPane`), so its presence is the observable effect of the flip.",
+    "honesty": "PASS by construction: the section is the base's own customization surface wired to `sessions.customization.overview` and the customization item registrations, not a placeholder. Where the reference shows one `Customize` row, Caret shows the base's collapsible `Customizations` section - recorded as a remaining difference rather than smoothed over.",
+    "patchIntegrity": "PASS. `bun scripts/prepare-desktop.ts` reports 17 patches + 18 removals on the pinned base and the 0019 digest matches. The patch was also reverse-checked against the applied tree.",
+    "tests": "PASS. `places the customization entry points in the Agents sidebar, not the composer` pins the changed line, the single-file scope and the digest: apps/macos/test/ide-native-workbench.test.ts, 49 tests pass."
+  },
+  "stillOpen": [
+    "The sidebar section is a collapsible `Customizations` pane, not the reference's single `Customize` row, and its contents are the base's customization items (plugins, MCP servers, skills, instructions, agents, hooks, tools, harness settings) rather than the reference's grouping.",
+    "The `Search`, `Projects`, `Repositories` and `Getting Started` sidebar entries from section 3 still have no surface in this window; section 5 forbids shipping controls without a real capability, so they stay open rather than mocked.",
+    "The setting is APPLICATION-scoped with `experiment: { mode: 'auto' }`; like `sessions.layout.singlePaneDetailPanel`, an experiment service in a future build could override the default. Caret has no experiment backend, so the default is what applies."
+  ]
+}

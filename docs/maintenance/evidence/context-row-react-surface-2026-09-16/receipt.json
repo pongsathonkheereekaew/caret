@@ -1,0 +1,37 @@
+{
+  "slice": "Parity queue item 1 — the composer context chips become a React surface",
+  "capturedAt": "2026-09-16T03:05:00+07:00",
+  "branch": "main",
+  "method": "desktop source change (new React module + re-wired contribution) folded into patch 0024; npm run typecheck-client; bundle + copy + build-caret.ts --package; CDP read of the packaged Agents window; bun test apps/macos/test",
+  "context": {
+    "decision": "user approved the package: keep every §5 deviation, skip Cursor-only features (Tab, cloud/background agents, subagents, private models) for now, and work the parity queue starting with React coverage",
+    "reviewCorrection": "the earlier review called three files 'hand-built DOM'. Two build no DOM at all: agentHomePromptOptions.ts is a controller onto the base's prompt-options API (the rows are the base's), and agentHomeUtilityInput.ts is an EditorInput. Only agentHomeContextRow.ts really built markup."
+  },
+  "change": {
+    "newSurface": "agentHomeContextRowReact.ts — mountAgentHomeContextRow(host, model, handlers) renders the branch chip (button, runs the base's copy-branch command) and the runtime chip from a model, keeping media/agentHomeContextRow.css's class names",
+    "contribution": "agentHomeContextRow.ts keeps the decisions and holds a MutableDisposable of { wrapper, update, dispose }; the wrapper is display: contents so React's root element is not a flex item of the composer's picker row; a rebuilt row (the composer rebuilds it) gets a fresh root instead of an update into a detached element",
+    "patch": "0024-caret-agent-home-context-row.patch re-cut by replacing only the section for the file it creates plus adding the new React module; digest 9ac4d4b21b70b60ac95150f69e195b74aab2a584c0ddbe3639a03546e52c70d3"
+  },
+  "verified": {
+    "typecheckClient": "cd desktop && npm run typecheck-client -> 0 errors",
+    "onScreen": "packaged app, CDP: .caret-agent-home-context-chips present with display: contents and one chip; the runtime chip has aria-label 'Runs on this Mac' and reads 'This Mac'; the wrapper is inside .new-session-workspace-picker-container .sessions-workspace-category-picker",
+    "prepareDesktop": "27 patches, 18 removals",
+    "suites": "bun test apps/macos/test -> 593 pass / 0 fail",
+    "needles": "0024's needles now also pin export function mountAgentHomeContextRow(, host.style.display = 'contents';, the wrapper append, and expect 5 diff sections"
+  },
+  "notVerified": [
+    "The branch chip: this session has no git branch, so only the runtime chip rendered (correct conditional behaviour, but the branch chip's markup and its copy-branch click were not exercised on screen).",
+    "A forced composer rebuild re-mounting the React root: the MutationObserver guard's condition was observed to hold, but no rebuild was forced."
+  ],
+  "next": [
+    "Item 3: the panel's pane model (rail as a pane switcher, + opens instances, changes/file inside the panel) — NOT started.",
+    "Item 4: inject --caret-* at the workbench level instead of relying on CSS fallbacks.",
+    "Item 5: the AX/DOM comparison against the reference, which is what actually decides whether the windows match."
+  ],
+  "item2": {
+    "slice": "JSX for Caret's React surfaces",
+    "change": "src/tsconfig.json gains jsx: react-jsx, .tsx in include and the diffing fixtures excluded (new patch 0030, digest ee239984181b72d67f6b327059125355c233e3f616952bdba0f48e1e277bf033); build/next/index.ts gains esbuild jsx: 'automatic' and inlines react/jsx-runtime in inlineReactPlugin (folded into 0028, digest 7d4f607c75710bdffbb0769f04578334fe8d29a9c65292427ffcda720915d376); agentHomeContextRowReact.ts became .tsx and is written in JSX (folded into 0024, digest 46aa13b8bb6fe38e21cb257d92e05704ea63ebbb4caf5372d2f5e5b683c074ee).",
+    "verified": ["npm run typecheck-client clean with .tsx in the program", "the bundle has no external react/jsx-runtime import", "the packaged app window loads and the JSX component renders (runtime chip aria-label 'Runs on this Mac'), with the Apps panel rail and the four sidebar rows unaffected", "bun test apps/macos/test -> 593 pass / 0 fail, including a new test pinning the JSX configuration and 0028's bundler half"],
+    "patchSet": "28 patches, 18 removals; desktop-patch-set.test.ts applies them all in manifest order onto the pinned base"
+  }
+}

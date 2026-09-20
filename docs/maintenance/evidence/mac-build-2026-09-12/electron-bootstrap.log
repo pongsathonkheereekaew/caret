@@ -1,0 +1,8 @@
+command: PATH=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin:$PATH npm run electron -- arm64
+revision: ea1912fd6a05b80a56b2ad9b955075211deea521
+result: PASS
+artifact: .build/electron/Caret.app
+electron_version: 42.10.0
+executable: Mach-O 64-bit executable arm64
+version_probe: .build/electron/Caret.app/Contents/MacOS/Caret --version -> v42.10.0
+

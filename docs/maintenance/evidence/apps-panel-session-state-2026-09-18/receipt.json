@@ -1,0 +1,21 @@
+{
+  "scope": "Why the Agents window sometimes looks like it has no Terminal: the Apps panel's four-pane strip is present on a cold start and on an empty draft, but opening an existing session replaces it with the base side panel, whose tabs are Changes/Files/Browser/Search.",
+  "capturedAt": "2026-09-18T10:05:00+07:00",
+  "branch": "main",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app (the packaged build that passed check:packaged; one Caret bundle on disk, one com.caret.editor in LaunchServices)",
+  "method": "Cold launch via scripts/launch-caret-personal.ts, then macOS accessibility reads through the computer-use runtime. No guesswork: each state below is a screenshot plus an AX tree from the running window.",
+  "states": {
+    "coldStart": "The right panel is the Apps panel: toggle buttons 'Changes', 'Browser', 'Terminal', 'File' and an 'Open new tab menu', over the four cards Changes/Browser/Terminal/File. Terminal works: clicking it opens a real zsh tab in the panel (AX: tab (selected) 'zsh'; text field 'Terminal 2, zsh'; prompt 'pond@CEDIa-M cedia %').",
+    "afterOpeningAnExistingSession": "Same process, same window: clicking the sidebar row 'Reply with exactly: caret-live-ok' replaces the Apps panel with the base side panel - one 'Changes' tab reading 'No Changed Files', plus an 'Open new tab menu' whose entries are only 'Browser' and 'Search'. No Terminal entry, no four-pane strip."
+  },
+  "cause": "The Apps panel is an editor (`AgentHomeUtilityInput` in src/vs/sessions/contrib/home/browser/agentHomeUtility.contribution.ts). Its contribution opens it only when the main editor group is empty (`if (group.isEmpty)`) and closes itself when the active editor is not `AgentHomeUtilityInput`. A session's chat view occupies that group, so the utility is not opened and the part falls back to the base side panel, which carries none of the Apps strip.",
+  "notTheCause": [
+    "Not a second build: only VSCode-darwin-arm64/Caret.app exists, and the process running in both states above is that binary.",
+    "Not a missing feature: the four launchers, the real terminal instance and the panel model all exist and work (appsPanelModel.createTerminal -> terminalService.createTerminal); they are simply not mounted in this state.",
+    "Not panel position: the base Panel part is force-hidden by patch 0026 and getPanelPosition() returns Position.BOTTOM in this layout, so un-hiding it would give a bottom strip, not Cursor's right panel."
+  ],
+  "workaroundToday": "`Show Apps` (command `caret.agentHome.showApps`, default keybinding Ctrl+Command+I) toggles the Apps panel back on while a session is open.",
+  "fixShapeNotYetDone": "Keep the Apps panel mounted while a session owns the editor group - either by splitting the editor node so the utility keeps its own group beside the chat, or by making the four panes contributions of the side panel itself instead of editors. Both change layout code in the sessions workbench and need a shell rebuild plus a live receipt, so neither was attempted in this session.",
+  "methodNote": "The Code-OSS checkout under desktop/ is partially redacted (workbench service method and variable names are single letters), so changes there should stay within the readable sessions/home layer."
+}

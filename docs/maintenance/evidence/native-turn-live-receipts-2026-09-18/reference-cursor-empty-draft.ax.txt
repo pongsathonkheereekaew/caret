@@ -1,0 +1,76 @@
+Window: "Cursor Agents", App: Cursor.
+0 standard window Cursor Agents, Secondary Actions: Raise
+	1 container Cursor Agents
+		2 container
+			3 HTML content Cursor Agents, URL: vscode-file://vscode-app/Applications/Cursor.app/Contents/Resources/app/out/vs/code/electron-sandbox/workbench/workbench.html
+				4 container
+					5 container
+						6 pop up button No Repo
+						7 pop up button This Mac
+						8 text entry area (settable) Plan, Build, / for skills, @ for context
+
+							9 text Plan, Build, / for skills, @ for context
+						10 toolbar
+							11 pop up button Add agents, context, tools
+							12 pop up button High
+								13 text High
+							14 button Start voice input
+						15 button Plan New Idea ⇧Tab
+							16 text Plan New Idea
+							17 text ⇧Tab
+						18 button Multitask
+						19 button Build from a design Turn a frame into working UI in this repo
+							20 text Build from a design
+							21 text Turn a frame into working UI in this repo
+						22 button Dismiss recommendation
+						23 button Deploy my prototype Put it on a live link anyone can open
+							24 text Deploy my prototype
+							25 text Put it on a live link anyone can open
+						26 button Dismiss recommendation
+						27 button Start with a plan Align on implementation before writing code
+							28 text Start with a plan
+							29 text Align on implementation before writing code
+						30 button Debug an issue Find root causes and fix tricky bugs
+							31 text Debug an issue
+							32 text Find root causes and fix tricky bugs
+					33 container
+						34 splitter Resize panel
+						35 container Panel editor-panel-group
+							36 container
+								37 tab group Tabs
+									38 tab (selected) Browser Close Browser, Value: 1
+								39 combo box (settable) Open new tab menu
+								40 button Enter Full Screen
+								41 button Hide Apps
+								42 container Browser Close Browser
+									43 button (disabled) Back
+									44 button (disabled) Forward
+									45 button (disabled) Reload
+									46 button (disabled) Bookmark This Page
+									47 text Search or enter URL
+									48 pop up button More options
+									49 button Show favorites and history
+									50 container
+										51 text field (settable) Search history or enter a URL
+										52 container
+											53 heading Recents
+												54 text Recents
+											55 button Cursor Changelog cursor.com/changelog
+												56 text Cursor Changelog
+												57 text cursor.com/changelog
+											58 button Cursor Docs cursor.com/docs
+												59 text Cursor Docs
+												60 text cursor.com/docs
+					61 container Notifications alt+T
+	62 close button
+	63 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	64 minimize button
+65 menu bar
+	66 Cursor
+	67 File
+	68 Edit
+	69 View
+	70 Window
+	71 Help
+
+The focused UI element is 3 HTML content Cursor Agents, URL: vscode-file://vscode-app/Applications/Cursor.app/Contents/Resources/app/out/vs/code/electron-sandbox/workbench/workbench.html

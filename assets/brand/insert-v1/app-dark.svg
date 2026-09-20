@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 256 256" fill="none">
+  <title>Cedia Insert — Dark</title>
+  <rect width="256" height="256" fill="#000000"/>
+  <g stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M72 76 124 128 72 180"/>
+    <path d="M184 76v104"/>
+  </g>
+</svg>

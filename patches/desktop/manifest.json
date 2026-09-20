@@ -1,0 +1,142 @@
+{
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "patches": [
+    {
+      "file": "0001-cedia-startup-defaults.patch",
+      "sha256": "66295b8610a6210105c5c1db20f19cd05d4bc54fc2c83656c76136df89ae6912"
+    },
+    {
+      "file": "0003-cedia-agents-window-proposals.patch",
+      "sha256": "3f207593bd120397aa38137c7b3afc8030ab297b342ee7e98dd320f39ecf6694"
+    },
+    {
+      "file": "0005-cedia-remove-copilot-sessions.patch",
+      "sha256": "57b1d1033e3989abe0a169ee096bf4fe065ef8c0bc79613a85480cbd4cb97433"
+    },
+    {
+      "file": "0006-cedia-unwire-agent-harnesses.patch",
+      "sha256": "1cff37c52fc92894d4a24a61ff3514e0cce45e534d02ed9011c3cb723295de01"
+    },
+    {
+      "file": "0007-cedia-drop-harness-pickers.patch",
+      "sha256": "321ecb03aa6d39833497a21fbd985b3a1ad2a092c236d20da2d6c3dab77befd3"
+    },
+    {
+      "file": "0009-cedia-no-default-chat-agent.patch",
+      "sha256": "42f5ea483a12facea36ac0f7e7f86e8435e1532968d9685e5c32c8c651af70ca"
+    },
+    {
+      "file": "0011-cedia-sessions-model-picker.patch",
+      "sha256": "65a95845f6c2d148da2af749c6e00c9f27eb4471164551e63372d55cdc88007f"
+    },
+    {
+      "file": "0012-cedia-remove-copilot-status-entry.patch",
+      "sha256": "40080292f1aec4533e33a500c7e9661204317fecf5d41830f8a493f7c243198a"
+    },
+    {
+      "file": "0013-cedia-sessions-option-key-bridge.patch",
+      "sha256": "7014d5cdc632b5f7118b2b777cfc297110b462c9676e07f2077653fc103e6886"
+    },
+    {
+      "file": "0014-cedia-sessions-pick-writethrough.patch",
+      "sha256": "13ea2065a0b66583c6ff8c088528383b648c7231b47586e101e84ba1d9537033"
+    },
+    {
+      "file": "0019-cedia-customize-in-sidebar.patch",
+      "sha256": "3d7bd1af74a7be6844595a52f7c1f922d839a1a78836441c923372c9ba34caf1"
+    },
+    {
+      "file": "0027-cedia-agents-open-new-tab-menu.patch",
+      "sha256": "f50b072ee3c7e24042e3a3cd4ea2e19843ad8ce1248511d8e0ba9d6066557445"
+    },
+    {
+      "file": "0028-cedia-inline-react-in-client-bundles.patch",
+      "sha256": "9173233ec9a78614b2acef54ca20d9f4154db681231aa7386cb9625a18db6573"
+    },
+    {
+      "file": "0032-cedia-no-base-agent-host.patch",
+      "sha256": "8790cee9917ed9563b985cfbe07ca9d33e04b0918bf98397bb52d66c1bbdf3a7"
+    },
+    {
+      "file": "0033-cedia-agents-no-copilot-composer-controls.patch",
+      "sha256": "a54bc9dc9a65ff60ec97627085674b20bf43d93f3a15bbaad9450d9b3f27089a"
+    },
+    {
+      "file": "0034-cedia-drop-agent-workbench-shell.patch",
+      "sha256": "f69b399c4e2aee9280982d2f9f05f618a57a71227e297b62670a1335579b2e32"
+    },
+    {
+      "file": "0036-cedia-sash-accessible-name.patch",
+      "sha256": "f2b59593868110bed4e940ff3c4444042adef5113c22f1fb37a200b473fa708a"
+    },
+    {
+      "file": "0037-cedia-parts-splitter-names.patch",
+      "sha256": "992cc87b05ff887cb73fc11e60360aa5c9ce262917a6701b3b4f8436a0a271e2"
+    },
+    {
+      "file": "0040-cedia-model-picker-provider-tabs.patch",
+      "sha256": "61933b40766f3913999c7858fb5307768787b55a9e84c2721388e44ada327f5e"
+    },
+    {
+      "file": "0041-cedia-model-picker-provider-marks.patch",
+      "sha256": "bda168284b4a7c8a5736fb515016120bdabb7543888a342c51e2d28cb4a16e14"
+    },
+    {
+      "file": "0043-cedia-model-picker-provider-identity.patch",
+      "sha256": "4f5286a0524550817661ee545e4333d97e78b8d8ea518afdee5994414f558d86"
+    },
+    {
+      "file": "0044-cedia-model-picker-no-empty-built-in-tab.patch",
+      "sha256": "61112e1c68c3e4050156de35cab709ef6b390bf700fe634e638e51ffde8b1a43"
+    },
+    {
+      "file": "0045-cedia-model-picker-provider-field.patch",
+      "sha256": "0d96b71a691d2212f95ce14602cb9482a80f65f2d1c9388b95e6f08e0dc607ab"
+    },
+    {
+      "file": "0046-cedia-session-option-pickers-in-agents-window.patch",
+      "sha256": "5dae2e4b274704b55d9575c575a07a35f57922748e91bd5a1f7e9a2198e1ee92"
+    },
+    {
+      "file": "0047-cedia-own-model-picker-in-agents-window.patch",
+      "sha256": "a46db01712e446b8a6794e139e24371ec9dec1cc88f2521ffb8bf04c2426aa5d"
+    },
+    {
+      "file": "0056-cedia-agent-window.patch",
+      "sha256": "b8c54be237432d77bc708c9e08859566ef01b7b38773767fa0bbf41dd98134d8"
+    },
+    {
+      "file": "0057-cedia-browser-navigation-owner.patch",
+      "sha256": "adea10be31ab25f835ccc56ffee8701b985fd3924498f5f152bcd55946e9a03d"
+    },
+    {
+      "file": "0058-cedia-agent-zoom-and-traffic-lights.patch",
+      "sha256": "ef59fd2ba12e3fa1d6922e84dfbb60ebdba3f3196a38545c6d85dd77b9d0ae1b"
+    },
+    {
+      "file": "0059-cedia-single-ide-agent.patch",
+      "sha256": "430e1dcde6978c0f46d3d4cd0c36acb07d8f8fa1185319a782909b2b572f6fe0"
+    }
+  ],
+  "removals": [
+    "src/vs/workbench/contrib/agentWorkbench",
+    "src/vs/platform/agentHost/node/copilot",
+    "src/vs/platform/agentHost/node/claude",
+    "src/vs/platform/agentHost/node/codex",
+    "src/vs/platform/agentHost/test",
+    "src/vs/sessions/contrib/providers/copilotChatSessions",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostAgentPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostClaudePermissionModePicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostCodexApprovalsPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostModePicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostPermissionPickerActionItem.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostPermissionPickerDelegate.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/agentHostSessionConfigPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/mobile/mobileAgentHostModePicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/mobile/mobileChatInputConfigPicker.ts",
+    "src/vs/sessions/contrib/providers/agentHost/browser/mobile/mobileChatPhoneInputPresenter.ts",
+    "src/vs/sessions/contrib/providers/agentHost/test/browser/agentHost/agentHostPermissionPickerDelegate.test.ts",
+    "src/vs/sessions/contrib/providers/agentHost/test/browser/agentHost/agentHostSessionConfigPicker.test.ts",
+    "src/vs/sessions/contrib/providers/agentHost/test/browser/agentHostClaudePermissionModePicker.test.ts"
+  ]
+}

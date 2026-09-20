@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    // The ported surface's own browser tests need the upstream workspace's
+    // vitest browser runner, which this workspace does not install; they are
+    // the only files that do not stand on their own here.
+    "vendor/synara/apps/web/src/**/*.browser.tsx",
+    "vendor/synara/apps/web/src/**/*.test.ts",
+    "vendor/synara/apps/web/src/**/*.test.tsx"
+  ],
+  "include": [
+    "vendor/synara/apps/web/src/**/*.ts",
+    "vendor/synara/apps/web/src/**/*.tsx",
+    "vendor/synara/packages/contracts/src/**/*.ts",
+    "vendor/synara/packages/shared/src/**/*.ts"
+  ]
+}

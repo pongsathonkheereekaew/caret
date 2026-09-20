@@ -1,0 +1,25 @@
+button	Add Context...
+button	Add Repository
+button	Automations
+button	Browser
+button	Changes
+button	Customize
+button	Dismiss tip
+button	File
+button	Filter Repositories
+button	Go Back
+button	Go Forward
+button	IDE
+button	New Chat
+button	New Project
+button	Search
+button	Send
+button	Start voice input
+button	Terminal
+button	Toggle Pinned Summary
+button	Toggle Side Bar
+button	Toggle Side Panel
+pop up button	Models, Claude Sonnet 4
+pop up button	More Actions...
+pop up button	Open new tab menu
+text entry area	The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1

@@ -1,0 +1,107 @@
+Cursor.app 3.20.17 - Agents window accessibility tree, captured 2026-09-14T20:34+07:00
+Method: Computer Use (AX) via @oai/sky get_app_state on the live window titled "Cursor Agents".
+No task/project names beyond the sidebar repo-group labels are recorded here.
+
+Window: "Cursor Agents", App: Cursor.
+0 standard window Cursor Agents, Secondary Actions: Raise
+	1 container Cursor Agents
+		2 container
+			3 HTML content Cursor Agents, URL: vscode-file://vscode-app/Applications/Cursor.app/Contents/Resources/app/out/vs/code/electron-sandbox/workbench/workbench.html
+				4 container
+					5 container
+						6 button Hide Sidebar
+						7 button (disabled) Go Back
+						8 button (disabled) Go Forward
+						9 button New Chat ⌘N
+							10 text New Chat
+							11 text ⌘N
+						12 button Search ⌘K
+							13 text Search
+							14 text ⌘K
+						15 button Automations
+							16 text Automations
+						17 button Customize
+							18 text Customize
+						19 container
+							20 button Projects New Project
+								21 text Projects
+								22 button New Project
+							23 button New Project
+								24 text New Project
+							25 button Repositories Customize Sidebar Open Workspace
+								26 text Repositories
+								27 pop up button Customize Sidebar
+								28 pop up button Open Workspace
+							29 sortable caret
+								30 text caret
+							31 sortable caret
+								32 text caret
+							33 sortable cedia
+								34 text cedia
+						35 container Getting Started
+							36 text Getting Started
+							37 button Skip step 2 of 3
+							38 button Connect Slack
+						39 pop up button Account menu
+							40 text pond
+						41 toggle button Description: Settings, Value: 0
+						42 splitter Description: Resize sidebar, Value: 100
+					43 container
+						44 button IDE
+						45 pop up button Chat actions
+						46 container
+							47 pop up button caret
+							48 combo box (settable) main
+								49 text main
+							50 pop up button This Mac
+							51 text entry area (settable) Plan, Build, / for skills, @ for context
+
+								52 text Plan, Build, / for skills, @ for context
+							53 toolbar
+								54 pop up button Add agents, context, tools
+								55 pop up button High
+									56 text High
+								57 button Start voice input
+							58 button Plan New Idea ⇧Tab
+								59 text Plan New Idea
+								60 text ⇧Tab
+							61 button Multitask
+							62 button Run in Cloud
+							63 button Build from a design Turn a frame into working UI in this repo
+								64 text Build from a design
+								65 text Turn a frame into working UI in this repo
+							66 button Dismiss recommendation
+							67 button Deploy my prototype Put it on a live link anyone can open
+								68 text Deploy my prototype
+								69 text Put it on a live link anyone can open
+							70 button Dismiss recommendation
+							71 button Start with a plan Align on implementation before writing code
+								72 text Start with a plan
+								73 text Align on implementation before writing code
+							74 button Debug an issue Find root causes and fix tricky bugs
+								75 text Debug an issue
+								76 text Find root causes and fix tricky bugs
+					77 container
+						78 splitter Description: Resize panel, Value: 100
+						79 container Panel editor-panel-group
+							80 container
+								81 tab group Tabs
+								82 combo box (settable) Open new tab menu
+								83 button Enter Full Screen
+								84 button Hide Apps
+								85 button Changes
+								86 button Browser
+								87 button Terminal
+								88 button File
+					89 container Notifications alt+T
+	90 close button
+	91 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	92 minimize button
+93 menu bar
+	94 Cursor
+	95 File
+	96 Edit
+	97 View
+	98 Window
+	99 Help
+

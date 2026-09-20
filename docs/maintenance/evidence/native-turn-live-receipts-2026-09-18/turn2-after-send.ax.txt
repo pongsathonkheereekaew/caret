@@ -1,0 +1,144 @@
+Window: "Agents", App: Caret.
+0 standard window Agents, Secondary Actions: Raise
+	1 container Agents
+		2 container
+			3 HTML content Agents, URL: vscode-file://vscode-app/Users/pond/caret/VSCode-darwin-arm64/Caret.app/Contents/Resources/app/out/vs/sessions/electron-browser/sessions.html
+				4 container
+					5 container
+						6 container
+							7 toolbar
+								8 toggle button Description: Toggle Side Bar (⌘B), Value: 1
+									9 text 
+							10 toolbar
+								11 button Go Back (⌃-)
+									12 text 
+								13 button (disabled) Go Forward (⌃⇧-)
+									14 text 
+							15 toolbar
+								16 toggle button Description: Toggle Side Panel (⌥⌘B), Value: 1
+									17 text 
+							18 toolbar
+								19 button IDE (⇧⌘A)
+						20 container
+							21 splitter Resize sidebar
+							22 container
+								23 container
+									24 container
+										25 outline Sessions
+											26 container
+												27 row Automations
+													28 container
+														29 text Automations
+												30 row cedia, 15
+													31 container
+														32 text cedia
+												33 row (selected) Run the shell command `echo caret-live-ok` and show me its output., updated now, State: Completed
+													34 container
+														35 text 
+														36 text Run the shell command `echo caret-live-ok` and show me its output.
+														37 text  · now
+												38 row Run the shell command `echo caret-live-ok` and show me its output. Then create a, updated 7 mins ago, State: Completed
+													39 container
+														40 text 
+														41 text Run the shell command `echo caret-live-ok` and show me its output. Then create a
+														42 text  · 7 mins ago
+												43 row Reply with exactly: caret-live-ok, updated 2 hrs ago, State: Completed
+													44 container
+														45 text 
+														46 text Reply with exactly: caret-live-ok
+														47 text  · 2 hrs ago
+												48 row final check: in place, updated 8 mins ago, State: Completed
+													49 container
+														50 text 
+														51 text final check: in place
+														52 text  · 8 mins ago
+												53 row diag three, updated 6 hrs ago, State: Completed
+													54 container
+														55 text 
+														56 text diag three
+														57 text  · 6 hrs ago
+												58 row Show 10 more sessions
+													59 container
+														60 text +10 more
+								61 button New Chat
+								62 button Search
+								63 button Automations
+								64 button Customize
+								65 text Projects
+								66 button New Project
+								67 text Repositories
+								68 button Filter Repositories
+								69 button Add Repository
+								70 text No repository open
+							71 container
+								72 container
+									73 splitter Resize panel
+									74 container
+										75 container
+											76 text 
+											77 text Run the shell command `echo caret-live-ok` and show me its output.
+											78 toolbar
+												79 pop up button More Actions...
+													80 text 
+											81 container
+												82 container
+													83 container
+														84 content list Chat
+															85 container
+																86 container Run the shell command `echo caret-live-ok` and show me its output.
+																	87 container
+																		88 toolbar
+																			89 button Clears the chat and undoes all changes
+																		90 container
+																			91 text Run the shell command  echo caret-live-ok  and show me its output.
+																		92 container Sent 9/18/2026, 1:40 PM
+																			93 text 1:40 PM
+																94 container **Caret stopped this turn.** Connect error resource_exhausted: Error [details: aiserver.v1.ErrorDetails: {"error":"ERROR_RATE_LIMITED","details":{"title":"Increase limits for faster responses","detail":"You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue.","isRetryable":false,"showRequestId":false,"buttons":[{"label":"Switch to Auto","switchModel":{"suggestedModel":"default"}}],"analyticsMetadata":{"actionRequired":"upgrade"}},"isExpect…] Inspect this in the accessible 
+																	95 container
+																		96 container
+																			97 text Caret stopped this turn.  Connect error resource_exhausted: Error [details: aiserver.v1.ErrorDetails: {"error":"ERROR_RATE_LIMITED","details":{"title":"Increase limits for faster responses","detail":"You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue.","isRetryable":false,"showRequestId":false,"buttons":[{"label":"Switch to Auto","switchModel":{"suggestedModel":"default"}}],"analyticsMetadata":{"actionRequired":"upgrade"}},"isExpect…]
+																		98 text Working
+														99 container
+															100 container
+																101 editor (settable) Placeholder: Describe what to build, Description: The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1
+															102 toolbar
+																103 button Add Context... (⌘/)
+																	104 text 
+																105 pop up button Agent
+																	106 text 
+																	107 text Agent
+																108 container Models, DeepSeek V4.1 Flash
+																	109 pop up button Models, DeepSeek V4.1 Flash
+																		110 text 
+																		111 text DeepSeek V4.1 Flash
+															112 toolbar
+																113 toggle button Description: Dictate (Speech to Text) (⌘I), Value: 0
+																	114 text 
+																115 button Cancel (⌘Escape)
+																	116 text 
+									117 container
+										118 container
+											119 toggle button Description: Changes, Value: 0
+											120 toggle button Description: Browser, Value: 0
+											121 toggle button Description: Terminal, Value: 0
+											122 toggle button Description: File, Value: 0
+											123 pop up button Open new tab menu
+											124 toggle button Description: Toggle Pinned Summary, Value: 0
+											125 container
+												126 button Changes
+												127 button Browser
+												128 button Terminal
+												129 button File
+					130 text Working
+	131 close button
+	132 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	133 minimize button
+134 menu bar
+	135 Caret
+	136 File
+	137 Edit
+	138 View
+	139 Window
+	140 Help
+
+The focused UI element is 126 button Changes

@@ -1,0 +1,21 @@
+{
+  "slice": "The IDE entry opens an editor window and then returns to it",
+  "capturedAt": "2026-09-15T16:45:00+07:00",
+  "branch": "main",
+  "method": "desktop patch 0015 correction + CDP clicks on the running Agents window + bun test + bun run typecheck",
+  "problem": {
+    "first": "the header's IDE entry handed the folder to the OS protocol with forceNewWindow, so every press opened another editor window; a user moving back and forth collected one window per press",
+    "second": "the first correction routed the entry to the Caret extension's caret.showIde, which is this app's chrome switch. Inside the Agents window that call changes the extension's own state without producing an editor surface - the window kept the sessions chrome (status bar and activity bar still hidden, .agent-sessions-workbench still present) - so the button read as doing nothing, which is what the user reported next"
+  },
+  "change": "the entry now focuses another main window when one is open and only opens one when there is none, keeping the base folder handoff and the chat session it carries for the window it opens. The two sibling commands already in this file do the same thing for their own entry points, so this is the base behaviour with the editor's identity as the target.",
+  "verified": {
+    "firstPress": "with a single window open, a CDP click on the header widget took the page count from 1 to 2: an editor window exists and is titled Caret",
+    "secondPress": "clicking again from the Agents window left the count at 2 - the existing editor window is focused instead of a third being created",
+    "patchAgreement": "0015 regenerated for its own file only, manifest digest updated, and apps/macos/test/desktop-patch-set.test.ts passes (24/24 patches apply from the pinned base and the produced tree equals the checkout)",
+    "typecheck": "bun run typecheck - clean"
+  },
+  "notVerified": [
+    "Which window macOS actually raises: focusing was checked by counting windows and by the absence of a new one, not by reading the frontmost window.",
+    "The packaged app: the checks ran in the dev Agents window."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "slice": "omp-runtime-line-probe",
+  "date": "2026-09-16",
+  "trigger": "apps/host's real-OMP test fails on this machine with unsupported_omp: the installed binary is omp/18.2.1 while isSupportedOmpVersion accepts the pinned 18.1.x line (baseline 18.1.18)",
+  "appImpact": "none for the shipped app: it spawns its own pinned, patched runtime (dist/omp-standalone/omp at 18.1.18) and the host probes that binary",
+  "method": "probe outside the repository using OmpRpcClient as-is against /Users/pond/.local/bin/omp (stock, unpatched); nothing in the tree was modified",
+  "measured": {
+    "ready": { "supportedProtocolVersions": [1, 2], "maxFrameBytes": 1048576, "caretBridgeMarkers": "none (stock OMP has no caret_* commands; they come from patches/omp/)" },
+    "negotiate_protocol_v2": "ok",
+    "get_state": "ok",
+    "get_available_models": "ok (data.models present)",
+    "get_login_providers": "ok (data.providers present)",
+    "caret_get_model_roles": "refused by the capability gate: 'This OMP runtime does not advertise the Caret model-role bridge'",
+    "isSupportedOmpVersion('omp/18.2.1')": false
+  },
+  "conclusion": [
+    "the RPC envelope the adapter pins is intact on 18.2.1",
+    "the only barrier to a user-installed 18.2 is the version predicate, plus the fact that a stock 18.2 carries none of the Caret bridge commands (they would need patches/omp/ rebased onto the 18.2 source)",
+    "the failing test is a true signal and is recorded as open work rather than skipped"
+  ],
+  "notVerified": [
+    "the adapter contract suite was not run end to end on 18.2.1: scripts/omp-smoke.ts refuses a non-18.1 runtime up front, and running it needs a reviewed predicate change plus the patch rebase",
+    "no patched 18.2 build was measured"
+  ]
+}

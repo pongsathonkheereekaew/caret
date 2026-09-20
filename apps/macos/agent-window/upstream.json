@@ -1,0 +1,40 @@
+{
+  "project": "Synara",
+  "repository": "https://github.com/Emanuele-web04/synara",
+  "commit": "33333439c4b9c74d0097bc01196cccc921f67cf3",
+  "commitDate": "2026-09-17",
+  "license": {
+    "spdx": "MIT",
+    "file": "vendor/synara/LICENSE",
+    "copyright": [
+      "Copyright (c) 2026 T3 Tools Inc.",
+      "Copyright (c) 2026 Emanuele Di Pietro"
+    ]
+  },
+  "vendor": {
+    "included": [
+      "vendor/synara/apps/web/src",
+      "vendor/synara/apps/web/public",
+      "vendor/synara/packages/contracts/src",
+      "vendor/synara/packages/shared/src"
+    ],
+    "excluded": [
+      "apps/desktop",
+      "apps/server",
+      "apps/marketing",
+      "apps/web/e2e",
+      "apps/web/perf",
+      "apps/web/scripts",
+      "apps/web/src/**/*.test.*",
+      "apps/web/src/test",
+      "packages/*/src/**/*.test.*"
+    ],
+    "adaptations": [
+      "The app-owned bootstrap injects Cedia's window.nativeApi before importing the vendored main module.",
+      "Public asset URLs use Vite's relative base so vscode-file and file renderers can load the bundle.",
+      "Workspace aliases resolve @synara/contracts and @synara/shared directly to these vendored sources.",
+      "Cedia branding replaces the upstream display name and splash mark while retaining the Synara UI source.",
+      "The Archived settings panel gains a \"Delete all\" action beside its count (Cedia addition, not upstream): archived threads had no bulk way out, and the action reuses the panel's own delete helper and children-before-parents order. Per-row archived-thread delete uses inline confirm (trash -> \"Delete?\" + confirm/cancel, RareUI DeleteButton interaction adapted to the flat settings system with no motion dependency); right-click Delete keeps the native confirm dialog."
+    ]
+  }
+}

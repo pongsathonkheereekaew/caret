@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ "${1:-}" = "--version" ]; then
+  # `CEDIA_FAKE_OMP_VERSION` lets a test drive the runtime version gate without a
+  # second fixture; the default stays the baseline.
+  printf '%s\n' "${CEDIA_FAKE_OMP_VERSION:-omp/18.1.18}"
+  exit 0
+fi
+exec "${CEDIA_NODE:-node}" "$SCRIPT_DIR/fake-host.mjs" "$@"

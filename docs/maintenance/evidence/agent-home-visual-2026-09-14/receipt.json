@@ -1,0 +1,52 @@
+{
+  "scope": "Agent Home visual sprint, slice 1: replace the blank right editor group with the reference's four-card utility area, and set the reference's three-column proportions and composer width.",
+  "capturedAt": "2026-09-14T23:52:00+07:00",
+  "branch": "main",
+  "revision": "working tree on top of 7a07935cab4 (S3 slice)",
+  "method": "dev build from the desktop/ checkout (patches 0001-0021 applied, `node build/next/index.ts transpile`) launched with `--agents --remote-debugging-port=9339` on a fresh profile; geometry read from the live DOM with CDP Runtime.evaluate, screenshot captured with CDP Page.captureScreenshot.",
+  "referenceScreenshot": "Screenshot 2569-09-14 at 21.33.09.png - NOT SUPPLIED AS A FILE. The sprint brief names it, but only the brief text was attached, so the acceptance baseline used here is the recorded measurement of that same capture in docs/caret-ui-reference-baseline.json (2048x1331; dividers at x=320 and x=1587, y=47; ratios 15.625% / 61.865% / 22.51%).",
+  "previousScreenshot": "Screenshot 2569-09-14 at 23.33.27.png - NOT SUPPLIED AS A FILE.",
+  "newScreenshot": "docs/maintenance/evidence/agent-home-visual-2026-09-14/caret-agent-home-after.png (2880x1800 captured pixels at devicePixelRatio 2)",
+  "visionCheck": "NOT PERFORMED. The image-reading tool failed with HTTP 429 for the capture, so no claim in this receipt is based on looking at the screenshot. Every claim below is a DOM measurement from the running window.",
+  "change": {
+    "desktopPatch": "patches/desktop/0021-caret-agent-home-utility.patch - 4 new files under src/vs/sessions/contrib/home/browser/** plus one import line in src/vs/sessions/sessions.common.main.ts",
+    "utilityPane": "New AgentHomeUtilityInput/AgentHomeUtilityEditor pair renders the reference's 2x2 card grid in the right column. Each card is a launcher for a command Caret already has: Changes -> workbench.action.agentSessions.newChangesTab, Browser -> workbench.action.agentSessions.newBrowserTab, Terminal -> workbench.action.terminal.toggleTerminal, File -> workbench.action.quickOpen. No embedded fake surface, no address bar, no textarea, no copied implementation.",
+    "noEditorChrome": "AgentHomeUtilityEditor adds caret-agent-home-utility-active to the editor part while it owns the group, and the patch CSS drops .editor-group-container > .title for that state, so the tab strip, Add Tab and the close control are gone from the empty home. The input is a singleton with EditorInputCapabilities.CannotClose.",
+    "supersededBy": "docs/maintenance/evidence/agent-home-apps-panel-2026-09-15/receipt.json - the caret-agent-home-utility-active class is gone; the current rule derives the same suppression from the panel's own DOM via :has() so it cannot go stale, and the panel now draws the pane's only strip (D1-D5 in the plan).",
+    "proportions": "The contribution sets the sidebar to the parity contract's 255 logical px and the editor (utility) part to 22.5% of the window width at startup; the CSS narrows the composer card and the row above it to the reference's 608px, centred.",
+    "scoping": "Everything is guarded by IsSessionsWindowContext and lives under src/vs/sessions/**, so the IDE window keeps its own layout, editor chrome and composer."
+  },
+  "measured": {
+    "sidebar": "0,35 255x861 (width matches the parity contract value; 17.8% of the window against the reference's 15.6%)",
+    "center": "255,35 853x861 = 59.4% (reference 61.9%)",
+    "rightUtility": "1112,35 324x861 = 22.6% (reference 22.5%)",
+    "composer": "378,424 608x86, horizontally centred in the centre column (column centre 681.5, composer centre 682) - the reference composer is 608 of a 1267-wide centre",
+    "utilityGrid": "1129,338 290x290, centred in the utility column; cards Changes 1129,338 / Browser 1278,338 / Terminal 1129,487 / File 1278,487, each 141x141",
+    "editorChrome": "no .tabs-container in .part.editor; the utility input is the only editor in the group"
+  },
+  "fixedVisibleDifferences": [
+    "Blank right editor canvas replaced by the four-card utility grid.",
+    "Right column narrowed from ~40% of the window to 22.6%, matching the reference's 22.5%.",
+    "Centre column widened to 59.4% (was ~40%).",
+    "Composer narrowed to the reference's 608px and centred (was 800px, full column width).",
+    "Editor tab strip, Add Tab and the close control are no longer shown in the empty home."
+  ],
+  "remainingVisibleDifferences": [
+    "Sidebar is still the base session tree: no full-width New Chat / Search / Automations / Customize rows, no Projects section, no Repositories section, no Getting Started card, no profile/settings rows, and the Customizations pane still renders as a detached footer.",
+    "Composer has the workspace picker and Customize chips only: no branch selector, no runtime chip beyond the session-type picker, no quick-action chips (Plan New Idea / Multitask / Run on This Mac) and no suggestion rows.",
+    "Titlebar still contains the 448x24 `Show Sessions` widget in the centre slot; the reference has no such control.",
+    "Left column is 255px by contract value (17.8% of a 1440-wide window) while the reference capture measures 15.6%; the two only agree at the reference viewport."
+  ],
+  "blockedOrNotDone": {
+    "exactReferenceViewport": "The 2048x1331 checkpoint could not be reproduced exactly: the window is 1440x900 CSS (2880x1800 captured at dpr 2), the renderer has no resize API, and `Browser.getWindowForTarget` returns no windowId over Electron's CDP endpoint. A test-only initial-bounds seam in Electron main is the next step.",
+    "visionComparison": "Blocked by the image tool HTTP 429 above."
+  },
+  "commandsRun": [
+    "npx tsc --project ./src/tsconfig.json --noEmit --skipLibCheck (several iterations while fixing type errors, final run clean)",
+    "node build/next/index.ts transpile",
+    "launch .build/electron/Caret.app with --agents --remote-debugging-port=9339 on a fresh profile",
+    "CDP Runtime.evaluate for every geometry value above",
+    "CDP Page.captureScreenshot -> caret-agent-home-after.png",
+    "git apply --reverse --check patches/desktop/0021-caret-agent-home-utility.patch (OK against the working tree)"
+  ]
+}

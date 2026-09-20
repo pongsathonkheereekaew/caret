@@ -1,0 +1,40 @@
+{
+  "slice": "omp-version-floor",
+  "date": "2026-09-16",
+  "instruction": "do not pin the OMP version; Caret should follow OMP as it updates",
+  "policyBefore": "accepts the baseline (18.1.18) or a later patch of the same minor line; rejects another minor line so the baseline has to move explicitly (OMP_SUPPORTED_MAJOR_MINOR = '18.1')",
+  "policyAfter": "the baseline is a floor: anything newer is accepted (later patch, later minor, later major), anything older or malformed is refused by name; capabilities come from the runtime's own ready frame",
+  "removed": ["OMP_SUPPORTED_MAJOR_MINOR (a second, contradicting policy)"],
+  "files": [
+    "packages/omp-adapter/src/types.ts",
+    "packages/omp-adapter/src/index.ts",
+    "apps/host/src/service.ts",
+    "apps/host/src/router.ts",
+    "scripts/omp-smoke.ts",
+    "scripts/omp-g1-smoke.ts",
+    "scripts/omp-ui-smoke.ts",
+    "packages/omp-adapter/test/version.test.ts",
+    "apps/host/test/service.test.ts"
+  ],
+  "contractSuitesAgainstStockOmp1821": {
+    "binary": "/Users/pond/.local/bin/omp",
+    "version": "omp/18.2.1",
+    "scripts/omp-smoke.ts": { "exit": 0, "receiptNamesVersion": "omp/18.2.1" },
+    "scripts/omp-g1-smoke.ts": { "exit": 0 },
+    "scripts/omp-ui-smoke.ts": { "exit": 0 }
+  },
+  "unitGates": {
+    "packages/omp-adapter/test/version.test.ts": "6 pass",
+    "apps/host/test/service.test.ts": "15 pass (the real-OMP test that failed with unsupported_omp on this machine now runs)"
+  },
+  "honestStates": [
+    "an older runtime is refused by name: 'Expected OMP 18.1.18 or later; received ...'",
+    "a runtime without a Caret bridge is refused per command, naming the bridge (unchanged behaviour)",
+    "the shipped app still packages the runtime it contract-tested at build time; the floor is about the runtime a user points Caret at"
+  ],
+  "supersedes": "docs/maintenance/evidence/s2-omp-version-gate-2026-09-15/receipt.json (describes the previous policy; kept as the record of its revision)",
+  "notVerified": [
+    "no patched 18.2 runtime was built: patches/omp/ still applies to the 18.1 source, so a stock 18.2.1 carries no Caret bridges and those surfaces stay off",
+    "iPhone-side effects of a newer runtime were not exercised"
+  ]
+}

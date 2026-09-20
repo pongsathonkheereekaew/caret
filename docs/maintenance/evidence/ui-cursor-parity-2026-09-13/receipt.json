@@ -1,0 +1,107 @@
+{
+  "scope": "Agents shell parity pass 1 — sidebar IA + empty-draft composition, driven by a measured Cursor 3.20.17 Agents-window reference. This file records the spec-aligned revision after the 2026-09-13 compliance review.",
+  "capturedAt": "2026-09-13T23:22:47+07:00",
+  "branch": "caret/g0-omp-foundation",
+  "headCommit": "aa2942fe44e847e09b5fddf2119660939abe781e",
+  "revisions": {
+    "cursorLiteralRound": {
+      "webviewTsSha256Prefix": "fc698d9416b5d24a",
+      "note": "first pass; the earlier version of this receipt certified this revision with sidebar 240 / nav rows 32 / task rows 40"
+    },
+    "cursorExactRound": {
+      "webviewTsSha256Prefix": "b4e674ca4bef709e",
+      "note": "interim unpublished round that replaced Caret values with Cursor-measured literals (sidebar 180, min 160, rows 22px, type 11/12/13/14, column 437). It was never receipted and is now reverted — see complianceReview."
+    },
+    "current": {
+      "webviewTsSha256Prefix": "c5c645de66dc26f6",
+      "productPrefsTsSha256Prefix": "7ac38ca3ae269079",
+      "workPanelTsSha256Prefix": "38f25d2fd629d876"
+    }
+  },
+  "source": {
+    "files": [
+      "apps/macos/src/webview.ts",
+      "apps/macos/src/product-prefs.ts",
+      "apps/macos/src/work-panel.ts"
+    ],
+    "note": "working tree carries large pre-existing uncommitted changes; git diff vs HEAD is not attributable to this slice"
+  },
+  "reference": {
+    "app": "/Applications/Cursor.app",
+    "version": "3.20.17",
+    "window": "Cursor Agents",
+    "capture": "CUA get_app_state screenshot, 1224x768, JPEG",
+    "scaleFinding": "macOS traffic lights measure 10px across and sit 16-18px apart instead of the standard 12pt/20pt, suggesting a scaled capture. A later pass traced cursor.updateGlassMacWindowControlsHeight and matched the measured selected-row height (22px) to Cursor's height-sm token, so the capture is ~1:1 with Cursor drawing its own window controls; absolute cross-window pixel comparison is still not a Caret acceptance baseline.",
+    "measuredRatios": {
+      "sidebarWidthPctOfWindow": 14.5,
+      "sidebarBg": "#232325",
+      "mainBg": "#1a1a1a",
+      "sidebarInnerBorder": "#2c2c2e",
+      "navRowPitchPx": "22-27",
+      "selectedRowBg": "#2b2b2d",
+      "navRowInsetPx": 8,
+      "homeColumnWidthPx": 435,
+      "homeColumnPctOfMainPane": 41.8
+    },
+    "structure": [
+      "New Chat / Search / Automations / Customize as icon-prefixed rows",
+      "no persistent search field and no persistent scope chips in the sidebar",
+      "one Projects heading with a trailing + control, then a New Project row",
+      "Repositories heading with trailing filter buttons, then repo groups with task rows (status dot, title, worktree icon, relative time)",
+      "compact inline selector row directly above the composer: project / branch / environment, each with a chevron",
+      "home column, mode pills and idea rows all share one left edge",
+      "idea rows = leading icon + plain title + muted description, one divider per row"
+    ]
+  },
+  "complianceReview": {
+    "trigger": "the user asked whether the working tree still follows the planned UI docs that were written from the Cursor computer-use inspection",
+    "finding": "The interim round moved the reference goal toward Cursor-only values without amending the spec, which the plan documents forbid: D17 'do not quietly move the reference goal to Cursor-only values' with Codex as the primary reference (CX-01 still reference-blocked), coverage section 8 (Codex visual reference cannot be marked solved by Cursor screenshot or inferred parity) and section 9 (no Cursor/Codex parity claim), and validation lines 46-56 (reference capture is supporting evidence, not a Caret pass).",
+    "decision": "Restore the Caret decisions in D01/D02/C01 and keep the Cursor-informed IA. If Cursor values are wanted later, amend D01/D02 explicitly with a new receipt instead of letting the code drift."
+  },
+  "method": {
+    "render": "createTaskWebviewHtml() with a same-nonce acquireVsCodeApi() stub, captured with Chrome --headless=new --force-device-scale-factor=1 --window-size=1224,768, plus a DOM probe for measured geometry",
+    "artifacts": ["/tmp/caret-shell.png (session scratch, not stored in repo)"],
+    "notStoredInRepo": "screenshots stay out of the repository per the interaction spec; this receipt records metrics only"
+  },
+  "changes": [
+    "webview.ts:30 -- token block now declares the Caret roles: metadata 12/18, sidebar 13/20, controls 14/22, transcript 15/24",
+    "webview.ts:34 --caret-row 22px -> 40px (D01 task rows)",
+    "webview.ts:37 --caret-control-radius 6px -> 5px (D02)",
+    "webview.ts:38 --caret-transcript-column 900px and --caret-composer-column 720px replace the 437px column (D01)",
+    "webview.ts:39 --caret-sidebar 180px -> 240px, .sidebar min-width 160 -> 200px (D01 default and resize floor)",
+    "webview.ts:42-48 -- motion tokens restored: instant 0ms, feedback 100ms, surface-in 150ms, surface-out 100ms, drawer-in 180ms, drawer-out 120ms, curve cubic-bezier(.2,0,0,1) (D15)",
+    "webview.ts:58 -- button/icon-button minimum 28x20 -> 32x32 (C01)",
+    "webview.ts:100 -- project/session rows 22px -> 40px, gap 8px, label 13/20 (D01)",
+    "webview.ts:104,119 -- project/session meta and task-project 12/18 (D02 metadata role)",
+    "webview.ts:118 -- .task-title 14/22 -> 18/26/600 (D02 task/page heading)",
+    "webview.ts:128-129 -- transcript max 900px; .message-body 14/22 -> 15/24, max 72ch (D01/D02)",
+    "webview.ts:136,277 -- empty-draft composer max 720px (D01)",
+    "webview.ts:214-215 -- nav rows min-height 32px with 16px icons (C01/D01)",
+    "webview.ts:96,251 -- remaining 11px metadata text -> 12px (D02 has no role below metadata)",
+    "webview.ts:276 -- the empty-draft 35vh media rule is now the single owner; a later duplicate .main.is-empty rule was overriding it, so the column sat at 12vh (found by the render probe, not by tests)",
+    "webview.ts:1302,1965,2065,2074,2093 -- script sidebar fallbacks and resize clamps 180/160 -> 240/200",
+    "product-prefs.ts:21,23 and work-panel.ts:56,58 -- SIDEBAR_MIN_WIDTH 200, SIDEBAR_MAX_WIDTH 360, SIDEBAR_PREFERRED_WIDTH 240",
+    "apps/macos/test/product-prefs.test.ts:12,24,34 and work-panel.test.ts:159 and webview.test.ts:89-96 -- expectations updated to the spec values, plus new assertions for sidebar/column/motion/curve",
+    "preserved from the Cursor pass: single Projects heading, search scope chips only while searching, compact left-aligned sidebar empty state, inline selector row, one left edge for selector/pills/composer/idea rows, icon + title + muted description idea rows, recents in the sidebar, .sidebar-filters styling, and the disabled 'Run in Cloud' pill"
+  ],
+  "verified": {
+    "tests": "472 pass / 0 fail / 2612 assertions (bun run test, 71 files)",
+    "typecheck": "tsc --noEmit clean",
+    "ciValidate": "CI-OK parents=198 ui=75 children=129 lock-shas=10",
+    "renderProbe": "at 1224x768 (1:1 logical px): sidebar 240px wide with 32px nav rows and 16px icons, composer column 720px starting at x=373 in the 982px main pane and at y=268 of 681 (D01 35% band, was y=112 before the fix), tokens report --caret-sidebar 240px, --caret-row 40px, --caret-font-base 14px, --caret-lh-base 22px, --caret-control-radius 5px, --caret-motion-instant 0ms, --caret-transcript-column 900px, --caret-composer-column 720px"
+  },
+  "notVerified": [
+    "packaged Caret.app runtime with these changes (render harness only; the running app still serves the previously built extension bundle)",
+    "light theme, high contrast, reduced motion, 200% zoom, Thai IME inside the rebuilt shell",
+    "VoiceOver/keyboard order over the new icon rows",
+    "Cursor running/queued/approval/error states, settings/search/review interactions, and timing",
+    "Codex app pixel freeze (CX-01 still reference-blocked)",
+    "the D01 responsive resolver bands for 620-899 and 320-619 beyond the existing drawer/media rules"
+  ],
+  "knownIntentionalDeviations": [
+    "Cursor's 22px nav pitch and 12px icons are deliberately not adopted: D01 requires task rows >=40px with 16px icons and C01 requires 32x32 desktop controls, both recorded as accessibility decisions rather than unfinished work",
+    "sidebar stays 240px (D01 default, resize 200-360px) rather than Cursor's measured 180px",
+    "the disabled 'Run in Cloud' mode pill is kept as an honest unavailable-capability marker although the reference shows only Plan New Idea and Multitask (D05)",
+    "theme-bound colours are unchanged; no hex palette was copied out of the reference screenshot (D02)"
+  ]
+}

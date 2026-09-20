@@ -1,0 +1,7 @@
+command: NODE_ENV=development VSCODE_DEV=1 VSCODE_CLI=1 ELECTRON_ENABLE_STACK_DUMPING=1 ELECTRON_ENABLE_LOGGING=1 .build/electron/Caret.app/Contents/MacOS/Caret . --user-data-dir <isolated /tmp> --extensions-dir <isolated /tmp> --disable-gpu --no-sandbox --skip-welcome --skip-release-notes
+duration: 15s bounded launch probe; isolated temporary directories removed afterward
+result: PASS (boot reached workbench; no Caret process remained)
+observed: AgentHostProcessManager: agent host started; Protocol connection established; local extension host started
+expected_degraded_start: No default agent registered; no signed-in session resolved; Unknown channel: agentHostClientByokLm / agentHostClientProxy
+interpretation: no provider/login was configured; this is not an OMP integration pass
+

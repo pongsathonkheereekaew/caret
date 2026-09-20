@@ -1,0 +1,17 @@
+{
+  "kind": "mobile-terminal-browser-fixture",
+  "date": "2026-09-13",
+  "platform": "desktop-chromium",
+  "notIPhone": true,
+  "url": "http://127.0.0.1:63175/",
+  "rendererMessages": [
+    {"type": "ready", "terminalId": "browser-fixture"}
+  ],
+  "checks": {
+    "replayRendered": true,
+    "liveRendered": true,
+    "statusQueriesEmittedNoInput": true,
+    "checkpointRestoration": false
+  },
+  "screenshot": "fixture.png"
+}

@@ -1,0 +1,34 @@
+{
+  "slice": "Remove Project actually removes the row, and the desktop patch set applies from the pinned base",
+  "capturedAt": "2026-09-15T15:45:00+07:00",
+  "branch": "main",
+  "method": "desktop patch 0010 change + apps/macos session item + CDP right-click on the running Agents window with the Caret extension loaded + direct host API calls + bun test + bun run typecheck + node scripts/ci-validate.mjs",
+  "problem": {
+    "symptom": "right-clicking a project row and choosing Remove Project archived the host's project record, but the row stayed in the sidebar - the user could not remove caret-ui-acceptance",
+    "detail": "the sidebar's project row is the chats' workspace group, built from the sessions the extension lists. The extension never set item.archived, so the desktop provider built every session with isArchived=false and the list kept the row in its workspace group. Archiving the project record alone changes no session, so nothing about the row could move.",
+    "secondFinding": "3 of the 23 mirrored desktop patches (0012, 0021, 0022) did not apply to the pinned base at all: each had been regenerated from the already-patched working tree and carried hunks that earlier patches (0001, 0005, 0010, 0023, 0024) already apply. bun run prepare:desktop therefore could not rebuild the checkout; nothing checked it, and the mirror still reverse-checked clean because the checkout really did contain every hunk twice over."
+  },
+  "change": {
+    "extensionItem": "chat-sessions-map.ts carries the host's archived flag in sessionItemShape, and applyItem publishes it as item.archived.",
+    "extensionRemove": "removeProject now archives the project's chats with its record (the row is a chat group, so that is what removing it means), and both removeProject and archiveProjectChats ask the chat session registration to republish. registerCaretChatSessions returns that refresh; activation wires it to the provider.",
+    "desktop": "ExtensionSessionsProvider.refresh replaces an existing session whose archived flag changed - isArchived is fixed when a session is constructed, so reuse would keep the row where it was - and fires it as changed so the list regroups.",
+    "copy": "the confirmation says the chats are archived with the project, not that they move to a Done section: the list keeps archived rows out of sight until a filter asks for them, so Done is not what the user sees.",
+    "patchSet": "0012 drops the ChatAIDisabledSettingId hunk that 0001 owns, 0021 drops the sessions.common.main.ts hunk that 0005 owns, and 0022 drops the extensionSessions / prompt-options / context-row import hunks that 0010, 0023 and 0024 own. 0010 is regenerated from its own file only. Digests updated for all four."
+  },
+  "verified": {
+    "liveRemove": "with the Caret extension loaded in the dev Agents window: right-click the caret-ui-acceptance group row, Remove Project, confirm -> the sidebar goes from 2 sections to 1 (the group disappears) with no reload, and the toast reads 'Removed caret-ui-acceptance from Caret. Its chats are archived and its folder is untouched.'",
+    "hostState": "after the same flow, GET projects shows archived=true and GET sessions shows archived=true for that project and its chat.",
+    "itemFlag": "a temporary trace in the provider logged '[extensionSessions] DIAG items=[New task:true]' at startup after the archive, proving the host's flag reaches the desktop through the extension item; the trace was removed before the commit.",
+    "patchSetApplies": "base + all 23 patches in manifest order -> 23/23 applied. The tree that produces is byte-identical to the desktop checkout across all 1888 changed/untracked files, so the repair changed no behaviour. git apply --reverse --check still passes for all 23 against the checkout.",
+    "patchSetTest": "apps/macos/test/desktop-patch-set.test.ts builds a temp tree from the base revision, applies the patch set in order, and compares every patched file with the checkout. Negative control: re-inserting 0022's duplicate extensionSessions import makes it fail with 'patch does not apply'.",
+    "unitTests": "apps/macos/test/chat-sessions-map.test.ts - the shape carries the host's archived flag (true and false); 712 pass / 0 fail across packages/omp-adapter, packages/relay, apps/host, apps/macos/test",
+    "typecheck": "bun run typecheck - clean",
+    "ci": "node scripts/ci-validate.mjs -> CI-OK parents=198 ui=75 children=129 lock-shas=10 doc-links=69 md=83; bun run check:cursor-parity -> OK, 340 keys, 0 mismatches"
+  },
+  "notVerified": [
+    "The packaged Caret macOS app: every live run used the dev Agents window with the built extension copied in, not a --package build.",
+    "Where archived chats are visible: the sidebar showed no Done section after the removal, and the filter that would show archived rows was not exercised.",
+    "The other five project menu entries (pin, rename, reveal, worktree, archive chats) were not run live; only their command registration and the remove path were.",
+    "The dev window's extension copy (desktop/extensions/caret and desktop/.build/extensions/caret) is refreshed by hand here; bun run build --desktop is what normally does it."
+  ]
+}

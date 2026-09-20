@@ -1,0 +1,45 @@
+Caret in-editor decisions: stale lens after Keep - found and fixed, 2026-09-14
+
+Found on the packaged app while capturing a controlled before/after pair for the
+mark's pixels. After clicking "Keep the Caret Edit":
+
+  - the editor-title buttons withdrew (correct), and
+  - the file was saved (Explorer lost "- 1 unsaved file", tab read "Modified",
+    disk held the edit), BUT
+  - the in-editor CodeLens still offered both decisions:
+
+      133 list box Show Code Actions (Command+.)
+        134 text
+      135 button Keep the Caret Edit
+        136 text  |
+      137 button Take Back the Caret Edit
+
+   while only the CodeLens remained - `provider.provideCodeLenses` would have
+   returned [] at that moment, so the engine was showing a cached result.
+
+Mechanism: a CodeLensProvider is queried when the document changes or when it
+fires `onDidChangeCodeLenses`. Our lenses depend on extension state (the pending
+edit record), not on document text, and the provider never fired that event, so
+the last result stayed on screen - a stale control offering an action that would
+then refuse. This is the same honesty class as the earlier dead `caretDock.focus`
+id: a control that looked live but was not.
+
+Fix: `#agentEditLensesChanged` (a vscode.EventEmitter) is fired from
+refreshAgentEditMarks(), which already runs on every pending-state change
+(record, keep, take back, save, close, visible-editor change), and the provider
+now returns `onDidChangeCodeLenses: this.#agentEditLensesChanged.event`. The
+emitter is disposed with the provider.
+
+Verified on the packaged app after a rebuild:
+
+  clicking "Keep the Caret Edit"
+    kept reported: true
+    title buttons present: false
+    LENS still present: false      <- was true before the fix
+
+Unit/behavioral coverage: the workbench suite asserts the provider exposes the
+event, that it fires once when a pending edit is recorded and again when the edit
+is kept, and that the lens list is empty afterwards.
+
+Separately, a controlled pixel comparison of the mark was attempted and is
+recorded as inconclusive: see runtime-cua-agent-mark-pixels-2026-09-14.txt.

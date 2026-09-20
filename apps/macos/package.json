@@ -1,0 +1,520 @@
+{
+  "name": "@cedia/mac-extension",
+  "displayName": "Cedia Mac task extension",
+  "description": "Cedia's authenticated Mac task surface for the Cedia host.",
+  "version": "0.1.0",
+  "private": true,
+  "enabledApiProposals": [
+    "chatSessionsProvider",
+    "chatParticipantPrivate",
+    "defaultChatParticipant",
+    "chatProvider",
+    "chatParticipantAdditions"
+  ],
+  "type": "module",
+  "main": "./out/extension.js",
+  "scripts": {
+    "test": "bun test test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "cedia.openComposer",
+        "title": "Focus Composer",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.showAgents",
+        "title": "Show Agents",
+        "category": "Cedia",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "cedia.showIde",
+        "title": "Show IDE",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.newTask",
+        "title": "New Task",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.openFolder",
+        "title": "Open Folder",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.add",
+        "title": "New Project",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.setPinned",
+        "title": "Pin Project",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.rename",
+        "title": "Edit Project...",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.reveal",
+        "title": "Reveal in Finder",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.createWorktree",
+        "title": "Create Permanent Worktree",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.archiveChats",
+        "title": "Archive Chats",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.project.remove",
+        "title": "Remove Project",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.session.delete",
+        "title": "Delete Chat",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.skipToTask",
+        "title": "Skip to Task",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.refresh",
+        "title": "Reconnect Host",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.openFiles",
+        "title": "Open Files",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.showDiff",
+        "title": "Review Changes",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.openTerminal",
+        "title": "Open Terminal",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.openSettings",
+        "title": "Open Settings",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.ompSignIn",
+        "title": "OMP Sign In (/login)",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.searchTasks",
+        "title": "Search Tasks",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.pairDevice",
+        "title": "Pair iPhone",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.connectIPhone",
+        "title": "Connect iPhone",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.manageDevices",
+        "title": "Manage Devices",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.ompControls",
+        "title": "OMP Controls",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.taskActions",
+        "title": "Task Actions",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.addSelectionToTask",
+        "title": "Add Selection to Cedia Task",
+        "category": "Cedia"
+      },
+      {
+        "command": "cedia.addFileToTask",
+        "title": "Add File to Cedia Task",
+        "category": "Cedia",
+        "icon": "$(add)"
+      },
+      {
+        "command": "cedia.addTerminalSelectionToTask",
+        "title": "Add Terminal Selection to Cedia Task",
+        "category": "Cedia",
+        "icon": "$(add)"
+      },
+      {
+        "command": "cedia.reviewInDiff",
+        "title": "Review Active File in Diff",
+        "category": "Cedia",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "cedia.inlineEdit",
+        "title": "Edit Selection with Cedia",
+        "category": "Cedia",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "cedia.explainSelection",
+        "title": "Explain Selection with Cedia",
+        "category": "Cedia",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "cedia.fixSelection",
+        "title": "Fix Selection with Cedia",
+        "category": "Cedia",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "cedia.keepAgentEdit",
+        "title": "Keep the Cedia Edit",
+        "category": "Cedia",
+        "icon": "$(check)"
+      },
+      {
+        "command": "cedia.revertAgentEdit",
+        "title": "Take Back the Cedia Edit",
+        "category": "Cedia",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "cedia.reviewAgentEdit",
+        "title": "Review the Cedia Edit",
+        "category": "Cedia",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "cedia.models.configureRoles",
+        "title": "Configure Model Roles...",
+        "category": "Cedia"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "cedia.addSelectionToTask",
+          "when": "editorHasSelection && cedia.taskAvailable",
+          "group": "cedia@1"
+        },
+        {
+          "command": "cedia.inlineEdit",
+          "when": "editorHasSelection && cedia.taskAvailable",
+          "group": "cedia@2"
+        },
+        {
+          "command": "cedia.explainSelection",
+          "when": "editorHasSelection && cedia.taskAvailable",
+          "group": "cedia@3"
+        },
+        {
+          "command": "cedia.fixSelection",
+          "when": "editorHasSelection && cedia.taskAvailable",
+          "group": "cedia@4"
+        },
+        {
+          "command": "cedia.reviewAgentEdit",
+          "when": "cedia.agentEditPending",
+          "group": "cedia@5"
+        },
+        {
+          "command": "cedia.keepAgentEdit",
+          "when": "cedia.agentEditPending",
+          "group": "cedia@6"
+        },
+        {
+          "command": "cedia.revertAgentEdit",
+          "when": "cedia.agentEditPending",
+          "group": "cedia@7"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "cedia.addFileToTask",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@1"
+        },
+        {
+          "command": "cedia.reviewInDiff",
+          "when": "cedia.taskAvailable && !isInDiffEditor",
+          "group": "cedia@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "cedia.inlineEdit",
+          "when": "editorHasSelection && cedia.taskAvailable",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cedia.reviewInDiff",
+          "when": "cedia.taskAvailable && !isInDiffEditor",
+          "group": "navigation@2"
+        },
+        {
+          "command": "cedia.reviewAgentEdit",
+          "when": "cedia.agentEditPending",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cedia.keepAgentEdit",
+          "when": "cedia.agentEditPending",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cedia.revertAgentEdit",
+          "when": "cedia.agentEditPending",
+          "group": "navigation@5"
+        }
+      ],
+      "editor/lineNumber/context": [
+        {
+          "command": "cedia.inlineEdit",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@1"
+        },
+        {
+          "command": "cedia.addSelectionToTask",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@2"
+        },
+        {
+          "command": "cedia.explainSelection",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@3"
+        },
+        {
+          "command": "cedia.fixSelection",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@4"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "cedia.reviewInDiff",
+          "when": "cedia.taskAvailable",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cedia.showAgents",
+          "when": "cedia.taskAvailable",
+          "group": "navigation@2"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "cedia.addFileToTask",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@1"
+        },
+        {
+          "command": "cedia.reviewInDiff",
+          "when": "cedia.taskAvailable",
+          "group": "cedia@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "cedia.addFileToTask",
+          "when": "cedia.taskAvailable && resourceScheme == file",
+          "group": "cedia@1"
+        },
+        {
+          "command": "cedia.reviewInDiff",
+          "when": "cedia.taskAvailable && resourceScheme == file",
+          "group": "cedia@2"
+        }
+      ],
+      "view/title": [],
+      "terminal/context": [
+        {
+          "command": "cedia.addTerminalSelectionToTask",
+          "when": "terminalFocus && terminalTextSelected && cedia.taskAvailable",
+          "group": "cedia@1"
+        }
+      ],
+      "terminal/title/context": [
+        {
+          "command": "cedia.addTerminalSelectionToTask",
+          "when": "terminalTextSelected && cedia.taskAvailable",
+          "group": "cedia@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "cedia.showAgents",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a"
+      },
+      {
+        "command": "cedia.showIde",
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i"
+      },
+      {
+        "command": "cedia.openComposer",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c"
+      },
+      {
+        "command": "cedia.newTask",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n"
+      },
+      {
+        "command": "cedia.searchTasks",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f"
+      },
+      {
+        "command": "cedia.skipToTask",
+        "key": "alt+t",
+        "mac": "alt+t"
+      },
+      {
+        "command": "cedia.addSelectionToTask",
+        "key": "ctrl+alt+k",
+        "mac": "cmd+alt+k"
+      },
+      {
+        "command": "cedia.inlineEdit",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "cedia.openFiles",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e"
+      },
+      {
+        "command": "cedia.reviewInDiff",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r"
+      }
+    ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "cediaDock",
+          "title": "Agent",
+          "icon": "media/cedia.svg"
+        }
+      ]
+    },
+    "views": {
+      "cediaDock": [
+        {
+          "id": "cediaComposerDock",
+          "name": "Agent",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Cedia",
+      "properties": {
+        "cedia.hostNodePath": {
+          "type": "string",
+          "default": "",
+          "description": "Advanced: absolute path to the Node runtime used to start the Cedia host helper. To connect an iPhone, use Cedia Settings → Devices.",
+          "markdownDescription": "Advanced host setting only; it is not the iPhone connection flow. To connect an iPhone, use Cedia Settings → Devices and the Pair iPhone action."
+        },
+        "cedia.hostScriptPath": {
+          "type": "string",
+          "default": "",
+          "description": "Advanced: absolute path to the Cedia host helper script; not the iPhone connection flow. To connect an iPhone, use Cedia Settings → Devices."
+        },
+        "cedia.hostStateDir": {
+          "type": "string",
+          "default": "",
+          "description": "Advanced: private Cedia host state directory. To connect an iPhone, use Cedia Settings → Devices. Defaults to ~/Library/Application Support/Cedia/host so all Mac windows share one host."
+        },
+        "cedia.hostRequestTimeoutMs": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 1000,
+          "description": "Timeout for authenticated requests to the local Cedia host."
+        },
+        "cedia.openTasksOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the Cedia task workspace when the app starts."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "chat.disableAIFeatures": true,
+      "workbench.startupEditor": "none"
+    },
+    "chatSessions": [
+      {
+        "type": "cedia.omp",
+        "name": "omp",
+        "displayName": "Cedia",
+        "description": "Run work in this workspace with OMP",
+        "icon": "$(comment-discussion)",
+        "inputPlaceholder": "Plan, Build, / for skills, @ for context",
+        "welcomeTitle": "Cedia",
+        "welcomeMessage": "Cedia runs your task with **OMP** on this Mac. Describe the work and the session starts; you can steer it from here while it works."
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "cedia.omp",
+        "name": "omp",
+        "fullName": "Cedia",
+        "description": "Run work in this workspace with OMP, Cedia's only harness",
+        "isSticky": true,
+        "isDefault": true,
+        "modes": [
+          "ask",
+          "edit",
+          "agent"
+        ]
+      }
+    ]
+  },
+  "activationEvents": [
+    "onView:cediaComposerDock",
+    "onCommand:cedia.openComposer",
+    "onCommand:cedia.showAgents",
+    "onCommand:cedia.showIde",
+    "onStartupFinished"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "The Cedia shell is available; task execution, host access and editor automation require workspace trust."
+    }
+  }
+}

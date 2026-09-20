@@ -1,0 +1,32 @@
+button	Add Context...
+button	Add Repository
+button	Archive All
+button	Automations
+button	Browser
+button	Changes
+button	Close
+button	Customize
+button	Dictate (Speech to Text)
+button	File
+button	Filter Repositories
+button	Go Back One Session
+button	Go Forward One Session
+button	IDE
+button	New Chat
+button	New Project
+button	New Session
+button	Next Match
+button	Previous Match
+button	Search
+button	Send [⌥] Send to New Chat
+button	Terminal
+button	Toggle Pinned Summary
+button	Toggle Side Bar
+button	Toggle Side Panel
+pop up button	Agent
+pop up button	Local
+pop up button	Models, DeepSeek V4.1 Flash
+pop up button	More Actions...
+pop up button	Open new tab menu
+text entry area	Find
+text entry area	The editor is not accessible at this time. To enable screen reader optimized mode, use Shift+Option+F1

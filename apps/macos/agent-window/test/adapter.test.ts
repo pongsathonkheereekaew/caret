@@ -1,0 +1,626 @@
+import { describe, expect, it } from "bun:test";
+import { Schema } from "../vendor/synara/packages/contracts/node_modules/effect/dist/index.js";
+import { OrchestrationShellSnapshot, OrchestrationThreadDetailSnapshot } from "@synara/contracts";
+import { resolveLatestTailUserMessageEditTarget } from "@synara/shared/conversationEdit";
+
+import {
+	createCediaNativeApi,
+	OMP_UNRESOLVED_MODEL,
+	projectCediaShellSnapshot,
+} from "../src/cedia-adapter.ts";
+
+type Request = {
+	kind: "request";
+	method: "GET" | "POST" | "PATCH" | "DELETE";
+	path: string;
+	body?: unknown;
+};
+
+const project = {
+	id: "project-1",
+	path: "/workspace/demo",
+	name: "Demo",
+	pinned: true,
+	archived: false,
+	createdAt: "2026-09-19T00:00:00.000Z",
+};
+
+const session = {
+	id: "session-1",
+	projectId: project.id,
+	title: "First task",
+	cwd: project.path,
+	sessionFile: "/state/session-1.json",
+	incarnation: "inc-1",
+	status: "idle" as const,
+	archived: false,
+	createdAt: "2026-09-19T00:01:00.000Z",
+	updatedAt: "2026-09-19T00:02:00.000Z",
+};
+
+const frames = [
+	{
+		sessionId: session.id,
+		incarnation: session.incarnation,
+		sequence: 1,
+		timestamp: "2026-09-19T00:03:00.000Z",
+		frame: { type: "message_start", message: { id: "user-1", role: "user", content: "hello" } },
+	},
+	{
+		sessionId: session.id,
+		incarnation: session.incarnation,
+		sequence: 2,
+		timestamp: "2026-09-19T00:03:01.000Z",
+		frame: { type: "message_start", message: { id: "assistant-1", role: "assistant", content: "hi" } },
+	},
+];
+
+function fakeBridge(eventFrames = frames) {
+	const calls: Request[] = [];
+	const bridge = {
+		invoke: async (_channel: string, request: Request) => {
+			calls.push(request);
+			if ((request as Request & { kind?: string }).kind === "bootstrap") return { platform: "darwin", homeDir: "/Users/tester", worktreesDir: "/Users/tester/Library/Application Support/Cedia/host/worktrees", version: "test-host" };
+			if (request.path === "/v1/projects") return [project];
+			if (request.path === "/v1/models") return {
+				source: "omp",
+				models: [{ id: "fixture-model", provider: "fixture", label: "Fixture model", reasoning: true, thinking: ["low", "high"], contextWindow: 128000, maxTokens: 4096 }],
+			};
+			if (request.path === `/v1/sessions?projectId=${project.id}`) return [session];
+			if (request.path === `/v1/sessions/${session.id}`) return session;
+			if (request.path === `/v1/sessions/${session.id}` && request.method === "PATCH") return { ...session, ...(request.body as Record<string, unknown>) };
+			if (request.path === `/v1/sessions/${session.id}/fork`) return { ...session, id: "side-1", sidechatSourceThreadId: session.id };
+			if (request.path === `/v1/sessions/${session.id}/start` && request.method === "POST") return { ...session, status: "running", incarnation: "inc-2", updatedAt: "2026-09-19T00:03:00.000Z" };
+			if (request.path.startsWith(`/v1/sessions/${session.id}/events`)) {
+				return { events: eventFrames, cursor: eventFrames.at(-1)?.sequence ?? 0, hasMore: false };
+			}
+			if (request.path === "/v1/sessions" && request.method === "POST") {
+				return { ...session, id: "session-created", title: (request.body as { title?: string }).title ?? "New task" };
+			}
+			if (request.path.endsWith("/commands") && request.method === "POST") {
+				const kind = (request.body as { command: string }).command;
+				if (kind === "get_branch_messages") return { status: "completed", result: { data: { messages: [{ entryId: "entry-1", text: "hello" }] } } };
+				if (kind === "branch") return { status: "completed", result: { data: { text: "hello", cancelled: false } } };
+				if (kind === "get_messages") return { status: "completed", result: { data: { messages: [{ id: "user-1", role: "user", content: [{ type: "text", text: "hello" }] }] } } };
+				return {
+					sessionId: session.id,
+					commandId: (request.body as { commandId: string }).commandId,
+					incarnation: session.incarnation,
+					kind,
+					payload: (request.body as { payload?: unknown }).payload ?? null,
+					status: "acknowledged",
+				};
+			}
+			throw new Error(`Unexpected ${request.method} ${request.path}`);
+		},
+	};
+	return { bridge, calls };
+}
+
+describe("Cedia Agent Window native adapter", () => {
+	it("shows no terminal transport rows in the chat transcript", async () => {
+		// The visible symptom: a turn's virtual-terminal repaints arrived as activity
+		// rows whose summary was a raw escape sequence, so the chat read as garbage.
+		// They belong to the terminal panel's own channel, never to this transcript.
+		const events = [
+			...frames,
+			{
+				sessionId: session.id,
+				incarnation: session.incarnation,
+				sequence: 10,
+				timestamp: "2026-09-19T00:06:00.000Z",
+				frame: { type: "cedia_terminal_open", terminalId: "tty-1", title: "Shell", cols: 80, rows: 24 },
+			},
+			...Array.from({ length: 3 }, (_, index) => ({
+				sessionId: session.id,
+				incarnation: session.incarnation,
+				sequence: 11 + index,
+				timestamp: "2026-09-19T00:06:01.000Z",
+				frame: {
+					type: "cedia_terminal_output",
+					terminalId: "tty-1",
+					sequence: index,
+					data: "\u001b[?25l\u001b[1;1H\u001b[38;2;107;114;128mxdev: xd://: mounted\u001b[0m",
+				},
+			})),
+		];
+		const api = createCediaNativeApi({ bridge: fakeBridge(events).bridge });
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		const activities = detail.thread.activities as ReadonlyArray<{ kind?: string; summary?: string }>;
+
+		expect(activities.some(activity => activity.kind === "cedia_terminal_output")).toBe(false);
+		expect(activities.some(activity => activity.kind === "cedia_terminal_open")).toBe(false);
+		const rendered = JSON.stringify(activities);
+		expect(rendered).not.toContain("\u001b[");
+		expect(rendered).not.toContain("cedia_terminal_");
+	});
+
+	it("refreshes OMP context occupancy after messages without polling its own state replies", async () => {
+		const events = [...frames, { sessionId: session.id, incarnation: session.incarnation, sequence: 3,
+			timestamp: "2026-09-19T00:04:00.000Z", frame: { type: "agent_end", isTerminal: true } }];
+		const { bridge } = fakeBridge(events);
+		let reads = 0;
+		let used = 32000;
+		const api = createCediaNativeApi({ bridge: { invoke: async (channel, input) => {
+			const request = input as Request;
+			if (request.path?.endsWith("/commands") && (request.body as { command?: string })?.command === "get_state") {
+				reads++;
+				return { result: { data: { contextUsage: { tokens: used, contextWindow: 128000 } } } };
+			}
+			return bridge.invoke(channel, request);
+		} } });
+		const first = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		expect(Schema.is(OrchestrationThreadDetailSnapshot)(first)).toBe(true);
+		expect(first.thread.activities.at(-1)).toMatchObject({ kind: "context-window.updated", payload: { usedTokens: 32000, maxTokens: 128000, usedPercent: 25 } });
+		await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		expect(reads).toBe(1);
+		used = 8000;
+		events.push({ sessionId: session.id, incarnation: session.incarnation, sequence: 4,
+			timestamp: "2026-09-19T00:05:00.000Z", frame: { type: "auto_compaction_end", isTerminal: true } });
+		const compacted = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		expect(compacted.thread.activities.at(-1)).toMatchObject({ payload: { usedTokens: 8000, usedPercent: 6.25 } });
+		expect(reads).toBe(2);
+	});
+
+	it("forks side chats through OMP without submitting renderer-provided history", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+		await api.orchestration.dispatchCommand({ type: "thread.fork.create", commandId: "fork-1", threadId: "side-1", sourceThreadId: session.id, title: "Side chat", importedMessages: [{ role: "user", text: "untrusted renderer history" }] });
+		expect(calls).toContainEqual({ kind: "request", method: "POST", path: `/v1/sessions/${session.id}/fork`, body: { id: "side-1", title: "Side chat" } });
+		expect(JSON.stringify(calls)).not.toContain("untrusted renderer history");
+	});
+	it("projects durable Cedia projects and sessions into a Synara shell snapshot", async () => {
+		const { bridge } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		const snapshot = await api.orchestration.getShellSnapshot();
+		expect(Schema.is(OrchestrationShellSnapshot)(snapshot)).toBe(true);
+
+		expect(snapshot.projects).toHaveLength(1);
+		expect(snapshot.projects[0]).toMatchObject({
+			id: project.id,
+			title: project.name,
+			workspaceRoot: project.path,
+			isPinned: true,
+		});
+		expect(snapshot.threads[0]).toMatchObject({ id: session.id, projectId: project.id, title: session.title });
+		expect(snapshot.threads[0]?.session).toMatchObject({ threadId: session.id, status: "idle" });
+	});
+
+	it("loads the shell without replaying every task transcript", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+		const snapshot = await api.orchestration.getShellSnapshot();
+		expect(snapshot.threads).toHaveLength(1);
+		expect(calls.filter(call => call.path?.includes("/events"))).toEqual([]);
+		// Selecting a task still hydrates its durable OMP transcript.
+		await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		expect(calls.some(call => call.path?.includes("/events"))).toBe(true);
+	});
+
+	it("updates background task lifecycle from host metadata without replaying history", async () => {
+		const activeFrames = [...frames, {
+			sessionId: session.id, incarnation: session.incarnation, sequence: 3,
+			timestamp: "2026-09-19T00:03:02.000Z", frame: { type: "agent_start", id: "turn-active" },
+		}];
+		const { bridge, calls } = fakeBridge(activeFrames);
+		let status = "running";
+		const api = createCediaNativeApi({ bridge: { invoke: async (channel, input) => {
+			const result = await bridge.invoke(channel, input as Request);
+			return (input as Request).path === `/v1/sessions?projectId=${project.id}`
+				? [{ ...session, status }] : result;
+		} } });
+		const cold = await api.orchestration.getShellSnapshot();
+		expect(cold.threads[0]?.session?.status).toBe("running");
+		await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		status = "idle";
+		calls.length = 0;
+		const completed = await api.orchestration.getShellSnapshot();
+		expect(completed.threads[0]?.session?.status).toBe("idle");
+		expect(completed.threads[0]?.session?.activeTurnId).toBeNull();
+		expect(completed.threads[0]?.latestTurn).toBeNull();
+		expect(calls.some(call => call.path?.includes("/events"))).toBe(false);
+	});
+
+	it("hydrates OMP events into thread messages without inventing provider output", async () => {
+		const { bridge } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		expect(Schema.is(OrchestrationThreadDetailSnapshot)(detail)).toBe(true);
+
+		expect(detail.thread.messages.map(message => [message.role, message.text])).toEqual([
+			["user", "hello"],
+			["assistant", "hi"],
+		]);
+		expect(detail.thread.messages.every(message => message.source === "native")).toBe(true);
+	});
+
+	it("projects an active OMP turn and tool history while hiding control frames", async () => {
+		const eventFrames = [
+			...frames,
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 3, timestamp: "2026-09-19T00:03:02.000Z", frame: { type: "cedia_command", command: { kind: "prompt", commandId: "turn-1", status: "acknowledged" } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 4, timestamp: "2026-09-19T00:03:03.000Z", frame: { type: "agent_start", id: "turn-1" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 5, timestamp: "2026-09-19T00:03:04.000Z", frame: { type: "tool_execution_start", toolCallId: "tool-1", toolName: "read_file", arguments: { path: "README.md" } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 6, timestamp: "2026-09-19T00:03:05.000Z", frame: { type: "tool_execution_end", toolCallId: "tool-1", toolName: "read_file", result: "contents" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 7, timestamp: "2026-09-19T00:03:06.000Z", frame: { type: "response", data: { model: { id: "fixture-model", provider: "fixture" } } } },
+		];
+		const { bridge } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+
+		expect(detail.thread.session).toMatchObject({ status: "running", activeTurnId: "turn-1" });
+		expect(detail.thread.latestTurn).toMatchObject({ turnId: "turn-1", state: "running" });
+		expect(detail.thread.modelSelection).toMatchObject({ provider: "omp", model: "fixture/fixture-model", ompProvider: "fixture" });
+		expect(detail.thread.activities).toHaveLength(1);
+		expect(detail.thread.activities[0]).toMatchObject({ kind: "read_file", tone: "tool" });
+		expect(detail.thread.activities.some((activity: { kind?: string }) => activity.kind === "cedia_command")).toBe(false);
+		expect(Schema.is(OrchestrationThreadDetailSnapshot)(detail)).toBe(true);
+	});
+
+	it("does not put a finished turn back into running when its command ack arrives", async () => {
+		// The host records a prompt twice: the request when it is created, and a write-through ack
+		// carrying the result when it finishes. The ack lands after that turn's `agent_end`, so
+		// reading it as "a turn started" left the task `running` forever - measured live 2026-09-20:
+		// the window showed `Thinking` after the answer had arrived, offered `Steer` instead of
+		// `Send`, and queued every later message instead of sending it.
+		const eventFrames = [
+			...frames,
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 3, timestamp: "2026-09-20T04:05:40.075Z", frame: { type: "cedia_command", command: { commandId: "turn-1", kind: "prompt", payload: { message: "hi" } } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 4, timestamp: "2026-09-20T04:05:42.000Z", frame: { type: "agent_start", id: "turn-1" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 5, timestamp: "2026-09-20T04:05:43.000Z", frame: { type: "agent_end", isTerminal: true } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 6, timestamp: "2026-09-20T04:05:43.100Z", frame: { type: "cedia_command", command: { commandId: "turn-1", kind: "prompt", status: "completed", ack: { command: "prompt", success: true }, result: { isTerminal: true } } } },
+		];
+		const { bridge } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+
+		expect(detail.thread.latestTurn).toMatchObject({ turnId: "turn-1", state: "completed" });
+		expect(detail.thread.session).toMatchObject({ activeTurnId: null });
+	});
+
+	it("keeps OMP lifecycle frames out of the transcript after an auto-retry storm", async () => {
+		// Measured live 2026-09-20: a turn that OMP retried printed `Turn_start`, `Turn_end`,
+		// `Auto_retry_start`, `Auto_retry_end` and `Model_changed` as transcript rows, because the
+		// reducer stores one `event` entry per unmodelled frame and hands it the frame's own type as
+		// its text. Only the tool call that ran and the messages belong on screen.
+		const eventFrames = [
+			...frames,
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 3, timestamp: "2026-09-20T03:05:28.000Z", frame: { type: "cedia_command", command: { kind: "prompt", commandId: "turn-1", status: "acknowledged" } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 4, timestamp: "2026-09-20T03:05:29.000Z", frame: { type: "turn_start" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 5, timestamp: "2026-09-20T03:05:30.000Z", frame: { type: "agent_start", id: "turn-1" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 6, timestamp: "2026-09-20T03:05:31.000Z", frame: { type: "turn_end" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 7, timestamp: "2026-09-20T03:05:32.000Z", frame: { type: "auto_retry_start", attempt: 2, delayMs: 59972 } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 8, timestamp: "2026-09-20T03:05:33.000Z", frame: { type: "auto_retry_end" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 9, timestamp: "2026-09-20T03:05:34.000Z", frame: { type: "model_changed" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 10, timestamp: "2026-09-20T03:05:35.000Z", frame: { type: "thinking_level_changed", thinkingLevel: "high" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 11, timestamp: "2026-09-20T03:05:36.000Z", frame: { type: "advisor_cost_changed" } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 12, timestamp: "2026-09-20T03:05:37.000Z", frame: { type: "agent_end", id: "turn-1" } },
+		];
+		const { bridge } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+
+		expect(detail.thread.activities).toEqual([]);
+		expect(detail.thread.messages.map(message => [message.role, message.text])).toEqual([
+			["user", "hello"],
+			["assistant", "hi"],
+		]);
+		// The frames still reach the reducer: the turn projection and the model selection read them.
+		expect(detail.thread.latestTurn).toMatchObject({ turnId: "turn-1", state: "completed" });
+		expect(Schema.is(OrchestrationThreadDetailSnapshot)(detail)).toBe(true);
+	});
+
+	it("prints the provider's own sentence when a turn ends on a provider error", async () => {
+		// Measured live 2026-09-20: a rate-limited turn recorded `message_start` with no content and
+		// then a `message_end` carrying `stopReason: "error"` plus the provider's `errorMessage`. The
+		// row had no text, so the timeline painted `(empty response)` and the reason the turn produced
+		// nothing never reached the window. The Code-OSS sessions window already prints that sentence
+		// through `entryFailureText`; this path has to say the same thing.
+		const eventFrames = [
+			...frames,
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 3, timestamp: "2026-09-20T03:05:29.000Z", frame: { type: "message_start", message: { id: "assistant-2", role: "assistant", content: [] } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 4, timestamp: "2026-09-20T03:05:30.000Z", frame: { type: "message_end", message: { id: "assistant-2", role: "assistant", content: [], stopReason: "error", errorClassificationMessage: "Connect error resource_exhausted: Error", errorMessage: "You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue." } } },
+		];
+		const { bridge } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+
+		expect(detail.thread.messages.map(message => [message.role, message.text])).toEqual([
+			["user", "hello"],
+			["assistant", "hi"],
+			["assistant", "You're out of usage. Switch to Auto, or ask your admin to increase your limit to continue."],
+		]);
+		expect(detail.thread.messages.some(message => message.text === "(empty response)")).toBe(false);
+		expect(Schema.is(OrchestrationThreadDetailSnapshot)(detail)).toBe(true);
+	});
+
+	it("dispatches a turn through the OMP command envelope with the durable incarnation", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		await api.orchestration.dispatchCommand({
+			type: "thread.turn.start",
+			commandId: "cmd-1",
+			threadId: session.id,
+			message: { messageId: "message-1", role: "user", text: "ship it", attachments: [] },
+			runtimeMode: "approval-required",
+			interactionMode: "default",
+			createdAt: "2026-09-19T00:04:00.000Z",
+		});
+
+		const command = calls.find(call => call.path.endsWith("/commands"));
+		expect(command).toMatchObject({
+			method: "POST",
+			body: {
+				commandId: "cmd-1",
+				incarnation: "inc-2",
+				command: "prompt",
+				payload: { message: "ship it" },
+			},
+		});
+	});
+
+	it("never sends the UI-only unresolved model sentinel to OMP", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		await api.orchestration.dispatchCommand({
+			type: "thread.turn.start",
+			commandId: "cmd-unresolved",
+			threadId: session.id,
+			message: { messageId: "message-unresolved", role: "user", text: "use OMP default", attachments: [] },
+			modelSelection: { provider: "omp", model: OMP_UNRESOLVED_MODEL },
+			runtimeMode: "approval-required",
+			interactionMode: "default",
+			createdAt: "2026-09-19T00:04:00.000Z",
+		});
+
+		expect(calls.filter(call => call.path.endsWith("/commands")).map(call => (call.body as { command: string }).command)).toEqual(["prompt"]);
+	});
+
+	it("uses the native bootstrap paths in server configuration", async () => {
+		const { bridge } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		const config = await api.server.getConfig();
+		expect(config).toMatchObject({
+			cwd: "/Users/tester",
+			homeDir: "/Users/tester",
+			worktreesDir: "/Users/tester/Library/Application Support/Cedia/host/worktrees",
+			keybindingsConfigPath: "/Users/tester/Library/Application Support/Cedia/User/keybindings.json",
+		});
+	});
+
+	it("emits a snapshot envelope to subscribers after a refresh", async () => {
+		const { bridge } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+		const events: unknown[] = [];
+		const unsubscribe = api.orchestration.onShellEvent(event => events.push(event));
+
+		await api.orchestration.subscribeShell();
+		await api.orchestration.getShellSnapshot();
+		unsubscribe();
+
+		expect(events.some(event => (event as { kind?: string }).kind === "snapshot")).toBe(true);
+	});
+
+	it("stays quiet when a poll finds nothing new, and speaks when it does", async () => {
+		// `subscribeThread`/`subscribeShell` poll the host once a second and emit what they read,
+		// and the window repaints on every emit. Measured 2026-09-20 on an idle task: one snapshot
+		// per second produced ~510 DOM mutations a second with the renderer pinned at 110% CPU,
+		// which a user reads as the chat flickering. A poll that finds the same cursor, session and
+		// catalog has nothing to say, and only a change may reach the window.
+		const eventFrames = [...frames];
+		const { bridge } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+		const shellEvents: unknown[] = [];
+		const threadEvents: unknown[] = [];
+		api.orchestration.onShellEvent(event => shellEvents.push(event));
+		api.orchestration.onThreadEvent(event => threadEvents.push(event));
+
+		await api.orchestration.subscribeShell();
+		await api.orchestration.subscribeThread({ threadId: session.id });
+		const shellAfterFirst = shellEvents.length;
+		const threadAfterFirst = threadEvents.length;
+		expect(shellAfterFirst).toBeGreaterThan(0);
+		expect(threadAfterFirst).toBeGreaterThan(0);
+
+		await api.orchestration.subscribeShell();
+		await api.orchestration.subscribeThread({ threadId: session.id });
+		expect(shellEvents.length).toBe(shellAfterFirst);
+		expect(threadEvents.length).toBe(threadAfterFirst);
+
+		// A new event moves the cursor, and that is news.
+		eventFrames.push({
+			sessionId: session.id,
+			incarnation: session.incarnation,
+			sequence: 3,
+			timestamp: "2026-09-19T00:04:00.000Z",
+			frame: { type: "message_end", message: { id: "assistant-2", role: "assistant", content: [{ type: "text", text: "more" }], stopReason: "stop" } },
+		});
+		await api.orchestration.subscribeThread({ threadId: session.id });
+		expect(threadEvents.length).toBeGreaterThan(threadAfterFirst);
+		await api.orchestration.unsubscribeShell();
+		await api.orchestration.unsubscribeThread({ threadId: session.id });
+	});
+
+	it("keeps the workspace metadata the renderer asserts, without patching the host for it", async () => {
+		// The branch toolbar keeps a local thread pointing at the checkout it sits in: when the
+		// thread's `branch` disagrees with the current Git branch it dispatches `thread.meta.update`
+		// (`shouldSyncLocalThreadBranch`). Cedia dropped those fields and projected `branch: null`
+		// forever, so the toolbar re-asked ~60 times a second and every ask stamped the session's
+		// `updated_at`, which the poll then read as news. Measured live 2026-09-20: 549 dispatches
+		// in 9s with the renderer pinned at 110% CPU.
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		await api.orchestration.dispatchCommand({
+			type: "thread.meta.update",
+			commandId: "meta-1",
+			threadId: session.id,
+			envMode: "local",
+			branch: "codex/single-opencode-namespace",
+			worktreePath: null,
+			associatedWorktreePath: null,
+			associatedWorktreeBranch: null,
+			associatedWorktreeRef: null,
+		});
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		expect(detail.thread).toMatchObject({
+			envMode: "local",
+			branch: "codex/single-opencode-namespace",
+			worktreePath: null,
+			associatedWorktreePath: null,
+		});
+		// The command carried no host field, so the session row must not move: an empty `PATCH`
+		// still stamps `updated_at` on the host, and the poll would report that as a change.
+		expect(calls.some(call => call.method === "PATCH")).toBe(false);
+
+		// A field the host does own still reaches it.
+		await api.orchestration.dispatchCommand({ type: "thread.meta.update", commandId: "meta-2", threadId: session.id, title: "Renamed" });
+		expect(calls.some(call => call.method === "PATCH" && (call.body as { title?: string }).title === "Renamed")).toBe(true);
+	});
+
+	it("carries a turn id so the window offers its edit affordance", async () => {
+		// Synara's "edit message" button is gated on `resolveLatestTailUserMessageEditTarget`, which
+		// answers `missing-turn-metadata` unless the tail from the latest user message belongs to
+		// exactly one turn. Cedia projected `turnId: null` for every message, so the button never
+		// rendered (measured live 2026-09-20: zero `Edit message` controls).
+		const eventFrames = [
+			// The host records the prompt when it is created, the messages while it runs, and the
+			// write-through ack when it finishes - that order is what makes the ack harmless.
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 1, timestamp: "2026-09-19T00:03:59.000Z", frame: { type: "cedia_command", command: { commandId: "turn-1", kind: "prompt", payload: { message: "hello" } } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 2, timestamp: "2026-09-19T00:04:00.000Z", frame: { type: "message_start", message: { id: "user-1", role: "user", content: "hello" } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 3, timestamp: "2026-09-19T00:04:01.000Z", frame: { type: "message_start", message: { id: "assistant-1", role: "assistant", content: "hi" } } },
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 4, timestamp: "2026-09-19T00:04:02.000Z", frame: { type: "cedia_command", command: { commandId: "turn-1", kind: "prompt", ack: { command: "prompt", success: true }, result: { isTerminal: true } } } },
+		];
+		const { bridge } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+
+		const detail = await api.orchestration.getThreadDetailSnapshot({ threadId: session.id });
+		const messages = detail.thread.messages as ReadonlyArray<{ id: string; role: string; turnId: string | null; source?: string }>;
+		const target = resolveLatestTailUserMessageEditTarget({ messages });
+
+		expect(target).toMatchObject({ editable: true, messageId: "user-1", mode: "rollback" });
+		// The write-through ack must not count as a second turn, or the tail would span two.
+		expect(messages.find(message => message.id === "assistant-1")?.turnId).toBe("turn-1");
+	});
+
+	it("rewinds through OMP's own branch and resubmits the edited text", async () => {
+		// OMP rewinds by branching: the conversation is cut at that user message and the abandoned
+		// path stays in the session tree. Cedia's journal is append-only, so the transcript has to be
+		// re-read from OMP's current leaf afterwards or the window would keep showing the old tail.
+		const eventFrames = [
+			...frames,
+			{ sessionId: session.id, incarnation: session.incarnation, sequence: 3, timestamp: "2026-09-19T00:04:00.000Z", frame: { type: "cedia_command", command: { commandId: "turn-1", kind: "prompt", payload: { message: "hello" } } } },
+		];
+		const { bridge, calls } = fakeBridge(eventFrames);
+		const api = createCediaNativeApi({ bridge });
+
+		await api.orchestration.dispatchCommand({
+			type: "thread.message.edit-and-resend",
+			commandId: "edit-1",
+			threadId: session.id,
+			messageId: "user-1",
+			text: "hello, again",
+			runtimeMode: "approval-required",
+			interactionMode: "default",
+		});
+
+		const sent = calls.filter(call => call.path.endsWith("/commands")).map(call => (call.body as { command: string; payload?: Record<string, unknown> }));
+		expect(sent.map(call => call.command)).toEqual(["get_branch_messages", "branch", "get_messages", "prompt"]);
+		expect(sent[1]?.payload).toEqual({ entryId: "entry-1" });
+		expect(sent[3]?.payload).toEqual({ message: "hello, again" });
+	});
+
+	it("keeps the pure projection stable for an empty host", () => {
+		const snapshot = projectCediaShellSnapshot([], [], 1, "2026-09-19T00:00:00.000Z");
+		expect(snapshot).toEqual({
+			snapshotSequence: 1,
+			spaces: [],
+			projects: [],
+			threads: [],
+			updatedAt: "2026-09-19T00:00:00.000Z",
+		});
+	});
+
+	it("discovers models through the global host catalog without starting a task", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		const result = await api.provider.listModels({ provider: "omp" });
+
+		expect(result).toMatchObject({ source: "omp" });
+		expect(result.models).toEqual([expect.objectContaining({
+			slug: "fixture/fixture-model",
+			name: "Fixture model",
+			upstreamProviderId: "fixture",
+			upstreamProviderName: "fixture",
+			supportedReasoningEfforts: [
+				{ value: "low", label: "low" },
+				{ value: "high", label: "high" },
+			],
+			maxOutputTokens: 4096,
+			contextWindow: 128000,
+		})]);
+		expect(calls.some(call => call.path === "/v1/models")).toBe(true);
+		expect(calls.some(call => call.path.endsWith("/start"))).toBe(false);
+	});
+
+	it("persists the picker selection through OMP before Synara submits the turn", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+		await api.orchestration.dispatchCommand({ type: "thread.meta.update", commandId: "pick-model", threadId: session.id,
+			modelSelection: { provider: "omp", model: "fixture/fixture-model" } });
+		expect(calls.find(call => call.path.endsWith("/commands") && (call.body as { command?: string })?.command === "set_model")).toMatchObject({
+			body: { payload: { provider: "fixture", modelId: "fixture-model" } },
+		});
+		expect(calls.some(call => (call.body as { command?: string })?.command === "prompt")).toBe(false);
+	});
+
+	it("resolves a selected provider-qualified model from the global catalog", async () => {
+		const { bridge, calls } = fakeBridge();
+		const api = createCediaNativeApi({ bridge });
+
+		await api.orchestration.dispatchCommand({
+			type: "thread.turn.start",
+			commandId: "cmd-model",
+			threadId: session.id,
+			message: { messageId: "message-model", role: "user", text: "use fixture", attachments: [] },
+			modelSelection: { provider: "omp", model: "fixture/fixture-model", ompProvider: "fixture" },
+			runtimeMode: "approval-required",
+			interactionMode: "default",
+			createdAt: "2026-09-19T00:04:00.000Z",
+		});
+
+		expect(calls.find(call => call.path.endsWith("/commands") && (call.body as { command?: string })?.command === "set_model")).toMatchObject({
+			body: { payload: { provider: "fixture", modelId: "fixture-model" } },
+		});
+		expect(calls.some(call => call.path === "/v1/models")).toBe(true);
+	});
+});
+
+it("routes duplicate model IDs by upstream provider and passes the selected thinking level", async () => {
+  const { bridge, calls } = fakeBridge();
+  const original = bridge.invoke;
+  bridge.invoke = async (channel, request) => {
+    if (request.path === "/v1/models") {
+      calls.push(request);
+      return { source: "omp", models: [
+        { id: "same", provider: "a", reasoning: true, thinking: ["high"] },
+        { id: "same", provider: "b", reasoning: true, thinking: ["high"] },
+      ] } as any;
+    }
+    return original(channel, request);
+  };
+  const api = createCediaNativeApi({ bridge });
+  await api.orchestration.dispatchCommand({ type: "thread.turn.start", commandId: "model-turn", threadId: session.id, message: { text: "hello" }, modelSelection: { provider: "omp", model: "b/same", options: { thinkingLevel: "high" } } });
+  expect(calls.find(call => (call.body as { command?: string })?.command === "set_model")?.body).toMatchObject({ incarnation: "inc-2", payload: { provider: "b", modelId: "same" } });
+  expect(calls.find(call => (call.body as { command?: string })?.command === "set_thinking_level")?.body).toMatchObject({ payload: { level: "high" } });
+});

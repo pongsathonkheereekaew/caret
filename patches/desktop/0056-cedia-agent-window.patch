@@ -1,0 +1,241 @@
+diff --git a/src/vs/code/electron-main/app.ts b/src/vs/code/electron-main/app.ts
+index fffe7a3be26..ef0982def94 100644
+--- a/src/vs/code/electron-main/app.ts
++++ b/src/vs/code/electron-main/app.ts
+@@ -4,6 +4,7 @@
+  *--------------------------------------------------------------------------------------------*/
+ 
+ import { app, BrowserWindow, desktopCapturer, Details, globalShortcut, GPUFeatureStatus, powerMonitor, protocol, screen as electronScreen, session, Session, systemPreferences, WebFrameMain } from 'electron';
++import { createRequire } from 'node:module';
+ import { addUNCHostToAllowlist, disableUNCAccessRestrictions } from '../../base/node/unc.js';
+ import { validatedIpcMain } from '../../base/parts/ipc/electron-main/ipcMain.js';
+ import { hostname, release } from 'os';
+@@ -13,6 +14,7 @@ import { toErrorMessage } from '../../base/common/errorMessage.js';
+ import { Event } from '../../base/common/event.js';
+ import { parse } from '../../base/common/jsonc.js';
+ import { getPathLabel } from '../../base/common/labels.js';
++import { extUriBiasedIgnorePathCase } from '../../base/common/resources.js';
+ import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../base/common/lifecycle.js';
+ import { Schemas, VSCODE_AUTHORITY } from '../../base/common/network.js';
+ import { join, posix } from '../../base/common/path.js';
+@@ -101,7 +103,7 @@ import { getAllWindowsExcludingOffscreen, IWindowsMainService, OpenContext } fro
+ import { ICodeWindow } from '../../platform/window/electron-main/window.js';
+ import { WindowsMainService } from '../../platform/windows/electron-main/windowsMainService.js';
+ import { ActiveWindowManager } from '../../platform/windows/node/windowTracker.js';
+-import { hasWorkspaceFileExtension } from '../../platform/workspace/common/workspace.js';
++import { hasWorkspaceFileExtension, isSingleFolderWorkspaceIdentifier } from '../../platform/workspace/common/workspace.js';
+ import { IWorkspacesService } from '../../platform/workspaces/common/workspaces.js';
+ import { IWorkspacesHistoryMainService, WorkspacesHistoryMainService } from '../../platform/workspaces/electron-main/workspacesHistoryMainService.js';
+ import { WorkspacesMainService } from '../../platform/workspaces/electron-main/workspacesMainService.js';
+@@ -202,6 +204,20 @@ type OSProxyConfigClassification = {
+ 	comment: 'Tracks categorized operating system proxy configuration after startup without collecting proxy addresses, URLs, scripts, bypass entries, or error text.';
+ };
+ 
++type CediaAgentWindowModule = {
++	registerCediaAgentWindowBridge(options: {
++		readonly ipcMain: typeof validatedIpcMain;
++		readonly appRoot: string;
++		readonly parentPid: number;
++		readonly stateDir?: string;
++		readonly authorize: (event: unknown) => boolean;
++		readonly pickFolder: (event: unknown) => Promise<string | null>;
++		readonly openIde: (input: { cwd: string; path?: string; line?: number }, event: unknown) => Promise<void>;
++		readonly openExternal: (url: string) => Promise<void>;
++		readonly version?: string;
++	}): { dispose(): void };
++};
++
+ /**
+  * The main VS Code application. There will only ever be one instance,
+  * even if the user starts many instances (e.g. from the command line).
+@@ -678,6 +694,17 @@ export class CodeApplication extends Disposable {
+ 
+ 		validatedIpcMain.on('vscode:reloadWindow', event => event.sender.reload());
+ 
++		// The standalone Cedia Agent renderer has no Code-OSS workbench lifecycle
++		// service, so it reports readiness through the same native window registry.
++		// Restrict this signal to the registered sessions window; IDE renderers use
++		// the normal `nativeHostService.notifyReady()` path.
++		validatedIpcMain.on('vscode:workbenchLoaded', event => {
++			const window = this.windowsMainService?.getWindowByWebContents(event.sender);
++			if (window?.config?.isSessionsWindow) {
++				window.setReady();
++			}
++		});
++
+ 		validatedIpcMain.handle('vscode:notifyZoomLevel', async (event, zoomLevel: number | undefined) => {
+ 			const window = this.windowsMainService?.getWindowByWebContents(event.sender);
+ 			if (window) {
+@@ -688,6 +715,106 @@ export class CodeApplication extends Disposable {
+ 		//#endregion
+ 	}
+ 
++	/**
++	 * Install the Cedia Agent renderer bridge only after the Code-OSS window
++	 * registry exists. The bridge is bundled by Cedia and loaded at runtime so
++	 * the desktop mirror does not acquire a second host or provider dependency.
++	 */
++	private async registerCediaAgentWindowBridge(accessor: ServicesAccessor): Promise<void> {
++		// Resolving the service here (rather than waiting for openFirstWindow) keeps
++		// the bridge installed before the renderer can issue its first invoke.
++		const windowsMainService = this.windowsMainService ?? accessor.get(IWindowsMainService);
++		this.windowsMainService = windowsMainService;
++
++		const modulePath = join(this.environmentMainService.appRoot, 'out/vs/cedia/agent/main.cjs');
++		try {
++			const loadNativeModule = createRequire(import.meta.url);
++			const module = loadNativeModule(modulePath) as CediaAgentWindowModule;
++			const dialogMainService = accessor.get(IDialogMainService);
++			const configurationService = accessor.get(IConfigurationService);
++
++			const windowForEvent = (event: unknown): ICodeWindow | undefined => {
++				if (!event || typeof event !== 'object' || !('sender' in event)) {
++					return undefined;
++				}
++
++				const sender = (event as { sender?: unknown }).sender;
++				if (!sender) {
++					return undefined;
++				}
++
++				const window = windowsMainService.getWindowByWebContents(sender as Electron.WebContents);
++				if (!window?.config?.isSessionsWindow) {
++					return undefined;
++				}
++
++				const senderFrame = (event as { senderFrame?: unknown }).senderFrame;
++				if (!senderFrame || senderFrame !== (sender as Electron.WebContents).mainFrame) {
++					return undefined;
++				}
++
++				return window;
++			};
++
++			const bridge = module.registerCediaAgentWindowBridge({
++				ipcMain: validatedIpcMain,
++				appRoot: this.environmentMainService.appRoot,
++				parentPid: process.pid,
++				stateDir: process.env.CEDIA_STATE_DIR || configurationService.getValue<string | undefined>('cedia.hostStateDir'),
++				authorize: event => !!windowForEvent(event),
++				pickFolder: async event => {
++					const window = windowForEvent(event);
++					const folders = await dialogMainService.pickFolder({}, window?.win ?? undefined);
++					return folders?.[0] ?? null;
++				},
++				openIde: async (input, event) => {
++					if (!windowForEvent(event)) {
++						throw new Error('Untrusted Agent Window sender');
++					}
++
++					const folderUri = URI.file(input.cwd);
++					const existingIdeWindow = windowsMainService.getWindows().find(window =>
++						!window.config?.isSessionsWindow &&
++						isSingleFolderWorkspaceIdentifier(window.openedWorkspace) &&
++						extUriBiasedIgnorePathCase.isEqual(window.openedWorkspace.uri, folderUri)
++					);
++					const urisToOpen: IWindowOpenable[] = [{ folderUri }];
++					if (input.path) {
++						const path = input.line === undefined ? input.path : `${input.path}:${input.line}`;
++						urisToOpen.push({ fileUri: URI.file(path) });
++					}
++
++					await windowsMainService.open({
++						context: OpenContext.API,
++						cli: this.environmentMainService.args,
++						urisToOpen,
++						// Reuse the already-open IDE for this folder. If no matching
++						// workspace exists, force a new IDE so handoff never replaces an
++						// unrelated editor window or the Agent Window itself.
++						forceNewWindow: !existingIdeWindow,
++						forceReuseWindow: !!existingIdeWindow,
++						contextWindowId: existingIdeWindow?.id,
++						gotoLineMode: input.line !== undefined,
++					});
++				},
++				openExternal: async url => {
++					const opened = await this.nativeHostMainService?.openExternal(undefined, url);
++					if (opened === false) {
++						throw new Error('Could not open external link');
++					}
++				},
++				version: this.productService.version,
++			});
++
++			this._register(toDisposable(() => bridge.dispose()));
++		} catch (error) {
++			// The bridge is an optional runtime asset during source development. A
++			// packaged build includes it; keep Code-OSS startup usable when a local
++			// checkout has not produced the Cedia bundle yet.
++			this.logService.warn(`[cedia agent] could not load ${modulePath}`, error);
++		}
++	}
++
+ 	async startup(): Promise<void> {
+ 		this.logService.debug('Starting VS Code');
+ 		this.logService.debug(`from: ${this.environmentMainService.appRoot}`);
+@@ -773,6 +900,11 @@ export class CodeApplication extends Disposable {
+ 		// Setup Protocol URL Handlers
+ 		const initialProtocolUrls = await appInstantiationService.invokeFunction(accessor => this.setupProtocolUrlHandlers(accessor, mainProcessElectronServer));
+ 
++		// The windows service and its sender registry are now live. Load the
++		// bundled Agent bridge before opening the first window so its renderer can
++		// bootstrap without racing IPC registration.
++		await appInstantiationService.invokeFunction(accessor => this.registerCediaAgentWindowBridge(accessor));
++
+ 		// Signal phase: ready - before opening first window
+ 		this.lifecycleMainService.phase = LifecycleMainPhase.Ready;
+ 
+@@ -1591,6 +1723,15 @@ export class CodeApplication extends Disposable {
+ 					// remoteAuthority: will be determined based on macOpenFiles
+ 				});
+ 			}
++
++			// Cedia starts in its native Agent Window when there is no explicit
++			// workspace/file launch. The renderer can hand off to an IDE window via
++			// the native bridge; explicit paths above retain Code-OSS launch rules.
++			return windowsMainService.openAgentsWindow({
++				context,
++				cli: args,
++				initialStartup: true,
++			});
+ 		}
+ 
+ 		// default: read paths from cli
+diff --git a/src/vs/platform/windows/electron-main/windowImpl.ts b/src/vs/platform/windows/electron-main/windowImpl.ts
+index 5904f68759d..e458b53a351 100644
+--- a/src/vs/platform/windows/electron-main/windowImpl.ts
++++ b/src/vs/platform/windows/electron-main/windowImpl.ts
+@@ -1275,7 +1275,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
+ 		if (process.env.VSCODE_DEV && process.env.VSCODE_DEV_SERVER_URL) {
+ 			windowUrl = process.env.VSCODE_DEV_SERVER_URL; // support URL override for development
+ 		} else if (configuration.isSessionsWindow) {
+-			windowUrl = FileAccess.asBrowserUri(`vs/sessions/electron-browser/sessions${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
++			// Cedia keeps the base's native sessions window lifecycle, profile and workspace
++			// identity, while loading its own renderer bundle. The bundle reports
++			// `vscode:workbenchLoaded` so CodeWindow can transition to READY exactly as
++			// the regular workbench does.
++			windowUrl = FileAccess.asBrowserUri('vs/cedia/agent/index.html').toString(true);
+ 		} else {
+ 			windowUrl = FileAccess.asBrowserUri(`vs/code/electron-browser/workbench/workbench${this.environmentMainService.isBuilt ? '' : '-dev'}.html`).toString(true);
+ 		}
+diff --git a/src/vs/platform/windows/electron-main/windowsMainService.ts b/src/vs/platform/windows/electron-main/windowsMainService.ts
+index d8428b529b2..3401eaad9a6 100644
+--- a/src/vs/platform/windows/electron-main/windowsMainService.ts
++++ b/src/vs/platform/windows/electron-main/windowsMainService.ts
+@@ -295,8 +295,14 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
+ 	async openAgentsWindow(openConfig: IOpenConfiguration, folderUri?: URI, sessionResource?: URI, source?: AgentsWindowOpenSource): Promise<ICodeWindow[]> {
+ 		this.logService.trace('windowsManager#openAgentsWindow');
+ 
+-		// Open in a new browser window with the agent sessions workspace
+-		const windows = await this.open(await this.ensureAgentsWindow(openConfig));
++		// Keep one native Agent Window for the application. Reusing the registered
++		// CodeWindow preserves its profile, restore state and close/quit lifecycle;
++		// the renderer receives folder/session selection below once it is ready.
++		const existingAgentWindow = this.getWindows().find(window => window.config?.isSessionsWindow);
++		const windows = existingAgentWindow
++			? [existingAgentWindow]
++			: await this.open(await this.ensureAgentsWindow(openConfig));
++		existingAgentWindow?.focus();
+ 
+ 		// Single IPC carrying the folder to pre-select and an optional existing-
+ 		// session resource to open. The handler in the agents window sequences

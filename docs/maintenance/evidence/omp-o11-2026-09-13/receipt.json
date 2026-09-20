@@ -1,0 +1,192 @@
+{
+  "capturedAt": "2026-09-13T03:55:56.954Z",
+  "syntheticOnly": true,
+  "paidModelCalls": 0,
+  "ompSha256": "fe76b727c6281ef8355be202ba57ed580cb0985ddacbc6cfcb5918b0d9de0d4b",
+  "checks": [
+    "standalone-omp-start-without-provider",
+    "query-commands-complete-without-provider",
+    "non-turn-commands-reach-omp",
+    "turn-and-oauth-commands-not-sent",
+    "graceful-stop"
+  ],
+  "results": [
+    {
+      "command": "negotiate_protocol",
+      "status": "completed"
+    },
+    {
+      "command": "prompt",
+      "status": "skipped"
+    },
+    {
+      "command": "steer",
+      "status": "skipped"
+    },
+    {
+      "command": "follow_up",
+      "status": "skipped"
+    },
+    {
+      "command": "abort",
+      "status": "completed"
+    },
+    {
+      "command": "abort_and_prompt",
+      "status": "skipped"
+    },
+    {
+      "command": "new_session",
+      "status": "completed"
+    },
+    {
+      "command": "get_state",
+      "status": "completed"
+    },
+    {
+      "command": "set_fast_mode",
+      "status": "completed"
+    },
+    {
+      "command": "get_available_commands",
+      "status": "completed"
+    },
+    {
+      "command": "set_todos",
+      "status": "completed"
+    },
+    {
+      "command": "set_host_tools",
+      "status": "completed"
+    },
+    {
+      "command": "set_host_uri_schemes",
+      "status": "completed"
+    },
+    {
+      "command": "set_subagent_subscription",
+      "status": "completed"
+    },
+    {
+      "command": "get_subagents",
+      "status": "completed"
+    },
+    {
+      "command": "get_subagent_messages",
+      "status": "failed"
+    },
+    {
+      "command": "set_model",
+      "status": "completed"
+    },
+    {
+      "command": "cycle_model",
+      "status": "completed"
+    },
+    {
+      "command": "get_available_models",
+      "status": "completed"
+    },
+    {
+      "command": "set_thinking_level",
+      "status": "completed"
+    },
+    {
+      "command": "cycle_thinking_level",
+      "status": "completed"
+    },
+    {
+      "command": "set_steering_mode",
+      "status": "completed"
+    },
+    {
+      "command": "set_follow_up_mode",
+      "status": "completed"
+    },
+    {
+      "command": "set_interrupt_mode",
+      "status": "completed"
+    },
+    {
+      "command": "compact",
+      "status": "skipped"
+    },
+    {
+      "command": "set_auto_compaction",
+      "status": "completed"
+    },
+    {
+      "command": "set_auto_retry",
+      "status": "completed"
+    },
+    {
+      "command": "abort_retry",
+      "status": "completed"
+    },
+    {
+      "command": "bash",
+      "status": "completed"
+    },
+    {
+      "command": "abort_bash",
+      "status": "completed"
+    },
+    {
+      "command": "get_session_stats",
+      "status": "completed"
+    },
+    {
+      "command": "export_html",
+      "status": "completed"
+    },
+    {
+      "command": "switch_session",
+      "status": "completed"
+    },
+    {
+      "command": "branch",
+      "status": "failed"
+    },
+    {
+      "command": "get_branch_messages",
+      "status": "completed"
+    },
+    {
+      "command": "get_last_assistant_text",
+      "status": "completed"
+    },
+    {
+      "command": "set_session_name",
+      "status": "completed"
+    },
+    {
+      "command": "handoff",
+      "status": "skipped"
+    },
+    {
+      "command": "get_messages",
+      "status": "completed"
+    },
+    {
+      "command": "get_messages_page",
+      "status": "completed"
+    },
+    {
+      "command": "get_login_providers",
+      "status": "completed"
+    },
+    {
+      "command": "login",
+      "status": "skipped"
+    }
+  ],
+  "skipped": [
+    "prompt",
+    "steer",
+    "follow_up",
+    "abort_and_prompt",
+    "handoff",
+    "compact",
+    "login"
+  ]
+}

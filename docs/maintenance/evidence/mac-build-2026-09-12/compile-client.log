@@ -1,0 +1,6 @@
+command: PATH=/Users/pond/.caret-tools/node-v24.18.0-darwin-arm64/bin:$PATH npm run compile-client
+revision: ea1912fd6a05b80a56b2ad9b955075211deea521
+result: PASS
+summary: Finished compile-src src/tsconfig.json with 0 errors; Finished compile-client; Finished 'compile' after 3.08 min
+scope: Code-OSS client, source, built-in extensions and extension media
+

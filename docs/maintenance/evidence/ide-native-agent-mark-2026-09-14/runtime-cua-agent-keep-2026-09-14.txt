@@ -1,0 +1,42 @@
+Caret agent-edit KEEP - real packaged app (Computer Use), 2026-09-14
+
+Same fixture (private profile, private host, scripted zero-cost model). This run
+exercises the Keep decision, which was the last of the three still unclicked in
+the real app.
+
+Before the click, the editor-title actions read (fresh full accessibility tree):
+
+  103 toolbar Editor actions
+    104 button Review Active File in Diff (Option+Command+R)
+    106 button Review the Caret Edit
+    108 button Keep the Caret Edit
+    110 button Take Back the Caret Edit
+   25 tab (selected) Description: Explorer (Shift+Command+E) - 1 unsaved file
+
+After clicking 108 (Keep the Caret Edit), the accessibility diff read:
+
+  Removed element IDs: 27-29, 102, 104-115, 134
+  ~ 25 tab (selected) Description: Explorer (Shift+Command+E)   <- " - 1 unsaved file" gone
+  + 241 container Caret: kept the edit to src/greet.ts
+
+So keeping an unsaved buffer saved it (the Explorer's unsaved-file marker went
+away), the pending record was dropped (all three Caret actions withdrew), and
+forgetAgentEdit() reported it. On disk:
+
+  export function greet(name: string): string {
+  	return `Hello, ${name}! Welcome back.`;
+  }
+
+  git diff --stat -> src/greet.ts | 2 +-  (1 insertion, 1 deletion)
+
+i.e. the edit Caret applied to the buffer reached the file only because the user
+chose Keep. The fixture's own assertion (`keep-saves-the-edit-to-disk`) passed.
+
+Screenshot: runtime-window-agent-keep-2026-09-14.png (after the keep: saved, no
+Caret actions). Vision was rate-limited this session, so it is not read back as
+an image; the claims rest on the accessibility tree, the on-disk file, and the
+fixture assertion.
+
+Together with the earlier runs, all three decisions on a Caret edit are now
+observed on the packaged app: Review (native before/after diff),
+Keep (saves), Take Back (restores the buffer, never saves).

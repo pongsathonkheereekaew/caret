@@ -1,0 +1,48 @@
+{
+  "name": "@cedia/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/__tests__",
+    "generate:terminal": "bun scripts/generate-terminal-bundle.ts",
+    "preexport:web": "node scripts/patch-image-size.mjs && bun run generate:terminal",
+    "export:web": "expo export --platform web",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prepare:security": "node scripts/patch-image-size.mjs",
+    "postinstall": "node scripts/patch-image-size.mjs",
+    "preios": "node scripts/patch-image-size.mjs",
+    "preandroid": "node scripts/patch-image-size.mjs"
+  },
+  "dependencies": {
+    "@cedia/relay": "file:../../packages/relay",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@xterm/xterm": "6.0.0",
+    "base64-js": "1.5.1",
+    "expo": "54.0.37",
+    "expo-camera": "17.0.10",
+    "expo-crypto": "15.0.9",
+    "expo-file-system": "19.0.24",
+    "expo-secure-store": "15.0.8",
+    "expo-sharing": "14.0.8",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "5.6.0",
+    "react-native-web": "0.21.0",
+    "react-native-webview": "13.15.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.10",
+    "@types/react": "19.1.13",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "postcss": "8.5.28",
+    "xcode": {
+      "uuid": "11.1.1"
+    }
+  }
+}

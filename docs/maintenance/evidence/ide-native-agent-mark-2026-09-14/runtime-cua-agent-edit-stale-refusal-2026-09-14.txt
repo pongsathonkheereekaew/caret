@@ -1,0 +1,33 @@
+Caret take-back refusal after the buffer moved on - real packaged app, 2026-09-14
+
+The rule under test: taking a Caret edit back restores the exact pre-edit text,
+which is only honest while the buffer still holds the version Caret produced.
+Once the user touches the buffer, the pre-edit text also predates their change,
+so Caret must decline and point at Undo instead of silently discarding their work.
+Unit and behavioral tests covered the rule; this run exercises it on the packaged
+app.
+
+Sequence (packaged app, private profile, private host, scripted zero-cost model):
+
+  1. The agent's guarded edit landed in the buffer; editor-title actions offered
+     Review the Caret Edit / Keep the Caret Edit / Take Back the Caret Edit, and
+     the in-editor lens offered the same two decisions.
+  2. The operator focused the editor and typed one character, so the document
+     version moved past the version Caret had produced.
+  3. Clicking Take Back the Caret Edit produced the extension's own refusal:
+
+       stale refusal shown: true
+       took back: false
+
+     i.e. neither a take-back status message nor any buffer rewrite happened.
+
+  4. src/greet.ts on disk still held the pre-edit text:
+
+       export function greet(name: string): string {
+       	return `Hello, ${name}!`;
+       }
+
+     so the refused action wrote nothing anywhere.
+
+This closes the last refusal path of the agent-edit affordance that had only been
+covered by unit and behavioral tests.

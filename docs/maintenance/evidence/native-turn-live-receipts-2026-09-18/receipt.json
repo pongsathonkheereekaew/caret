@@ -1,0 +1,66 @@
+{
+  "scope": "First live turn taken after item 44 landed. A draft turn ran a model the composer never showed and its provider failure was never rendered, which blocks the live receipts for items 1, 32, 33, 34 and 35.",
+  "capturedAt": "2026-09-18T12:20:00+07:00",
+  "branch": "main",
+  "app": "/Users/pond/caret/VSCode-darwin-arm64/Caret.app, packaged by bun run package:mac at patch set 74c6ca5cbb28 (36 patches, check:packaged green)",
+  "method": "Computer-use runtime (@oai/sky) against the packaged build: New Chat on the draft, prompt pasted into the composer, Send clicked, then the host session record and the extension log read from disk. Cursor's Agents window was read in the same empty-draft state from the running app.",
+  "prompt": "Run the shell command `echo caret-live-ok` and show me its output. Then create a file named caret-live-permission.txt containing exactly: ok. Report both results.",
+  "observed": {
+    "composerPill": "DeepSeek V4.1 Flash (caret-draft-prompt-final.png)",
+    "hostModelChange": "cursor/claude-4.6-opus-high, resolvedModelIsFallback false (host-session-8d8402c7.jsonl)",
+    "assistantRecord": "provider cursor, api cursor-agent, model claude-4.6-opus-high, stopReason error, errorClassificationMessage 'Connect error resource_exhausted: Error', errorMessage ERROR_RATE_LIMITED 'You're out of usage...'",
+    "window": "the chat stayed empty and the session row read Completed; no error reached the transcript",
+    "extensionLog": "Caret kept the host's current model: the picked model 'claude-4.6-opus-high' is not in OMP's catalogue."
+  },
+  "cause": [
+    "Model binding: a draft's catalogue comes from fetchGlobalOmpModelSnapshot (chat-sessions.ts:281-297), which probes the first non-archived session. That probe's selectedModelId is the bare claude-4.6-opus-high that OMP get_state reports, while get_available_models lists it as cursor/claude-4.6-opus-high, so modelPickerGroupFromSnapshot (chat-sessions-map.ts:499-513) finds no row and publishes no selected; applyDraftModelChoice (chat-sessions.ts:154-179) then cannot resolve a provider, keeps OMP's default, and only logs it.",
+    "Error rendering: emitEntryUpdate (chat-sessions.ts:881-908) renders entry text or a tool card, so an error-terminated assistant message with empty content renders nothing and the turn reads as a normal completion."
+  ],
+  "cursorReference": "reference-cursor-empty-draft.ax.txt/.png - the running Cursor Agents window in the same empty-draft state: composer holds Add agents, context, tools / High / Start voice input and no model pill; right pane is splitter 'Resize panel' -> Panel editor-panel-group -> tab group Tabs with a real instance tab, combo box 'Open new tab menu', Enter Full Screen, Hide Apps. The pill is therefore Caret's own surface, and the violated rule is the project's own \u00a711 gate 4 (honest states), not parity.",
+  "fixDirection": "Extension-side only (no desktop patch, no gulp rebuild; verify with bun run package:mac + relaunch): resolve a model pick by exact catalogue id and then by unique provider-qualified suffix so the published selected row and the bound model cannot disagree, fall back to displaying the host's current model when nothing resolves, and map an error-terminated assistant message to a visible error plus the failed session state. Confirm OMP's real id shapes before writing the resolution rule.",
+  "blocks": [
+    "\u00a710 item 1",
+    "\u00a710 item 32",
+    "\u00a710 item 33",
+    "\u00a710 item 34",
+    "\u00a710 item 35"
+  ],
+  "implemented": {
+    "modelResolution": "apps/macos/src/chat-sessions-map.ts#ompModelRowForPick (exact id, then a unique provider-qualified suffix; ambiguous matches nothing) used by projectOmpModelSnapshot, modelPickerGroupFromSnapshot and resolveOmpModelPickProvider; applyDraftModelChoice sends the resolved row's own spelling.",
+    "failureText": "apps/macos/src/chat-sessions-map.ts#entryFailureText + chat-sessions.ts#emitEntryUpdate render a failed entry with no text as that provider's message.",
+    "verification": "bun run test 883 pass / 0 fail (two new cases), bun run typecheck clean, bun run package:mac + bun run check:packaged green at patch set 74c6ca5cbb28."
+  },
+  "negativeResult": "After repackaging and relaunching, a fresh draft still showed the pill reading 'DeepSeek V4.1 Flash' while the session the previous send created ran cursor/claude-4.6-opus-high: the pill's label is not produced from the models option group's selection, which is what this fix corrects. The label's real source is still unidentified (candidates: the workbench's remembered session-option value for the session type, or where Caret publishes the group into the option state). The failure rendering has no live receipt yet.",
+  "environmentNote": "OMP advertised 871 models in the first run and 780 in the second; ~/.omp/agent/config.yml is a dangling symlink and the cedia checkout has its own .omp/agent/config.yml staged as deleted. Not touched here, but control for a changing catalogue when measuring model ids.",
+  "failureRenderingReceipt": {
+    "status": "transcript half closed 2026-09-18 (live); the session row is still not honest",
+    "evidence": "turn2-after-send.ax.txt elements 94/97: the transcript now reads '**Caret stopped this turn.** Connect error resource_exhausted: Error [details: ... ERROR_RATE_LIMITED ... You're out of usage. Switch to Auto ...]' where the pre-fix window showed an empty chat.",
+    "how": "second draft send on the re-packaged build (bun run package:mac at patch set 74c6ca5cbb28), same prompt as the first",
+    "remaining": "The sidebar row read 'In Progress' three minutes after the same error (the first run read 'Completed'), because the row follows the host session's status rather than the turn's ending. Correcting that is host-side."
+  },
+  "labelProbe": {
+    "status": "open, narrowed to the workbench",
+    "evidence": "probe-extension-log.txt: [model-label probe] current=claude-4.6-opus-high carried=- selected=claude-4.6-opus-high name=Claude Opus 4.6 1M first=claude-4-sonnet|Claude Sonnet 4 ; [model-pick probe] picked=claude-4.6-opus-high id=claude-4.6-opus-high name=Claude Opus 4.6 1M",
+    "conclusion": "the catalogue row exists and Caret publishes it as selected; the workbench hands the same id and name back at creation, yet draws 'DeepSeek V4.1 Flash'. The mismatch is in the workbench's session-option presentation (a persisted option label surviving the provider's published selected), so the fix is desktop-side: refresh the control's label or stop offering a model control that is not the one that runs (Cursor's Agents composer has no model pill at all)."
+  },
+  "composerModelControl": {
+    "status": "measured 2026-09-18; fix is desktop-side",
+    "whatItIs": "The workbench's own language-model picker, fed by the user's installed providers (list: Auto, openrouter | Claude Opus 4.6 1M, cursor | DeepSeek V4.1 Flash, opencode-go [marked Current model] | DeepSeek V4.1 Flash (Command Code), commandcode | Muse Spark 1.3 Contributor, opencode-go).",
+    "wired": "ompModelForPickedLanguageModel resolves the attached model against OMP's catalogue; the participant handler (the path a submitted prompt takes) calls applyRequestedModel before runTurn, applies it when OMP runs that model, and writes an honest line when it does not. Live log: 'Caret participant turn for session faed46de-...' then 'Caret did not apply the composer's model claude-4.6-opus-high: it is not in OMP's catalogue.'",
+    "finding": "The model attached to the request is claude-4.6-opus-high, what Caret published from OMP's get_state, while the pill and the picker's Current model marker both say DeepSeek V4.1 Flash. The user's pick never reaches the request and the marker is stale, so the turn kept running the rate-limited cursor/claude-4.6-opus-high and a working model cannot be chosen from this window.",
+    "options": [
+      "make the control reflect and honour the provider's published selection",
+      "stop presenting a model control whose pick has no effect (Cursor's Agents composer has no model pill)"
+    ]
+  },
+  "reasoningChip": {
+    "status": "landed and unit-verified 2026-09-18; live positive path not yet seen",
+    "how": "a second session option group 'reasoning' built from OMP's get_state thinking levels for the current model (fetchOmpThinking -> thinkingFromOmpState -> thinkingPickerGroupFromParams), applied with set_thinking_level after re-checking the advertised levels; no group is published when OMP advertises none, so no invented ladder.",
+    "notVerified": "right after packaging no Reasoning control appeared in the window, which matches the honest-disabled path for a model that advertises no levels; the positive path needs a session whose get_state advertises thinking levels."
+  },
+  "pickerDoesNotReachTheHost": {
+    "measured": "2026-09-18, existing session ddfcd677-4ecc-412c-8751-a46bd653a1f5",
+    "did": "opened the composer's model control (list: Auto | Claude Opus 4.6 1M | DeepSeek V4.1 Flash [Current model, Pin Model] | Muse Spark 1.3 Contributor | Other Models | Manage Language Models) and picked Muse Spark 1.3 Contributor",
+    "result": "the pill's label changed to Muse Spark 1.3 Contributor, but the session's journal gained no model_change (its only one is the original cursor/claude-4.6-opus-high from 02:34Z) and the log recorded no set_model attempt: the workbench's language-model picker is display-only here, so the model that runs cannot be changed from this window at all."
+  }
+}

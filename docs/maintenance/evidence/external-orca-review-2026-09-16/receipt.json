@@ -1,0 +1,157 @@
+{
+  "scope": "External reading of stablyai/orca against Caret's plan; observations separated from inferences",
+  "date": "2026-09-16",
+  "source": {
+    "repo": "https://github.com/stablyai/orca",
+    "commit": "b8d4cde0",
+    "license": "MIT",
+    "clone": "shallow, into a temp directory (no Orca content copied into the Caret tree)",
+    "read": [
+      "README.md",
+      "AGENTS.md",
+      "docs/reference/*.md (41 files)",
+      "docs/STYLEGUIDE.md (per AGENTS.md)",
+      "cloud/README.md",
+      "src/{cli,main,preload,relay,renderer,shared} layout",
+      "package.json, mobile/, skills/, skill-guides/, skill-stubs/"
+    ]
+  },
+  "whatOrcaIs": {
+    "kind": "agent-CLI orchestrator (not an IDE): many CLI agents, each in its own git worktree, plus SSH worktrees, mobile companion, relay and push",
+    "ui": "Electron + React (Tailwind/shadcn); tokens canonical in src/renderer/src/assets/main.css; editor is monaco-editor + @monaco-editor/react - NOT a VS Code fork",
+    "agentIntegration": "two modes, chosen per launch: 'structured' (native chat over the agent's own session files/journal) or 'terminal' (PTY + hook/OSC status) - src/main/agent-launch/agent-launch-mode.ts",
+    "ompSupport": "omp/oh-my-pi is a supported CLI: shell wrapper (src/main/pty/omp-shell-wrapper.ts), sqlite overlay (src/main/pty/omp-sqlite-overlay.ts), relay plugin overlay, mobile agent list",
+    "testPolicy": "ORCA_BACKGROUND_LAUNCH=1 for every test/agent-launched app; never steal focus; CDP screenshots of hidden renderers; no computer-use for their own UI"
+  },
+  "structuralDifference": "Caret forks Code-OSS and patches it (patches/desktop) because it must match Cursor at the AX/DOM level; Orca owns its whole renderer and matches nobody. Orca's UI code therefore does not transfer; its documented discipline and domain knowledge do.",
+  "reusableFindings": [
+    {
+      "rank": 1,
+      "topic": "OMP surface knowledge - unblocks Caret's model picker and session titles",
+      "evidence": [
+        "src/main/pty/omp-shell-wrapper.ts lists OMP subcommands: models, tiny-models, usage, stats, token, auth-broker, auth-gateway, config, plugin, agents, acp, worktree/wt, search, grep, read, commit, shell, ssh, say, install, update, bench, gallery, grievances, dry-balance, ttsr, q, join",
+        "src/main/pty/omp-sqlite-overlay.ts mirrors OMP's agent.db (+ -wal/-shm) under PI_CODING_AGENT_DIR so /login writes reach the user's real store",
+        "docs/reference/omp-history-titles.md: session names come from persisted OMP metadata (session.title, version-1 title slots, title_change.title, legacy session_info.name), user renames outrank automatic ones, timestamps stop an older rename replacing a newer title, with a read-only smoke against a real OMP checkout"
+      ],
+      "caretUse": "Caret's open question (the composer picker renders disabled because get_available_models only dispatches after a session starts) can read omp models / omp usage or OMP's persisted journal instead of waiting for a session; the same source gives sidebar titles, history and search while the window is empty",
+      "risk": "OMP subcommand shapes were observed from Orca's OMP 15.x knowledge; must be measured against the OMP pinned here before designing"
+    },
+    {
+      "rank": 2,
+      "topic": "Execution boundary and verdict vocabulary",
+      "evidence": [
+        "docs/reference/ssh-execution-boundary.md: the execution host owns everything that touches execution; no silent substitution (a remote repoPath must never fall back to a local run); loss of contact is never `exited` - the fixed vocabulary is live/unverifiable/exited; evidence must be measured in the unit the destructive action operates on; disconnect is a detach, not a dispose",
+        "the same doc's worked failure: the relay install dir is namespaced by a content hash of the bundle, so after an app update incumbent PTYs become permanently unverifiable (#13852); the daemon peer model avoids this by keying on a semantic protocol version"
+      ],
+      "caretUse": "This is the theory for apps/host + packages/relay + mobile continue, and the concrete shape of the plan's section 4 'honest-unavailable state': distinguish 'we could not ask' from 'it is gone', and never silently run locally"
+    },
+    {
+      "rank": 3,
+      "topic": "Wire compatibility rules plus a cross-version harness",
+      "evidence": [
+        "docs/reference/remote-wire-compatibility.md: rule 1 an added optional field is safe only while every reader treats it as optional; rule 2 a new stream opcode is NOT safe because an unknown opcode decodes to null and is dropped silently, so it must be capability-negotiated (the SetOutputPaused pattern) and opcode numbers are permanent; rule 3 changing what the host publishes is a wire change with no codec change",
+        "same doc: never assert what the old side lacks (the baseline moves every release) - derive the expectation from the checked-out build; tests/e2e/cross-version-wire/* runs the real host and renderer from two builds against each other in both skew directions"
+      ],
+      "caretUse": "Caret updates desktop, host and iOS independently; these three rules belong in packages/protocol before a paired client ships, and derive-don't-hardcode is what keeps the gate from rotting"
+    },
+    {
+      "rank": 4,
+      "topic": "One agent-status store per execution host",
+      "evidence": [
+        "docs/reference/agent-status-store.md: an audit found six producers, three consumers and three copies of the same row inside one main process; the rule is one store per execution host that every reader subscribes to, precedence decided once at write time with provenance, mirroring is not merging, hydration honesty (restoredUnconfirmed is never fresh), and one dismissal removes the row on every surface"
+      ],
+      "caretUse": "Directly matches the plan's SSOT rule; Caret's session status today is spread across host, extension, sidebar and (later) iOS, which is exactly the state this document forbids"
+    },
+    {
+      "rank": 5,
+      "topic": "Receipt template: reliability contract",
+      "evidence": [
+        "several docs close with: Invariant (with an id such as agent-session.status-host-ownership), Failure source, Oracle, Gate, Provider/platform coverage, Performance budget, Diagnostics, Residual gaps",
+        "docs/reference/runtime-file-base64-padding.md pairs a boundary-evidence table (input/before/after for every case) with a caller census over every caller, and a ratchet test bans new direct child_process imports"
+      ],
+      "caretUse": "Cheap process upgrade: add invariant/gate/coverage/residual-gaps headings to new Caret receipts so 'not verified' becomes a closable list, and use ratchet tests the way patches/desktop already uses digest pinning"
+    },
+    {
+      "rank": 6,
+      "topic": "Agent PTY transcript fixtures for screen-reading rules",
+      "evidence": [
+        "docs/reference/agent-pty-transcript-capture.md: a recorder writes raw PTY bytes (no escape stripping, no CR folding, no rewrapping) plus a .meta.json sidecar; Ctrl+] ends a capture while a dialog still owns the screen; secrets are scrubbed with same-length placeholders because wrapping is the evidence; a committed-fixture scanner test re-scans everything",
+        "recorded lesson: fixtures that passed through a renderer or clipboard contain no escape bytes or carriage returns, so they are evidence for wording only - not for repaint or alt-screen behaviour"
+      ],
+      "caretUse": "Caret's approval/question and readiness rules read what OMP paints on a terminal; they need transcripts, and the same fixtures serve as provider-free G0 tests"
+    },
+    {
+      "rank": 7,
+      "topic": "IME ownership contracts",
+      "evidence": [
+        "docs/reference/ime-regression-checklist.md: from compositionstart until compositionend/blur the browser owns the textarea; async attachment resolution is a semantic write that must queue at one sink and adopt the DOM before flushing once; transient state needs explicit bounds (the xterm placeholder mask is a scalar because xterm renders one composition view); native IME evidence is required on top of synthetic DOM events"
+      ],
+      "caretUse": "Caret's composer is a real textarea and the Apps panel hosts xterm; this is a ready-made list of four already-paid-for bug classes"
+    },
+    {
+      "rank": 8,
+      "topic": "Skills placement registry and its change process",
+      "evidence": [
+        "docs/reference/agent-skill-provider-paths.md: a deliberately small registry verified against official vendor docs; Codex reads $HOME/.agents/skills and .agents/skills directly, Claude Code needs .claude/skills reconciled (symlink/junction/verified-copy fallback with drift tracking); no automated upstream path-table sync",
+        "separate threat-model and upstream-boundary documents for skill sharing"
+      ],
+      "caretUse": "The plan's section 4 skills/hooks catalog needs a path registry with a review process before skills are shared across projects or machines"
+    },
+    {
+      "rank": 9,
+      "topic": "Relay region selection, fence broker and push gateway",
+      "evidence": [
+        "docs/reference/relay-regional-placement.md: discard one warm-up probe per origin, take three bounded samples, compare by minimum, cache the choice 24h, change only for a materially faster alternative, and send no hint rather than electing the sole survivor (no hint means the director default, not neutral placement); the request carries only preferredRegion",
+        "cloud/README.md: relay-contract package shared by relay/desktop/mobile, one image as director or cell (ORCA_RELAY_ROLE), an IAM-only fence broker that owns the durable mutation lease, and a push gateway where the phone holds no credential - the host authenticates with its X25519 relay key, mints a 24h session, and registers the phone's APNs/FCM token"
+      ],
+      "caretUse": "Designs to reuse directly in packages/relay and apps/ios, especially 'no hint beats a wrong region' and a push path where the phone holds no relay credential"
+    },
+    {
+      "rank": 10,
+      "topic": "Terminal patch regeneration and daemon-backed PTYs",
+      "evidence": [
+        "docs/reference/xterm-patch-regeneration.md: the canonical xterm source patch is the only hand-edited source, and the bundle patch plus lockfile are regenerated together",
+        "docs/reference/windows-daemon-host-relocation.md + orcad-operations.md: a separate PTY daemon keeps sessions and scrollback across runtime restarts, with process-scoped versus cgroup-wide stop semantics"
+      ],
+      "caretUse": "Caret already has the 'canonical patch + regenerate' discipline in patches/desktop (manifest digests, desktop-patch-set.test.ts); Orca's doc is the example of writing those patch rules somewhere an agent will actually read"
+    },
+    {
+      "rank": 11,
+      "topic": "Design-token enforcement (maps to Caret queue item 4)",
+      "evidence": [
+        "AGENTS.md + docs/STYLEGUIDE.md: one canonical token file, no raw palette colours, no restyling ui/ primitives, lint fails on Tailwind class generation that cannot resolve, and a changed-lines gate blocks only the lines a change touches"
+      ],
+      "caretUse": "Item 4 (inject --caret-* at the workbench level instead of relying on CSS fallbacks) should land with a ratchet test: CARET_TOKENS is canonical, no CSS may redeclare a value, and check:cursor-parity reads the same source"
+    },
+    {
+      "rank": 12,
+      "topic": "Worktree and git practices for the bring-back work",
+      "evidence": [
+        "docs/reference/worktree-scan-fingerprint.md, malformed-worktree-registration-removal.md, git-compatibility.md (Git 2.25 baseline, a GitCapabilityCache scoped to the executing host with a narrow unsupported-error predicate)",
+        "AGENTS.md: never enumerate every ref and then run git ls-tree/git show per ref"
+      ],
+      "caretUse": "The plan's section 4 worktree/branch bring-back receipt should adopt the per-host capability cache and the bounded-scan rule before it starts"
+    }
+  ],
+  "doNotTake": [
+    "Orca's renderer/UI code: different architecture (own Electron UI + Monaco) versus Caret's patched Code-OSS workbench, and Orca is not chasing Cursor parity",
+    "PTY-first agent model as a default: Caret is OMP-only structured; only the fallback-with-receipt pattern (agent-launch-mode.ts) transfers, for the plan's honest-unavailable states",
+    "Cloud/parallel-agent orchestration as a product scope: Caret deliberately skips Cursor's cloud agents; keep only reading OMP subagent lineage",
+    "Deep Windows/WSL/EDR material (seven reference docs): not a Caret platform target today"
+  ],
+  "recommendedOrder": [
+    "1. Read OMP's own model/usage surface (omp models / omp usage / agent.db) to unblock the model picker and give the empty window session titles and search",
+    "2. Adopt the reliability-contract headings in new receipts and pair queue item 4 with a token ratchet test",
+    "3. Fix the live/unverifiable/exited vocabulary and the no-silent-substitution rule in packages/protocol before mobile continue",
+    "4. Add the three wire-compatibility rules and a derive-baseline cross-version harness before the first paired iOS client",
+    "5. Capture OMP PTY transcripts for approval/readiness rules and write the composer/terminal IME contracts"
+  ],
+  "notVerifiedHere": [
+    "no OMP command was executed on this machine, so what omp models / omp usage actually print in the pinned version is unknown (Orca's subcommand list reflects OMP 15.x in its comments)",
+    "Orca's structured-session implementation depth (journal schema, RPC surface) was read at the docs and directory level, not line by line",
+    "per-file licence check of cloud/ and src/ was not done; the repository README claims MIT for the whole tree"
+  ],
+  "artifacts": {
+    "cloneKeptAt": "temporary directory only (/tmp), nothing from Orca was copied into the Caret tree"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "scope": "D1: making Caret's draft behave like the reference's composer. The first Send creates the host session and the composer becomes that session's transcript, in place, with the composer's model pick carried into creation.",
+  "capturedAt": "2026-09-18T02:00:00+07:00",
+  "branch": "main",
+  "baseRevision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
+  "reference": {
+    "product": "Cursor 3.20.21 (the machine's installed build). CARET-PLAN.md section 3 pins 3.20.17; see stillOpen.",
+    "measuredInBundle": [
+      "out/vs/workbench/workbench.desktop.main.js has no sessions-window machinery at all: 0 hits for untitled-, getNewChatSessionResource, createNewChatSessionItem, ChatSessionStatus, isUntitledChatSession, onDidReplaceSession and sessionsWindow, and no out/vs/sessions directory. Cursor does not use the Code-OSS feature Caret inherits.",
+      "Its own model is one identity from the start: createEmptyComposer returns { composerId, richText, text, conversationMap: {}, status: 'none', fullConversationHeadersOnly: [], ... }, an id before any message, and no second entity to swap to.",
+      "Bubbles and history belong to the composer (fullConversationHeadersOnly, getComposerBubbleUntracked, bubbleCount), and the sidebar row is a projection of the same composer header ({ type: 'head', composerId, name, createdAt, ... }).",
+      "The model choice is a property of the composer: aiSettings.modelConfig.composer = { modelName, maxMode, selectedModels: [...] }, cloned onto the composer object, so the first turn runs on what the composer showed."
+    ],
+    "conclusion": "Same behaviour is the target; the same internals are not available to a fork of Code-OSS, whose sessions window models a new chat as an untitled draft plus a provider flow. Caret now uses that flow, so the observable behaviour matches: the composer is the session, its pick applies to the first turn, and the transcript replaces the composer in the same place."
+  },
+  "problem": "Sending from the Agents window's New Chat did nothing visible after the session was created. Measured chain, each step reproduced on screen: (1) the provider threw UNSUPPORTED because SessionsManagement.sendRequest calls discardNewSession() before every send and the bridge had cleared its draft handle; (2) no chat model was ever loaded for an unrun chat, since the Agents window draws a bare composer unlike the IDE's chat view, so chatService.sendRequest threw 'Unknown session: <untitled resource>'; (3) the draft resource carries the session TYPE as its scheme (caret.omp:/untitled-...) while the extension's content provider was registered under the item scheme (caret), so canResolveChatSession('caret.omp') was false and a draft could never resolve; (4) the send carried no resolvable model (userSelectedModelId empty, and the extension host's fallback resolves only its own Copilot vendor, absent in this build), so $invokeAgent failed with 'Language model unavailable' before the participant ran.",
+  "change": {
+    "desktopPatch0010": "The bridge runs the base's new-session flow. createNewSession returns an untitled draft (session status Untitled), prepareNewSession creates the host session at commit time through createNewChatSessionItem (seeding it with the draft's session options, the model pick among them) and returns the session the window adopts, createNewChat hands back the draft's chat, and sendRequest acquires the chat model, sends, and throws on a rejected send instead of swallowing it. The earlier materialization-follow machinery (draft model lease, wait-for-committed-session, onDidReplaceSession) is gone rather than left beside the new path.",
+    "desktopPatch0032": "NullAgentHostService.rootState answers with an inert subscription (value undefined, Event.None) instead of throwing. It is a state read, not an action, and the sessions window's chat view reads it while it is being constructed; throwing aborted that construction, which is why the composer stayed on screen after the send. Actions still throw.",
+    "extension": [
+      "apps/macos/src/chat-sessions.ts: registers the content provider under both keys (item scheme caret and session type caret.omp, the scheme a draft arrives with) and answers a draft resource with an empty session; getChatSessionInputState carries the composer's own pick onto the catalogue it returns; newChatSessionItemHandler applies that pick to the session it just created (applyDraftModelChoice) and skips it honestly when OMP's catalogue no longer advertises it; provideHandleOptionsChange treats a draft resource as deferred (its pick is applied at creation) instead of logging a failure.",
+      "apps/macos/src/chat-sessions-map.ts: isCaretDraftUri, CARET_DRAFT_TITLE, CARET_OMP_MODELS_GROUP_ID (one definition) and selectedModelIdFromInputState (pure, accepts both the bare OMP id and the vendor-prefixed identifier)."
+    ]
+  },
+  "verified": {
+    "sendCreatesTheSessionWithThePromptAsItsName": "CDP against the packaged app (--agents): New Chat, type, Send produces a sidebar row titled from the prompt ('final check: in place', 'now', 'Working...'). The extension log shows 'Caret participant turn for session 47efba40-...' and the host transcript file host/sessions/47efba40-.../session.jsonl carries the user message.",
+    "composerBecomesTheTranscriptInPlace": "Same run, same pane: document.querySelector('[data-bound-chat-resource]') is caret://session/47efba40-1e8b-4b62-a60b-831611be8614, the mounted view is the chat view (.chat-view-chat bound to that resource), and the session content reads 'Start Over final check: in place 1:46 AM Thinking Agent DeepSeek V4.1 Flash'. The prompt and the running turn are on screen where the composer was.",
+    "modelPick": "The draft's pick travels into creation: applyDraftModelChoice ran and reported honestly ('Caret kept the host's current model: the picked model deepseek/deepseek-v4.1-flash is not in OMP's catalogue') because the composer's remembered pick is not among the 869 models OMP advertises today. The path itself is covered by unit tests (a resolvable pick writes set_model with { provider, modelId }).",
+    "noNewErrors": "Console during the run: none. The earlier 'Unknown session', 'unrecognized session resource' and 'Language model unavailable' failures are gone; the only error line is the pre-existing, expected 'Caret ships no agent host' from the stubbed contributions.",
+    "checks": "bun test packages/omp-adapter packages/relay apps/host apps/macos/test -> 786 pass / 0 fail; bun run typecheck and apps/macos typecheck -> 0 errors; node scripts/ci-validate.mjs -> CI-OK; bun test apps/macos/test/desktop-patch-set.test.ts -> every patch applies in manifest order and the tree matches the checkout (0010 and 0032 re-cut, digests in manifest.json updated)."
+  },
+  "stillOpen": [
+    "D1 piece 2: the draft has no workspace picker. The provider advertises supportsLocalWorkspaces = false and the extension's newChatSessionItemHandler still creates in the first non-archived project rather than the folder the user chose.",
+    "D1 piece 3: in the draft state the Apps panel offers only Changes where the reference offers Changes/Browser/Terminal/File.",
+    "D1 piece 4: the reference's starter cards on an empty draft.",
+    "The composer's remembered model pick can name a model OMP no longer advertises (measured above). The picker should resolve it against the live catalogue, and say so, rather than showing a model the first turn will not run.",
+    "Choosing a model for an existing session and verifying the live set_model write is still unverified on screen (section 10 item 5).",
+    "Parity reference drift: CARET-PLAN.md section 3 and its receipts pin Cursor 3.20.17 while this machine now has 3.20.21, and scripts/cursor-parity-check.ts reads the installed app by path, so the gate compares against a newer reference than the one the measured values came from."
+  ]
+}

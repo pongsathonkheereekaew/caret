@@ -1,0 +1,33 @@
+{
+  "scope": "Ground-truth capture of the real Cursor Agents window (AX + measured colours/geometry), used to correct the parity contract and to redraw the target mockup",
+  "capturedAt": "2026-09-14T20:36:00+07:00",
+  "reference": "Cursor 3.20.17 (com.todesktop.230313mzl4w4u92), window titled 'Cursor Agents', running on this machine",
+  "method": "Computer Use (@oai/sky get_app_state) for the accessibility tree; window capture (692x434 = the 1710x1073 rig at 0.4047 scale) scanned row-by-row and column-by-column for colour runs and boundaries. No vision model was used (it returned HTTP 429 again).",
+  "artifacts": {
+    "axTree": "cursor-agents-ax-tree.txt (raw AX dump; no task or project names beyond the sidebar repo-group labels)"
+  },
+  "measured": {
+    "window": "1710x1073 logical (capture 692x434 at 0.4047)",
+    "screenCaptureCrossCheck": "Full-screen capture 3420x2224 device px (display 'looks like' 1710x1112), resampled to 1710 wide so 1px = 1 logical px. Reading the window row at y=500: sidebar x2-250 (249px), main pane x253-1707. This is the more trustworthy number; the 267 earlier came from the 0.4047-scaled JPEG and is superseded.",
+    "coloursAt1x": "sidebar rgb(37,38,40)-rgb(40,40,42) · main pane rgb(23,23,23) at the reading row · earlier JPEG read chrome rgb(35,35,37) and panel rgb(26,26,26). JPEG vs PNG differ by 2-4 units, so treat the PNG reads as authoritative.",
+    "columns": "sidebar ~267px real (spec section 3.1 recorded 255) | main pane ~833px | right panel ~608px",
+    "composer": "608px wide, ~107px tall, vertically centred (real y 504-611); fill rgb(34,34,34) in dark, lighter than the pane",
+    "coloursDark": "chrome/sidebar rgb(35,35,37) · main pane rgb(27,27,27) (rgb(23,23,23) directly above the composer) · composer card rgb(34,34,34) · right panel rgb(26,26,26)",
+    "recommendationRowPitch": "~42px (matches section 3.1)"
+  },
+  "knownLimitation": "No visual comparison was possible: the vision model answered HTTP 429 on every attempt in this session (view_image on the Cursor capture, the Caret capture, and the mockup screenshot). Every number above comes from AX text and pixel scans, never from looking at a picture. A hand-built mockup therefore stays an approximation; the only decisive parity check is the section 8 gate 2 method - measure Caret's own rendered DOM/compositor at the same viewport and compare against these Cursor values.",
+  "correctionsToSection3": [
+    "There is no in-window menu bar and no title bar band: Cursor/File/Edit/View/Window/Help is the macOS menu bar (an AX sibling of the window) and the traffic lights float over the sidebar.",
+    "The right side is ONE panel (Panel editor-panel-group) headed by 'Tabs' + 'Open new tab menu' + 'Enter Full Screen' + 'Hide Apps', with Changes / Browser / Terminal / File as tab-strip entries. 'Show Apps'/'Hide Apps' toggles this panel (storage key cursor/glass.rightPane); it is about 608px wide, the same as the composer.",
+    "The empty composer has no Send button: the toolbar is 'Add agents, context, tools' / 'High' (reasoning) / 'Start voice input', above it the project popup + branch combo + 'This Mac'.",
+    "Recommendation rows carry subtitles and not every row has a Dismiss: Plan New Idea (Shift+Tab), Multitask, Run in Cloud (no subtitle), Build from a design (+Dismiss), Deploy my prototype (+Dismiss), Start with a plan, Debug an issue. 'Run in Cloud' is a cloud runtime option label (it appears in Cursor's own source inside the Autopilot PR pill), not a full cloud-agent entry point.",
+    "Sidebar order is Hide Sidebar / Go Back / Go Forward / New Chat Cmd+N / Search Cmd+K / Automations / Customize / Projects (+New Project) / Repositories (+Customize Sidebar, Open Workspace) / sortable project groups / Getting Started card (Skip step n of m, Connect Slack) / Account menu / Settings / Resize sidebar splitter. There is no 'Sessions' label and no pet button.",
+    "The installed Cursor is in dark mode, so the earlier light-only mockup did not match what the user sees; both palettes are now recorded."
+  ],
+  "stillUnverified": [
+    "running / approval / error states of a real session",
+    "the panel with real tabs (diff, browser, terminal) populated",
+    "the light-theme pair for values only measured in dark (main pane, right panel)",
+    "real animation timing"
+  ]
+}
