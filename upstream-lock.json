@@ -15,7 +15,7 @@
     },
     {
       "name": "cedia-native",
-      "repository": "https://github.com/pongsathonkheereekaew/caret",
+      "repository": "https://github.com/pongsathonkheereekaew/cedia",
       "revision": "ea1912fd6a05b80a56b2ad9b955075211deea521",
       "license": "MIT",
       "licensePath": "LICENSE.txt",

@@ -13,7 +13,7 @@ pinned external source; there is no second lock file anywhere in the repo.
 | Component | Repository | Revision | Role | License |
 |---|---|---|---|---|
 | OMP | `can1357/oh-my-pi` | `00085d4e7dfdcfbf302c122fa2682b410a0f43d1` | The harness: execution and transcript owner, RPC and tool contract | MIT |
-| Cedia Code-OSS fork | `pongsathonkheereekaew/caret` | `ea1912fd6a05b80a56b2ad9b955075211deea521` | Mac IDE build baseline; `patches/desktop/manifest.json` pins the same revision as `baseRevision` | MIT |
+| Cedia Code-OSS fork | `pongsathonkheereekaew/cedia` | `ea1912fd6a05b80a56b2ad9b955075211deea521` | Mac IDE build baseline; `patches/desktop/manifest.json` pins the same revision as `baseRevision` | MIT |
 | Paseo | `getpaseo/paseo` | `d1b705a0cd91617a5707fae25d80cb0be3057950` | Relay E2EE primitives only, via `@getpaseo/relay 0.8.0`; no other Paseo source is vendored | Apache-2.0, per-file with third-party exceptions |
 
 Retained license texts: `docs/upstream-notices/omp-LICENSE.txt`,
