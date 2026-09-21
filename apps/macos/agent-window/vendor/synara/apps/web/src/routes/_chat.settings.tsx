@@ -203,9 +203,11 @@ function SettingsRouteView() {
   const activeSectionItem = SETTINGS_NAV_ITEMS.find((item) => item.id === activeSection)!;
 
   const {
+    followHostTheme,
     isDefaultActiveTheme,
     resetAllThemes,
     resolvedTheme,
+    setFollowHostTheme,
     theme,
     setTheme,
     systemUiFont,
@@ -752,6 +754,18 @@ function SettingsRouteView() {
         <div id={settingRowAnchorId("Theme")} className="scroll-mt-24 pb-1.5">
           <ThemeModePicker value={theme} onValueChange={setTheme} ariaLabel="Theme preference" />
         </div>
+
+        <SettingsRow
+          title="Follow IDE theme"
+          description="Match the IDE's theme and colors. Editing a theme pack below switches this off so your own look sticks."
+          control={
+            <Switch
+              checked={followHostTheme}
+              onCheckedChange={(checked) => setFollowHostTheme(Boolean(checked))}
+              aria-label="Follow IDE theme"
+            />
+          }
+        />
 
         <div className="space-y-3">
           {(resolvedTheme === "dark"

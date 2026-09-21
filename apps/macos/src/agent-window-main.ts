@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { CediaHostClient } from "./api.ts";
@@ -10,6 +10,8 @@ import { createAgentGitService } from "./agent-window-git.ts";
 import { createAgentDeviceService } from "./agent-window-device.ts";
 import { agentUiStateDir, readAgentUiState, resolveAgentUiThread, saveIdeHandoff, validAgentThreadId, writeAgentUiState } from "./agent-ui-state.ts";
 import { readAgentThemeSnapshot } from "./agent-theme.ts";
+import { startAgentThemePublisher } from "./agent-window-theme-publisher.ts";
+import { AGENTS_WINDOW_WORKSPACE } from "./workbench-mode.ts";
 
 export const AGENT_WINDOW_CHANNEL = "vscode:cediaAgent";
 type HostMethod = "GET" | "POST" | "PATCH" | "DELETE";
@@ -206,7 +208,63 @@ export function registerCediaAgentWindowBridge(options: AgentWindowBridgeOptions
   options.ipcMain.handle(AGENT_WINDOW_CHANNEL, createAgentWindowHandler({ ...options, ...gateway,
     panel: (event, surface, method, input) => panels[surface as keyof typeof panels].handle(event, method, input),
   }));
+  // The extension host may never run in the agents window, so no extension is
+  // around to publish the theme the window actually shows. The main process
+  // watches the agents workspace file itself (plus OS appearance) and keeps the
+  // shared snapshot current; the IDE extension converges on the same values.
+  // Electron is only resolvable inside the real main process (tests and typecheck
+  // never execute this branch); keep it out of the static imports so neither tries.
+  const electronModule = require("electron") as {
+    app: { getPath(name: "userData"): string };
+    nativeTheme: {
+      readonly shouldUseDarkColors: boolean;
+      on(event: "updated", listener: () => void): void;
+      removeListener(event: "updated", listener: () => void): void;
+    };
+  };
+  const userDataDir = electronModule.app.getPath("userData");
+  const readTextFile = (path: string): string | undefined => {
+    try {
+      return readFileSync(path, "utf8");
+    } catch {
+      return undefined;
+    }
+  };
+  const themePublisher = startAgentThemePublisher({
+    stateDir: options.stateDir,
+    workspaceFile: join(userDataDir, "User", AGENTS_WINDOW_WORKSPACE),
+    extensionsDirs: [join(options.appRoot, "extensions"), join(userDataDir, "extensions")],
+    readTextFile,
+    listDir: (path: string): string[] => {
+      try {
+        return readdirSync(path, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name);
+      } catch {
+        return [];
+      }
+    },
+    joinPath: join,
+    fileMtimeMs: (path: string): number | undefined => {
+      try {
+        return statSync(path).mtimeMs;
+      } catch {
+        return undefined;
+      }
+    },
+    readSystemDark: () => electronModule.nativeTheme.shouldUseDarkColors,
+    onSystemThemeUpdated: (listener: () => void) => {
+      electronModule.nativeTheme.on("updated", listener);
+      return () => electronModule.nativeTheme.removeListener("updated", listener);
+    },
+    setIntervalFn: (callback: () => void, ms: number): unknown => {
+      const timer = setInterval(callback, ms);
+      (timer as unknown as { unref?: () => void }).unref?.();
+      return timer;
+    },
+    clearIntervalFn: (handle: unknown) => clearInterval(handle as NodeJS.Timeout),
+  });
+  void themePublisher.tick();
   return { dispose: () => {
+    themePublisher.dispose();
     options.ipcMain.removeHandler(AGENT_WINDOW_CHANNEL);
     for (const service of Object.values(panels)) service.dispose();
   } };

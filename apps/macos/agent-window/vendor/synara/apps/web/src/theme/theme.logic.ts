@@ -45,6 +45,10 @@ export interface ThemeState {
   mode: ThemeMode;
   /** Ignore the theme pack's custom UI font and let the native system stack apply. */
   systemUiFont: boolean;
+  /** Follow the IDE theme snapshot (mode, mapped pack, exact IDE tokens).
+   *  Off means the agent theme is fully independent. Editing a theme pack
+   *  switches this off so a customization never silently stops matching. */
+  followHostTheme: boolean;
 }
 
 export interface CodeThemeOption {
@@ -276,6 +280,7 @@ export const DEFAULT_THEME_STATE: ThemeState = {
   },
   systemUiFont: true,
   mode: "system",
+  followHostTheme: true,
 };
 
 // ─── Theme catalog helpers ────────────────────────────────────────────────
@@ -380,28 +385,44 @@ export function normalizeThemeState(value: unknown): ThemeState {
   const packs = isRecord(state.packs) ? state.packs : {};
   const legacyDarkPack = normalizeThemePack(packs.dark, "dark");
   const legacyLightPack = normalizeThemePack(packs.light, "light");
+  const normalizedChromeThemes: Record<ThemeVariant, ChromeTheme> = {
+    dark: isRecord(chromeThemes.dark)
+      ? normalizeChromeTheme(chromeThemes.dark, "dark")
+      : isRecord(packs.dark)
+        ? legacyDarkPack.theme
+        : DEFAULT_THEME_STATE.chromeThemes.dark,
+    light: isRecord(chromeThemes.light)
+      ? normalizeChromeTheme(chromeThemes.light, "light")
+      : isRecord(packs.light)
+        ? legacyLightPack.theme
+        : DEFAULT_THEME_STATE.chromeThemes.light,
+  };
+  const normalizedCodeThemeIds: Record<ThemeVariant, string> = {
+    dark: normalizeCodeThemeId(codeThemeIds.dark ?? legacyDarkPack.codeThemeId, "dark"),
+    light: normalizeCodeThemeId(codeThemeIds.light ?? legacyLightPack.codeThemeId, "light"),
+  };
+  // States saved before the link toggle existed carry no intent: keep following
+  // the IDE only when both packs are still pristine. A customized pack means the
+  // user chose their own look, so start unlinked instead of restyling them.
+  const packsPristine =
+    areThemePacksEqual(
+      { codeThemeId: normalizedCodeThemeIds.dark, theme: normalizedChromeThemes.dark },
+      { codeThemeId: DEFAULT_THEME_STATE.codeThemeIds.dark, theme: DEFAULT_THEME_STATE.chromeThemes.dark },
+    ) &&
+    areThemePacksEqual(
+      { codeThemeId: normalizedCodeThemeIds.light, theme: normalizedChromeThemes.light },
+      { codeThemeId: DEFAULT_THEME_STATE.codeThemeIds.light, theme: DEFAULT_THEME_STATE.chromeThemes.light },
+    );
   return {
-    chromeThemes: {
-      dark: isRecord(chromeThemes.dark)
-        ? normalizeChromeTheme(chromeThemes.dark, "dark")
-        : isRecord(packs.dark)
-          ? legacyDarkPack.theme
-          : DEFAULT_THEME_STATE.chromeThemes.dark,
-      light: isRecord(chromeThemes.light)
-        ? normalizeChromeTheme(chromeThemes.light, "light")
-        : isRecord(packs.light)
-          ? legacyLightPack.theme
-          : DEFAULT_THEME_STATE.chromeThemes.light,
-    },
-    codeThemeIds: {
-      dark: normalizeCodeThemeId(codeThemeIds.dark ?? legacyDarkPack.codeThemeId, "dark"),
-      light: normalizeCodeThemeId(codeThemeIds.light ?? legacyLightPack.codeThemeId, "light"),
-    },
+    chromeThemes: normalizedChromeThemes,
+    codeThemeIds: normalizedCodeThemeIds,
     mode: isThemeMode(state.mode) ? state.mode : DEFAULT_THEME_STATE.mode,
     // Preserve the UI font older theme states already rendered. New/default states use the
     // native stack, while an explicit preference always wins after the first save.
     systemUiFont:
       typeof state.systemUiFont === "boolean" ? state.systemUiFont : !hasStoredCustomUiFont(state),
+    followHostTheme:
+      typeof state.followHostTheme === "boolean" ? state.followHostTheme : packsPristine,
   };
 }
 

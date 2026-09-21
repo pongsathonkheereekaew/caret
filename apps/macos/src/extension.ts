@@ -52,7 +52,7 @@ import { layoutBoxes, layoutSashes, setSplitRatio } from "./layout-geometry.ts";
 import { buildPaneViews, rememberPaneTranscript, type PaneTranscriptCache, type PaneView } from "./pane-views.ts";
 import { announceSummary, motionTokens } from "./ui-a11y.ts";
 import { redactedDiagnostics } from "./diagnostics.ts";
-import { AGENTS_WINDOW_WORKSPACE, allThemeProvidingExtensionIds, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, switchWorkbenchMode, type IdeLayoutSnapshot, type NativeDestination, type RetentionSnapshot } from "./workbench-mode.ts";
+import { AGENTS_WINDOW_WORKSPACE, allThemeProvidingExtensionIds, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveSnapshotThemeName, resolveStartupView, retentionReceipt, runWorkbenchCommands, switchWorkbenchMode, type IdeLayoutSnapshot, type NativeDestination, type RetentionSnapshot } from "./workbench-mode.ts";
 import { availabilityFromLists, routeErrorPage, validateRoute, type RouteErrorPage } from "./route-error.ts";
 import { applySettingsSection, beginSettingsDraft, previewResetOverride, settingsSourcePath, type ResetOverridePreview, type SettingsSectionDraft } from "./settings-revision.ts";
 import { OLDER_PAGES_NOTE } from "./history-page.ts";
@@ -4059,33 +4059,46 @@ const AGENTS_WINDOW_THEME_SETTING_KEYS = [
  * "the Agents window follows the theme I chose" land in one place.
  */
 async function syncAgentsWindowTheme(globalStorage: vscode.Uri, stateDir?: string): Promise<void> {
-	// A window that is already the Agents window has nothing to hand over, and its globalStorage is
-	// the profile's own - the path below would resolve inside it instead of to it.
-	if (isAgentsWindow(vscode.workspace.workspaceFile)) return;
 	const workbench = vscode.workspace.getConfiguration("workbench");
 	const colorTheme = workbench.get<string>("colorTheme");
 	const preferredDark = workbench.get<string>("preferredDarkColorTheme");
 	const preferredLight = workbench.get<string>("preferredLightColorTheme");
+	const autoDetect = vscode.workspace.getConfiguration("window").get<boolean>("autoDetectColorScheme");
 	const themeKind = Number(vscode.window.activeColorTheme?.kind);
 	const mode = themeKind === 1 || themeKind === 4 ? "light" : "dark";
+	// The snapshot file is shared by every window, so every window publishes what it shows:
+	// otherwise the file freezes at whatever the IDE last wrote and the agent keeps wearing
+	// that theme after the user re-themed elsewhere. With autoDetect the stored colorTheme
+	// is not what the window shows, so the resolved preferred theme is handed over instead.
+	const themeName = resolveSnapshotThemeName({
+		colorTheme,
+		preferredDarkColorTheme: preferredDark,
+		preferredLightColorTheme: preferredLight,
+		autoDetectColorScheme: autoDetect,
+		mode,
+	});
 	// The standalone renderer cannot ask the extension host for
 	// `activeColorTheme`. Persist the name/kind immediately; the embedded Agent
 	// view later replaces this fallback with the effective --vscode-* palette.
 	try {
 		await writeAgentThemeSnapshot(stateDir, {
 			mode,
-			...(colorTheme ? { themeName: colorTheme } : {}),
+			...(themeName ? { themeName } : {}),
 		});
 	} catch (error) {
 		// Theme handoff is cosmetic. A locked or read-only state directory should
 		// never prevent the extension from activating or syncing the workspace file.
 		console.debug("Cedia Agent theme snapshot unavailable", error);
 	}
+	// A window that is already the Agents window has nothing to hand over for the second
+	// half: its globalStorage is the profile's own, so the workspace path below would
+	// resolve inside it instead of to the shared workspace file.
+	if (isAgentsWindow(vscode.workspace.workspaceFile)) return;
 	const settings: Record<string, unknown> = {
 		"workbench.colorTheme": colorTheme,
 		"workbench.preferredDarkColorTheme": preferredDark,
 		"workbench.preferredLightColorTheme": preferredLight,
-		"window.autoDetectColorScheme": vscode.workspace.getConfiguration("window").get<boolean>("autoDetectColorScheme"),
+		"window.autoDetectColorScheme": autoDetect,
 		// The reference's sidebar groups sessions by project and has no empty "Chats" group,
 		// so this window does not draw one (plan chrome decision). It is a settings-only
 		// change: the group's rows have nothing to show in a window whose chats all belong

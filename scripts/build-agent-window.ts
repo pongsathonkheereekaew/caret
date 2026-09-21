@@ -41,6 +41,9 @@ const bridgeResult = await Bun.build({
   format: "cjs",
   minify: false,
   sourcemap: "none",
+  // The bridge runs inside Electron main: bare require("electron") must stay a
+  // runtime require instead of being bundled.
+  external: ["electron"],
 });
 
 if (!bridgeResult.success) {

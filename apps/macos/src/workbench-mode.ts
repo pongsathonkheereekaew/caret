@@ -87,6 +87,33 @@ export function themeProvidingExtensionIds(
 	return ids.sort();
 }
 
+export interface SnapshotThemeChoice {
+	readonly colorTheme?: unknown;
+	readonly preferredDarkColorTheme?: unknown;
+	readonly preferredLightColorTheme?: unknown;
+	readonly autoDetectColorScheme?: unknown;
+	readonly mode: "light" | "dark";
+}
+
+/**
+ * The theme name the Agents window snapshot should carry.
+ *
+ * With `window.autoDetectColorScheme` the stored `workbench.colorTheme` is not what the
+ * window shows: the workbench renders the preferred light/dark theme for the active kind
+ * instead. Handing over the stored id would aim the agent at a theme nobody is looking at
+ * (and at an id no pack rule recognises), so the resolved preferred theme wins and the
+ * stored id is only the fallback.
+ */
+export function resolveSnapshotThemeName(choice: SnapshotThemeChoice): string | undefined {
+	const pick = (value: unknown): string | undefined =>
+		typeof value === "string" && value.length > 0 ? value : undefined;
+	if (choice.autoDetectColorScheme === true) {
+		return pick(choice.mode === "light" ? choice.preferredLightColorTheme : choice.preferredDarkColorTheme)
+			?? pick(choice.colorTheme);
+	}
+	return pick(choice.colorTheme);
+}
+
 /** Every installed extension that contributes a Code-OSS theme. */
 export function allThemeProvidingExtensionIds(extensions: readonly ThemeProvidingExtension[]): string[] {
 	return extensions

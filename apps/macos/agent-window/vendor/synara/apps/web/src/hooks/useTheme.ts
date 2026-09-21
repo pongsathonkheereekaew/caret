@@ -190,14 +190,28 @@ function firstHostColor(snapshot: HostThemeSnapshot | undefined, ...names: strin
   return undefined;
 }
 
-function stateForHostTheme(state: ThemeState, snapshot: HostThemeSnapshot | undefined): ThemeState {
+function isDefaultVariantPack(state: ThemeState, variant: ThemeVariant): boolean {
+  return areThemePacksEqual(resolveThemePack(state, variant), resolveThemePack(DEFAULT_THEME_STATE, variant));
+}
+
+export function stateForHostTheme(state: ThemeState, snapshot: HostThemeSnapshot | undefined): ThemeState {
+  // The Follow-IDE toggle is the explicit link. Off means the agent theme is
+  // fully independent: the snapshot is ignored and stored packs render as-is.
+  // (Pack edits switch the toggle off, so a customization can never silently
+  // stop matching; the toggle flipping is the visible signal.)
+  if (!state.followHostTheme) return state;
   if (!snapshot) return isIdeEmbeddedRuntime() ? { ...state, mode: "system" as const } : state;
   const variant = snapshot.mode;
   // The IDE names its theme (VS Code `workbench.colorTheme`); project it onto this
-  // app's closest pack so the agent follows the IDE's whole theme, not just its
-  // light/dark mode and accent tints. Unknown names keep the stored pack.
+  // app's closest pack so the agent follows the IDE, not just its light/dark
+  // mode and accent tints. Unknown names keep the stored pack. This overlay only
+  // projects for display; storage keeps the user's own packs underneath, so
+  // switching the toggle off restores their look.
   const mappedPack = packForIdeThemeName(snapshot.themeName, variant);
   let next = state;
+  if (mappedPack) {
+    next = setThemeCodeThemeId(next, variant, mappedPack);
+  }
   const previous = next.chromeThemes[variant];
   const patch: Partial<ChromeTheme> = {
     ...(firstHostColor(snapshot, "--vscode-button-background", "--vscode-textLink-foreground", "--vscode-focusBorder") ? { accent: firstHostColor(snapshot, "--vscode-button-background", "--vscode-textLink-foreground", "--vscode-focusBorder") } : {}),
@@ -218,8 +232,6 @@ function stateForHostTheme(state: ThemeState, snapshot: HostThemeSnapshot | unde
   const hasPalette = Object.keys(patch).length > 0;
   return {
     ...next,
-    mode: variant,
-    ...(mappedPack ? { codeThemeIds: { ...next.codeThemeIds, [variant]: mappedPack } } : {}),
     ...(hasPalette ? { chromeThemes: { ...next.chromeThemes, [variant]: { ...previous, ...patch } } } : {}),
   };
 }
@@ -270,7 +282,8 @@ function startHostThemePolling(): () => void {
 }
 
 function getSystemDark(): boolean {
-  const hostTheme = readHostThemeSnapshot();
+  // Unlinked System follows the OS, not the IDE snapshot.
+  const hostTheme = readStoredThemeState().followHostTheme ? readHostThemeSnapshot() : undefined;
   if (hostTheme) return hostTheme.mode === "dark";
   if (isIdeEmbeddedRuntime() && typeof document !== "undefined") {
     return document.body.classList.contains("vscode-dark") || document.body.classList.contains("vscode-high-contrast");
@@ -414,7 +427,8 @@ function applyThemeState(state: ThemeState, suppressTransitions = false) {
     }
     root.style.setProperty(name, value);
   }
-  applyHostThemeTokens(root, hostTheme);
+  const shouldFollowTokens = Boolean(hostTheme) && state.followHostTheme && variant === hostTheme?.mode;
+  if (shouldFollowTokens) applyHostThemeTokens(root, hostTheme);
 
   syncDesktopTheme(projectedState.mode);
 
@@ -475,16 +489,27 @@ function resetAllThemes() {
   updateStoredThemeState(() => DEFAULT_THEME_STATE);
 }
 
+function setFollowHostTheme(follow: boolean) {
+  updateStoredThemeState((state) => ({
+    ...state,
+    followHostTheme: follow,
+  }));
+}
+
+function withHostUnlink(next: ThemeState): ThemeState {
+  return next.followHostTheme ? { ...next, followHostTheme: false } : next;
+}
+
 function updateThemePack(variant: ThemeVariant, patch: Partial<ChromeTheme>) {
-  updateStoredThemeState((state) => updateChromeTheme(state, variant, patch));
+  updateStoredThemeState((state) => withHostUnlink(updateChromeTheme(state, variant, patch)));
 }
 
 function updateThemeFonts(variant: ThemeVariant, patch: Partial<ThemeFonts>) {
-  updateStoredThemeState((state) => setThemeFonts(state, variant, patch));
+  updateStoredThemeState((state) => withHostUnlink(setThemeFonts(state, variant, patch)));
 }
 
 function setCodeThemeId(variant: ThemeVariant, codeThemeId: string) {
-  updateStoredThemeState((state) => setThemeCodeThemeId(state, variant, codeThemeId));
+  updateStoredThemeState((state) => withHostUnlink(setThemeCodeThemeId(state, variant, codeThemeId)));
 }
 
 export function useTheme() {
@@ -504,7 +529,7 @@ export function useTheme() {
     canParseThemeShareString(value, variant);
 
   const importThemeString = (value: string, variant: ThemeVariant = resolvedTheme) => {
-    updateStoredThemeState((state) => updateThemePackFromShareString(state, value, variant));
+    updateStoredThemeState((state) => withHostUnlink(updateThemePackFromShareString(state, value, variant)));
   };
 
   const exportThemeString = (variant: ThemeVariant = resolvedTheme) =>
@@ -533,6 +558,7 @@ export function useTheme() {
     darkTheme,
     defaultActiveTheme,
     exportThemeString,
+    followHostTheme: snapshot.state.followHostTheme,
     importThemeString,
     isDefaultActiveTheme,
     isDefaultThemePack,
@@ -542,6 +568,7 @@ export function useTheme() {
     resetThemeVariant,
     resolvedTheme,
     setCodeThemeId,
+    setFollowHostTheme,
     setTheme,
     theme,
     themeState: snapshot.state,

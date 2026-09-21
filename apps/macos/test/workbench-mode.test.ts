@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { AGENTS_EDITOR_SHOW_TABS, AGENTS_WINDOW_SUPPORT_SETTING, allThemeProvidingExtensionIds, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCediaAgentsWindow, isCopilotAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveStartupView, retentionReceipt, runWorkbenchCommands, switchWorkbenchMode, themeProvidingExtensionIds } from "../src/workbench-mode.ts";
+import { AGENTS_EDITOR_SHOW_TABS, AGENTS_WINDOW_SUPPORT_SETTING, allThemeProvidingExtensionIds, consumePendingNativeDestination, DEFAULT_IDE_LAYOUT, draftViewKey, isAgentsWindow, isCediaAgentsWindow, isCopilotAgentsWindow, mergeAgentsWindowWorkspaceSettings, modeSwitchProof, normalizeIdeLayout, persistDestinationAcrossReload, queuePendingNativeDestination, rememberIdeChrome, resolveSnapshotThemeName, resolveStartupView, retentionReceipt, runWorkbenchCommands, switchWorkbenchMode, themeProvidingExtensionIds } from "../src/workbench-mode.ts";
 import { createInitialTaskState, reduceTaskState } from "../src/state.ts";
 import { parseWebviewMessage } from "../src/messages.ts";
 import type { Project, Session } from "../../../packages/protocol/src/index.ts";
@@ -215,6 +215,39 @@ describe("Agent ↔ IDE workbench mode", () => {
 		expect(themeProvidingExtensionIds([], [catppuccin])).toEqual([]);
 		expect(themeProvidingExtensionIds([undefined, ""], [catppuccin])).toEqual([]);
 		expect(themeProvidingExtensionIds(["Default Dark Modern"], [catppuccin])).toEqual([]);
+	});
+
+	it("hands over the theme the window actually shows", () => {
+		// With autoDetect the stored colorTheme is not what the window paints.
+		expect(resolveSnapshotThemeName({
+			colorTheme: "__vs-dark",
+			preferredDarkColorTheme: "Dark Modern",
+			preferredLightColorTheme: "Light Modern",
+			autoDetectColorScheme: true,
+			mode: "light",
+		})).toBe("Light Modern");
+		expect(resolveSnapshotThemeName({
+			colorTheme: "__vs-dark",
+			preferredDarkColorTheme: "Dark Modern",
+			preferredLightColorTheme: "Light Modern",
+			autoDetectColorScheme: true,
+			mode: "dark",
+		})).toBe("Dark Modern");
+		// A missing preferred theme falls back to the stored id rather than nothing.
+		expect(resolveSnapshotThemeName({
+			colorTheme: "__vs-dark",
+			autoDetectColorScheme: true,
+			mode: "light",
+		})).toBe("__vs-dark");
+		// Without autoDetect the stored theme is what the window shows.
+		expect(resolveSnapshotThemeName({
+			colorTheme: "Catppuccin Frapp\u00e9",
+			preferredDarkColorTheme: "Dark Modern",
+			preferredLightColorTheme: "Light Modern",
+			autoDetectColorScheme: false,
+			mode: "light",
+		})).toBe("Catppuccin Frapp\u00e9");
+		expect(resolveSnapshotThemeName({ mode: "dark" })).toBeUndefined();
 	});
 
 	it("keeps every installed theme provider available in the Agents window", () => {

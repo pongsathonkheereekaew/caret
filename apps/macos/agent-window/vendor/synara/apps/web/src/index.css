@@ -95,7 +95,7 @@
        transparent than card/input borders — color-mix toward transparent scales the
        border's alpha (same proven form as the seam-hover tint below) and stays
        theme-aware because --color-border already differs per theme. */
-    --app-surface-divider: color-mix(in srgb, var(--color-border) 60%, transparent);
+    --app-surface-divider: color-mix(in srgb, var(--color-border) 75%, transparent);
   }
 
   /* The IDE webview owns its surrounding editor chrome. Keep the shared Agent
@@ -159,11 +159,11 @@
     /* The outer seam reads stronger than --color-border (and NOT the more-transparent
        --app-surface-divider used by the internal hairlines/splits): the route's outer
        edge against the sidebar should read as solid. Do not re-unify these. */
-    --seam-line: --alpha(var(--color-black) / 5%);
+    --seam-line: --alpha(var(--color-black) / 8%);
   }
 
   .dark .chat-content-card {
-    --seam-line: --alpha(var(--color-white) / 5%);
+    --seam-line: --alpha(var(--color-white) / 8%);
   }
 
   [data-sidebar-side="left"] .chat-content-card {
